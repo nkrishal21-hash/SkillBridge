@@ -1,0 +1,43 @@
+# SkillBridge — Python dependencies (pinned for reproducibility)
+# Install: pip install -r requirements.txt
+
+# Core Framework
+Flask==3.0.3
+Werkzeug==3.0.3
+
+# Database
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.31
+PyMySQL==1.1.1
+cryptography==42.0.8          # required by PyMySQL for SSL
+
+# Authentication
+Flask-Login==0.6.3
+Flask-Bcrypt==1.0.1
+Authlib==1.3.1                # Google OAuth
+requests==2.34.2              # required by Authlib
+
+# Forms & Security
+Flask-WTF==1.2.1
+WTForms==3.1.2
+email-validator==2.2.0
+
+# Real-Time Chat
+Flask-SocketIO==5.3.6
+simple-websocket==1.0.0       # transport backend for SocketIO
+
+# Email
+Flask-Mail==0.10.0
+
+# File Storage
+cloudinary==1.40.0
+
+# PDF Certificates
+reportlab==4.2.2
+
+# Utilities
+python-dotenv==1.0.1          # load .env file
+Pillow==10.4.0                # image processing
+
+# WSGI server (production)
+gunicorn==22.0.0
