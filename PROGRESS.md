@@ -9,7 +9,7 @@
 | Phase | Focus | Status | Date Completed |
 |---|---|---|---|
 | 1 | Setup & Models | ✅ Done | 2026-09-14 |
-| 2 | Authentication | ⬜ Not started | |
+| 2 | Authentication | ✅ Done | 2026-09-15 |
 | 3 | Teacher Profile & Search | ⬜ Not started | |
 | 4 | Course Management | ⬜ Not started | |
 | 5 | Booking System | ⬜ Not started | |
@@ -62,7 +62,7 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 **Blockers / deviations from master prompt:**
 - Port changed from 5000 → 5001 (macOS AirPlay Receiver occupies port 5000 by default)
 - `requests` added explicitly to requirements.txt (Authlib 1.3.1 omits it as a declared dep on Python 3.14)
-- MySQL not yet installed on dev machine — installing via Homebrew during Phase 1 setup
+- MySQL initialized and verified on port 3306
 
 **Notes for report/viva:**
 - App factory pattern used: extensions created globally, initialized inside `create_app()` to avoid circular imports
@@ -74,27 +74,47 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 2 — Authentication
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-15 / 2026-09-15
 
 **Checklist**
-- [ ] Register (Learner / Teacher separate flows)
-- [ ] Login / Logout
-- [ ] Google OAuth login working
-- [ ] Forgot password → email sent via Flask-Mail
-- [ ] Reset password via token
-- [ ] `templates/base.html` (navbar, flash messages)
-- [ ] Role-based redirect after login
-- [ ] Role-based route protection in place
+- [x] Register (Learner / Teacher separate flows with tabbed interface)
+- [x] Login / Logout (with 5-attempt rate-limiting and temporary account lockout)
+- [x] Google OAuth login working (Authlib integration with graceful fallback)
+- [x] Forgot password → email sent via Flask-Mail (with dev mode token preview)
+- [x] Reset password via token (itsdangerous URLSafeTimedSerializer with 30m expiry)
+- [x] `templates/base.html` (modern design system, responsive navbar, flash notifications)
+- [x] Role-based redirect after login (`/learner/dashboard`, `/teacher/dashboard`, `/admin/dashboard`)
+- [x] Role-based route protection in place (`@learner_required`, `@teacher_required`, `@admin_required`)
 
 **Files created/modified:**
--
+- `app/models.py` (added bcrypt helpers `set_password`, `check_password`, role properties, and account lockout tracking)
+- `app/auth/forms.py` (`RegisterForm`, `LoginForm`, `ForgotPasswordForm`, `ResetPasswordForm`)
+- `app/auth/utils.py` (role decorators, token generation/verification, password reset email sender)
+- `app/auth/routes.py` (register, login, logout, google OAuth, forgot_password, reset_password)
+- `app/learner/routes.py` (protected `/learner/dashboard`)
+- `app/teacher/routes.py` (protected `/teacher/dashboard`)
+- `app/admin/routes.py` (protected `/admin/dashboard`)
+- `app/static/css/style.css` (custom design system with CSS variables, responsive typography, and animations)
+- `app/templates/base.html` (core layout with role-aware navigation, avatar dropdown, and toast flashes)
+- `app/templates/auth/login.html` (styled sign-in form with Google OAuth and remember me)
+- `app/templates/auth/register.html` (role-switching registration tabs for learner vs teacher)
+- `app/templates/auth/forgot_password.html` (reset link request card)
+- `app/templates/auth/reset_password.html` (password update form)
+- `app/templates/learner/dashboard.html` (initial learner dashboard)
+- `app/templates/teacher/dashboard.html` (initial teacher studio)
+- `app/templates/admin/dashboard.html` (initial admin overview)
+- `app/templates/index.html` (updated hero and features grid extending base.html)
 
 **Blockers / deviations from master prompt:**
--
+- None. Rate-limiting lockout implemented cleanly at model/ORM level without external Redis dependency.
 
 **Notes for report/viva:**
--
+- Passwords hashed using `Flask-Bcrypt` with salted rounds.
+- Role-based access control enforces least-privilege security using Python function decorators.
+- Rate-limiting prevents credential stuffing and brute-force attacks by locking accounts for 15 minutes after 5 failed attempts.
+- Password reset tokens use cryptographic signing (`itsdangerous.URLSafeTimedSerializer`) with a strict 30-minute expiry window.
+- UI built entirely using custom Vanilla CSS tokens for clean maintainability and zero framework bloat.
 
 ---
 

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Learner Dashboard — SkillBridge{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+        Learner Portal
+      </div>
+      <h2>Welcome back, {{ user.full_name }}! 👋</h2>
+      <p style="color: var(--text-secondary); margin-top: 4px;">Track your course enrollments, scheduled 1-on-1 sessions, and skill badges.</p>
+    </div>
+    <div style="display: flex; gap: 12px;">
+      <a href="{{ url_for('courses.list_courses') if 'courses.list_courses' in url_map else '#' }}" class="btn btn-primary btn-sm">
+        Explore Courses
+      </a>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-top: 30px; padding-bottom: 60px;">
+  <!-- Stats Summary -->
+  <div class="dashboard-stats">
+    <div class="stat-card">
+      <div class="stat-label">Enrolled Courses</div>
+      <div class="stat-value">{{ user.enrollments.count() }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Upcoming Sessions</div>
+      <div class="stat-value">{{ user.bookings_as_learner.filter_by(booking_status='confirmed').count() }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Certificates Earned</div>
+      <div class="stat-value">{{ user.certificates.count() }}</div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px;">
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
+      <h3 style="margin-bottom: 16px; font-size: 1.25rem;">My Courses</h3>
+      {% if user.enrollments.count() == 0 %}
+        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 10px;">📚</div>
+          <p style="font-size: 1rem; margin-bottom: 16px;">You haven't enrolled in any courses yet.</p>
+          <a href="#" class="btn btn-outline btn-sm">Browse Catalog</a>
+        </div>
+      {% endif %}
+    </div>
+
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
+      <h3 style="margin-bottom: 16px; font-size: 1.25rem;">Upcoming Mentorship</h3>
+      {% if user.bookings_as_learner.count() == 0 %}
+        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 10px;">🗓️</div>
+          <p style="font-size: 0.95rem;">No active session bookings.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

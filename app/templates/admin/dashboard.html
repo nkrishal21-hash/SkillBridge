@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Console — SkillBridge{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="font-size: 0.85rem; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+        Platform Administration
+      </div>
+      <h2>System Overview & Control Panel ⚙️</h2>
+      <p style="color: var(--text-secondary); margin-top: 4px;">Manage users, verify instructors, oversee transactions and platform analytics.</p>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-top: 30px; padding-bottom: 60px;">
+  <!-- Stats Summary -->
+  <div class="dashboard-stats">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value">{{ stats.total_users }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Published Courses</div>
+      <div class="stat-value">{{ stats.total_courses }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Bookings</div>
+      <div class="stat-value">{{ stats.total_bookings }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Transactions</div>
+      <div class="stat-value">{{ stats.total_payments }}</div>
+    </div>
+  </div>
+
+  <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
+    <h3 style="margin-bottom: 16px; font-size: 1.25rem;">Quick Management Tools</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">Administrative controls and verification queues will activate in Phase 8.</p>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <a href="#" class="btn btn-outline btn-sm">Review Teacher Verifications</a>
+      <a href="#" class="btn btn-outline btn-sm">Course Moderation Queue</a>
+      <a href="#" class="btn btn-outline btn-sm">Audit Payments</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

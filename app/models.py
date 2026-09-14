@@ -9,9 +9,9 @@ Tables:
     notifications, certificates, favorites
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_login import UserMixin
-from app import db
+from app import db, bcrypt
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -68,6 +68,51 @@ class User(db.Model, UserMixin):
     notifications = db.relationship("Notification", back_populates="user", lazy="dynamic", cascade="all, delete-orphan")
     certificates = db.relationship("Certificate", back_populates="learner", lazy="dynamic")
     favorites = db.relationship("Favorite", back_populates="learner", lazy="dynamic", cascade="all, delete-orphan")
+
+    def set_password(self, password: str) -> None:
+        """Hash and set the user's password using Flask-Bcrypt."""
+        self.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+
+    def check_password(self, password: str) -> bool:
+        """Verify the password against the stored bcrypt hash."""
+        if not self.password_hash:
+            return False
+        return bcrypt.check_password_hash(self.password_hash, password)
+
+    @property
+    def is_learner(self) -> bool:
+        return self.role == "learner"
+
+    @property
+    def is_teacher(self) -> bool:
+        return self.role == "teacher"
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
+
+    @property
+    def is_locked(self) -> bool:
+        """Check if account is temporarily locked due to excessive failed attempts."""
+        if self.locked_until and self.locked_until > datetime.utcnow():
+            return True
+        return False
+
+    def increment_failed_login(self, max_attempts: int = 5, lock_minutes: int = 15) -> bool:
+        """
+        Record a failed login attempt. If max_attempts reached, lock for lock_minutes.
+        Returns True if newly locked, False otherwise.
+        """
+        self.failed_login_attempts = (self.failed_login_attempts or 0) + 1
+        if self.failed_login_attempts >= max_attempts:
+            self.locked_until = datetime.utcnow() + timedelta(minutes=lock_minutes)
+            return True
+        return False
+
+    def reset_failed_login(self) -> None:
+        """Reset failed login count and clear lock on successful authentication."""
+        self.failed_login_attempts = 0
+        self.locked_until = None
 
     def __repr__(self):
         return f"<User {self.id}: {self.email} ({self.role})>"

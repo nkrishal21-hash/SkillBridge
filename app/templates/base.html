@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SkillBridge — Peer-to-Peer Learning and Skill Exchange Platform connecting learners with verified mentors and interactive courses.">
+  <title>{% block title %}SkillBridge — Learn, Teach, Grow{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Sticky Navbar -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="{{ url_for('index') }}" class="brand">
+        <span class="brand-icon">S</span>
+        <span class="brand-name">SkillBridge</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+          <li><a href="{{ url_for('courses.list_courses') if 'courses.list_courses' in url_map else '#' }}" class="nav-link">Courses</a></li>
+          <li><a href="{{ url_for('teacher.dashboard') if current_user.is_authenticated and current_user.is_teacher else '#' }}" class="nav-link">Find Mentors</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        {% if current_user.is_authenticated %}
+          <div class="user-menu" tabindex="0">
+            <button class="user-badge-btn" type="button" aria-haspopup="true" aria-expanded="false">
+              <div class="avatar">
+                {% if current_user.profile_photo %}
+                  <img src="{{ current_user.profile_photo }}" alt="{{ current_user.full_name }}">
+                {% else %}
+                  {{ current_user.full_name[:1].upper() }}
+                {% endif %}
+              </div>
+              <span>{{ current_user.full_name.split()[0] }}</span>
+              <span class="badge badge-{{ current_user.role }}">{{ current_user.role }}</span>
+            </button>
+
+            <div class="dropdown-panel">
+              <div class="dropdown-header">
+                <div class="dropdown-name">{{ current_user.full_name }}</div>
+                <div class="dropdown-email">{{ current_user.email }}</div>
+              </div>
+
+              {% if current_user.role == 'learner' %}
+                <a href="{{ url_for('learner.dashboard') }}" class="dropdown-item">📊 My Dashboard</a>
+              {% elif current_user.role == 'teacher' %}
+                <a href="{{ url_for('teacher.dashboard') }}" class="dropdown-item">👨‍🏫 Teacher Hub</a>
+              {% elif current_user.role == 'admin' %}
+                <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">⚙️ Admin Console</a>
+              {% endif %}
+
+              <div class="dropdown-divider"></div>
+              <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color: var(--danger);">
+                🚪 Sign Out
+              </a>
+            </div>
+          </div>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Sign In</a>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Get Started</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <!-- Flash Toast Notifications -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container" id="flash-container">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category in ['success', 'danger', 'warning', 'info'] else 'info' }}" role="alert">
+            <span>{{ message }}</span>
+            <button type="button" class="alert-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Main Content Body -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>
+        <strong>SkillBridge</strong> &mdash; Peer-to-Peer Learning & Mentorship Platform
+      </div>
+      <div>
+        &copy; 2026 SkillBridge. Built with Flask, SQLAlchemy, MySQL & Vanilla CSS.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Auto-dismiss flash alerts after 6 seconds
+    setTimeout(() => {
+      const container = document.getElementById('flash-container');
+      if (container) {
+        container.style.transition = 'opacity 0.5s ease';
+        container.style.opacity = '0';
+        setTimeout(() => container.remove(), 500);
+      }
+    }, 6000);
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>
