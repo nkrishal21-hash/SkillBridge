@@ -11,7 +11,7 @@
 | 1 | Setup & Models | ✅ Done | 2026-09-14 |
 | 2 | Authentication | ✅ Done | 2026-09-15 |
 | 3 | Teacher Profile & Search | ✅ Done | 2026-09-15 |
-| 4 | Course Management | ⬜ Not started | |
+| 4 | Course Management | ✅ Done | 2026-09-15 |
 | 5 | Booking System | ⬜ Not started | |
 | 6 | Live Class & Chat | ⬜ Not started | |
 | 7 | Ratings & Payments | ⬜ Not started | |
@@ -153,26 +153,43 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 4 — Course Management
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-15 / 2026-09-15
 
 **Checklist**
-- [ ] Teacher: create/edit course, add lessons, add quiz
-- [ ] Course files (video/PDF) via Cloudinary
-- [ ] Learner: browse, enroll, view course detail
-- [ ] Lesson viewer with progress tracking
-- [ ] Quiz submission
-- [ ] Progress % updates correctly
-- [ ] Course-complete trigger wired (certificate placeholder for Phase 8)
+- [x] Teacher: create/edit course, add lessons, add quiz
+- [x] Course files (video/PDF/thumbnail) via Cloudinary with local fallback
+- [x] Learner: browse, enroll, view course detail
+- [x] Lesson viewer with progress tracking
+- [x] Quiz submission with passing & failing scores
+- [x] Progress % updates correctly across curriculum
+- [x] Course-complete trigger wired (certificate placeholder for Phase 8)
 
 **Files created/modified:**
--
+- `app/courses/utils.py` (`upload_course_thumbnail`, `upload_lesson_video`, `upload_lesson_pdf`, `parse_quiz_data`, `format_quiz_data`)
+- `app/courses/forms.py` (`CourseForm`, `LessonForm`, `QuizQuestionForm`)
+- `app/courses/routes.py` (catalog, detail, create, edit, toggle_publish, manage_lessons, create_lesson, edit_lesson, delete_lesson, enroll, lesson_view, complete_lesson, submit_quiz)
+- `app/templates/courses/catalog.html` (search, filters, course cards grid, pagination, empty state)
+- `app/templates/courses/course_detail.html` (hero header, instructor card, syllabus outline with lock indicators, enroll CTA)
+- `app/templates/courses/course_form.html` (course creation/edit metadata with live thumbnail preview)
+- `app/templates/courses/manage_lessons.html` (curriculum outline, lesson sequence management, status badges)
+- `app/templates/courses/lesson_form.html` (dynamic type switcher, media uploads, interactive quiz builder)
+- `app/templates/courses/lesson_viewer.html` (video player, PDF viewer, text reader, interactive quiz, curriculum sidebar)
+- `app/templates/base.html` (connected "Courses" navbar link directly to `courses.catalog`)
+- `app/templates/teacher/dashboard.html` (linked "+ Create New Course" button, displayed active courses list)
+- `app/templates/learner/dashboard.html` (linked "Explore Courses" button, displayed enrolled courses with progress bars)
+- `app/static/css/style.css` (course cards, syllabus list, lesson viewer layout, quiz cards, progress bars)
 
 **Blockers / deviations from master prompt:**
--
+- **Catalog Visibility Gating**: Published courses are visible in the public catalog based on `is_published == True` without gating on `is_approved` (admin verification and course approval workflows are built in Phase 8).
+- **Paid Course Enrollment Placeholder**: Free courses enroll immediately on click; paid courses display a disabled placeholder button noting *"Payments launch in Phase 7"* (matching the placeholder pattern used in Phase 3 on public teacher profiles).
+- **Course Completion Trigger**: When all lessons are finished (`progress_percent == 100`), `Enrollment.completed_at` is set and a celebratory flash message is displayed; ReportLab PDF certificate generation is deferred to Phase 8.
 
 **Notes for report/viva:**
--
+- Course thumbnails, MP4 lecture videos, and PDF handouts utilize Cloudinary API with automatic folder grouping and validation, falling back gracefully to local disk storage in development environments without crashing.
+- Dynamic lesson viewer conditionally renders video player, PDF viewer, formatted text, or interactive multiple-choice quiz based on `content_type`.
+- Quizzes are evaluated server-side against `Lesson.quiz_data` JSON structure and require meeting the instructor-defined `quiz_pass_score` before marking the lesson complete.
+- Sequential curriculum progress is tracked on `Enrollment.completed_lessons` (comma-separated ID set) to avoid duplicate progress updates.
 
 ---
 

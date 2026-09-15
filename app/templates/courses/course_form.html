@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Course' if is_edit else 'Create New Course' }} — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px; padding-top: 36px; padding-bottom: 70px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <a href="{{ url_for('teacher.dashboard') }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Teacher Hub</a>
+      <h1 style="font-size: 2rem; margin-top: 6px;">{{ 'Edit Course Metadata' if is_edit else 'Create New Course' }}</h1>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        {{ 'Update course overview, pricing, and banner thumbnail.' if is_edit else 'Start building your course curriculum. You can add video, PDF, text, and quiz lessons in the next step.' }}
+      </p>
+    </div>
+
+    {% if is_edit and course %}
+      <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-primary btn-sm">
+          📚 Manage Lessons ({{ course.lessons.count() }})
+        </a>
+        <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="btn btn-outline btn-sm" target="_blank">
+          View Detail ↗
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="auth-card" style="max-width: 100%; padding: 36px 32px;">
+    <form method="POST" enctype="multipart/form-data" novalidate>
+      {{ form.hidden_tag() }}
+
+      <!-- Title -->
+      <div class="form-group">
+        <label class="form-label" for="title">Course Title <span style="color: var(--danger);">*</span></label>
+        {{ form.title(class="form-control", id="title") }}
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">A descriptive, catchy title that clearly states what learners will master.</div>
+        {% for error in form.title.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Category & Level -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+          <label class="form-label" for="category">Category <span style="color: var(--danger);">*</span></label>
+          {{ form.category(class="form-control", id="category") }}
+          {% for error in form.category.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="level">Skill Level <span style="color: var(--danger);">*</span></label>
+          {{ form.level(class="form-control", id="level") }}
+          {% for error in form.level.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Price & Language -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+          <label class="form-label" for="price">Price (NPR)</label>
+          {{ form.price(class="form-control", id="price") }}
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Set to 0 for a free course.</div>
+          {% for error in form.price.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="language">Teaching Language <span style="color: var(--danger);">*</span></label>
+          {{ form.language(class="form-control", id="language") }}
+          {% for error in form.language.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Thumbnail Upload & Preview -->
+      <div class="form-group" style="padding-top: 10px; border-top: 1px solid var(--border-subtle); margin-top: 16px;">
+        <label class="form-label" for="thumbnail">Course Thumbnail Banner</label>
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">
+          Recommended resolution: 1280x720 or 800x450 (16:9 ratio, JPG, PNG, WEBP up to 16MB).
+        </div>
+
+        <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+          <div id="thumbnail-preview-container" style="width: 220px; height: 124px; border-radius: var(--radius-md); overflow: hidden; background: var(--bg-alt); border: 2px dashed var(--border-subtle); display: flex; align-items: center; justify-content: center; position: relative;">
+            {% if is_edit and course and course.thumbnail_url %}
+              <img src="{{ course.thumbnail_url }}" alt="Thumbnail Preview" id="thumbnail-preview-img" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+              <span id="thumbnail-placeholder" style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 10px;">No thumbnail selected</span>
+              <img id="thumbnail-preview-img" style="width: 100%; height: 100%; object-fit: cover; display: none;" alt="Preview">
+            {% endif %}
+          </div>
+
+          <div style="flex: 1; min-width: 240px;">
+            {{ form.thumbnail(class="form-control", id="thumbnail", accept="image/*", onchange="previewThumbnail(this)") }}
+            {% for error in form.thumbnail.errors %}
+              <div class="form-error">⚠ {{ error }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group" style="margin-top: 20px;">
+        <label class="form-label" for="description">Course Overview / Description</label>
+        {{ form.description(class="form-control", id="description") }}
+        {% for error in form.description.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Actions -->
+      <div style="margin-top: 28px; display: flex; gap: 14px; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary btn-lg" style="min-width: 180px;">
+          {{ 'Save Changes' if is_edit else 'Create Course & Add Lessons →' }}
+        </button>
+        <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-secondary btn-lg">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function previewThumbnail(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.getElementById('thumbnail-preview-img');
+        const placeholder = document.getElementById('thumbnail-placeholder');
+        if (img) {
+          img.src = e.target.result;
+          img.style.display = 'block';
+        }
+        if (placeholder) {
+          placeholder.style.display = 'none';
+        }
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+</script>
+{% endblock %}

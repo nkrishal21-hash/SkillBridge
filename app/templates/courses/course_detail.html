@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.title }} — SkillBridge{% endblock %}
+
+{% block content %}
+<!-- Course Header Hero -->
+<section class="profile-hero">
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+      <div style="max-width: 780px;">
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
+          <span class="course-category-tag">{{ course.category or 'General' }}</span>
+          <span class="badge badge-verified">{{ course.level|capitalize }} Level</span>
+          <span style="font-size: 0.85rem; color: var(--text-secondary);">🌐 {{ course.language }}</span>
+          {% if not course.is_published %}
+            <span class="badge badge-warning" style="background: #fef3c7; color: #b45309;">Draft (Unpublished)</span>
+          {% endif %}
+        </div>
+
+        <h1 style="font-size: 2.3rem; margin-bottom: 12px; line-height: 1.25;">{{ course.title }}</h1>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin-bottom: 20px;">
+          {{ course.description or 'A comprehensive curriculum designed to help you master new skills.' }}
+        </p>
+
+        <!-- Instructor Row -->
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div class="course-instructor-avatar" style="width: 48px; height: 48px;">
+            {% if course.teacher and course.teacher.user and course.teacher.user.profile_photo %}
+              <img src="{{ course.teacher.user.profile_photo }}" alt="{{ course.teacher.user.full_name }}">
+            {% else %}
+              <span>{{ (course.teacher.user.full_name if course.teacher and course.teacher.user else 'I')[:1].upper() }}</span>
+            {% endif %}
+          </div>
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Taught by</div>
+            <a href="{{ url_for('teacher.public_profile', teacher_id=course.teacher_id) }}" style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary);">
+              {{ course.teacher.user.full_name if course.teacher and course.teacher.user else 'Instructor' }} ↗
+            </a>
+            {% if course.teacher and course.teacher.is_verified %}
+              <span class="badge badge-verified" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 4px;">✓ Verified</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Price / Action Header Widget -->
+      <div style="text-align: right; min-width: 200px;">
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Enrollment Fee</div>
+        <div style="font-family: var(--font-heading); font-size: 2rem; font-weight: 800; color: var(--primary);">
+          {% if not course.price or course.price == 0 %}
+            <span style="color: var(--success);">Free</span>
+          {% else %}
+            NPR {{ "%.2f"|format(course.price) }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Course Body -->
+<div class="container" style="padding-top: 40px; padding-bottom: 80px;">
+  <div class="profile-layout-grid">
+    <!-- Left / Main Curriculum Column -->
+    <div class="profile-main-col">
+      <!-- Thumbnail Showcase -->
+      {% if course.thumbnail_url %}
+        <div style="border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 28px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm); max-height: 420px;">
+          <img src="{{ course.thumbnail_url }}" alt="{{ course.title }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+        </div>
+      {% endif %}
+
+      <!-- Course Description -->
+      <div class="content-box">
+        <h2 class="section-title">About this Course</h2>
+        <div class="profile-bio-text">
+          {{ course.description|nl2br if course.description else 'No detailed description has been added for this course yet.' }}
+        </div>
+      </div>
+
+      <!-- Curriculum Syllabus -->
+      <div class="content-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 class="section-title" style="margin-bottom: 4px; border: none; padding: 0;">Course Curriculum</h2>
+            <div style="font-size: 0.88rem; color: var(--text-muted);">
+              {{ lessons|length }} lesson{{ 's' if lessons|length != 1 else '' }} &bull; ~{{ total_duration }} minutes total duration
+            </div>
+          </div>
+          {% if is_owner %}
+            <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-outline btn-sm">
+              ⚙️ Manage Lessons
+            </a>
+          {% endif %}
+        </div>
+
+        {% if lessons %}
+          <div class="syllabus-list">
+            {% for lesson in lessons %}
+              {% set can_view = is_owner or lesson.is_preview or enrollment %}
+              {% set is_done = lesson.id in completed_ids %}
+              
+              <div class="syllabus-item {% if can_view %}syllabus-item-accessible{% else %}syllabus-item-locked{% endif %}">
+                <div class="syllabus-item-left">
+                  <div class="syllabus-num">
+                    {% if is_done %}
+                      <span style="color: var(--success); font-size: 1.1rem;">✓</span>
+                    {% else %}
+                      {{ lesson.order }}
+                    {% endif %}
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      {% if lesson.content_type == 'video' %}
+                        <span title="Video Lesson">🎥</span>
+                      {% elif lesson.content_type == 'pdf' %}
+                        <span title="PDF Handout">📄</span>
+                      {% elif lesson.content_type == 'text' %}
+                        <span title="Reading Material">📝</span>
+                      {% elif lesson.content_type == 'quiz' %}
+                        <span title="Interactive Quiz">💡</span>
+                      {% endif %}
+
+                      {% if can_view %}
+                        <a href="{{ url_for('courses.lesson_view', course_id=course.id, lesson_id=lesson.id) }}" class="syllabus-title-link">
+                          {{ lesson.title }}
+                        </a>
+                      {% else %}
+                        <span class="syllabus-title-locked">{{ lesson.title }}</span>
+                      {% endif %}
+
+                      {% if lesson.is_preview %}
+                        <span class="badge badge-preview">Free Preview</span>
+                      {% endif %}
+                    </div>
+
+                    {% if lesson.description %}
+                      <div class="syllabus-desc">{{ lesson.description }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="syllabus-item-right">
+                  {% if lesson.duration_minutes %}
+                    <span class="syllabus-duration">{{ lesson.duration_minutes }}m</span>
+                  {% endif %}
+
+                  {% if can_view %}
+                    <a href="{{ url_for('courses.lesson_view', course_id=course.id, lesson_id=lesson.id) }}" class="btn btn-sm btn-outline" style="padding: 4px 10px; font-size: 0.8rem;">
+                      {% if is_done %}Review{% else %}Start{% endif %} &rarr;
+                    </a>
+                  {% else %}
+                    <span class="lesson-lock-badge" title="Enroll to unlock this lesson">🔒 Locked</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">📝</div>
+            <p>No lessons have been published in this curriculum yet.</p>
+            {% if is_owner %}
+              <a href="{{ url_for('courses.create_lesson', course_id=course.id) }}" class="btn btn-primary btn-sm" style="margin-top: 10px;">
+                + Add First Lesson
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Sidebar Action Widget -->
+    <aside class="profile-sidebar-col">
+      <div class="content-box" style="position: sticky; top: 96px;">
+        <h3 style="font-size: 1.2rem; margin-bottom: 16px;">Enrollment &amp; Progress</h3>
+
+        {% if is_owner %}
+          <!-- Teacher Owner Controls -->
+          <div class="alert alert-info" style="margin-bottom: 18px; font-size: 0.9rem;">
+            👨‍🏫 <strong>Instructor View:</strong> You created this course.
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-primary btn-block">
+              📚 Manage Curriculum ({{ lessons|length }})
+            </a>
+            <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-outline btn-block">
+              ✏️ Edit Course Details
+            </a>
+
+            <form method="POST" action="{{ url_for('courses.toggle_publish', course_id=course.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% if course.is_published %}
+                <button type="submit" class="btn btn-secondary btn-block" style="margin-top: 6px;">
+                  🚫 Move to Drafts
+                </button>
+              {% else %}
+                <button type="submit" class="btn btn-secondary btn-block" style="background: #10b981; color: white; border-color: #10b981; margin-top: 6px;">
+                  🚀 Publish to Catalog
+                </button>
+              {% endif %}
+            </form>
+          </div>
+
+        {% elif enrollment %}
+          <!-- Enrolled Learner Progress Box -->
+          <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.9rem; font-weight: 600;">Your Progress</span>
+              <span style="font-size: 0.95rem; font-weight: 700; color: var(--primary);">{{ enrollment.progress_percent }}%</span>
+            </div>
+            <div class="progress-track" style="height: 10px; border-radius: var(--radius-full); background: var(--bg-alt); overflow: hidden;">
+              <div class="progress-fill" style="width: {{ enrollment.progress_percent }}%; height: 100%; background: var(--primary); transition: width 0.4s ease;"></div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
+              {{ completed_ids|length }} of {{ lessons|length }} lessons completed
+            </div>
+          </div>
+
+          {% if enrollment.progress_percent >= 100 %}
+            <div class="alert alert-success" style="font-size: 0.88rem; margin-bottom: 16px;">
+              🎉 <strong>Course Completed!</strong> You have finished all lessons. Certificate downloads will launch in Phase 8!
+            </div>
+          {% endif %}
+
+          {% if lessons %}
+            {% set next_uncompleted = None %}
+            {% for l in lessons %}
+              {% if not next_uncompleted and l.id not in completed_ids %}
+                {% set next_uncompleted = l %}
+              {% endif %}
+            {% endfor %}
+
+            <a href="{{ url_for('courses.lesson_view', course_id=course.id, lesson_id=(next_uncompleted.id if next_uncompleted else lessons[0].id)) }}" class="btn btn-primary btn-block btn-lg">
+              {% if enrollment.progress_percent >= 100 %}
+                Review Course &rarr;
+              {% else %}
+                Continue Learning &rarr;
+              {% endif %}
+            </a>
+          {% endif %}
+
+        {% else %}
+          <!-- Not Enrolled State -->
+          <div class="sidebar-stat-item">
+            <span class="sidebar-stat-label">Full Lifetime Access</span>
+            <span class="sidebar-stat-val">Yes</span>
+          </div>
+          <div class="sidebar-stat-item">
+            <span class="sidebar-stat-label">Total Lessons</span>
+            <span class="sidebar-stat-val">{{ lessons|length }}</span>
+          </div>
+          <div class="sidebar-stat-item">
+            <span class="sidebar-stat-label">Interactive Quizzes</span>
+            <span class="sidebar-stat-val">Included</span>
+          </div>
+
+          <div style="margin-top: 24px;">
+            {% if current_user.is_authenticated %}
+              {% if not course.price or course.price == 0 %}
+                <form method="POST" action="{{ url_for('courses.enroll', course_id=course.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    ⚡ Enroll in Course (Free)
+                  </button>
+                </form>
+              {% else %}
+                <button type="button" class="btn btn-primary btn-block btn-lg" style="opacity: 0.85; cursor: not-allowed;" title="Payment integration launches in Phase 7">
+                  🔒 Enroll (NPR {{ "%.0f"|format(course.price) }})
+                </button>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 8px;">
+                  eSewa &amp; Khalti checkout launches in Phase 7!
+                </div>
+              {% endif %}
+            {% else %}
+              <a href="{{ url_for('auth.login', next=request.url) }}" class="btn btn-primary btn-block btn-lg">
+                Sign in to Enroll
+              </a>
+              <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 8px;">
+                New to SkillBridge? <a href="{{ url_for('auth.register') }}">Create an account</a>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <div style="border-top: 1px solid var(--border-subtle); margin-top: 24px; padding-top: 16px;">
+          <a href="{{ url_for('courses.catalog') }}" class="btn btn-outline btn-block btn-sm">
+            &larr; Back to Catalog
+          </a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

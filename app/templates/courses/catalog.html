@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Explore Courses — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="search-page-header">
+  <div class="container">
+    <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+      Interactive Curriculum
+    </div>
+    <h1 style="font-size: 2.2rem; margin-bottom: 8px;">Browse Courses &amp; Masterclasses</h1>
+    <p style="color: var(--text-secondary); font-size: 1.05rem; max-width: 680px;">
+      Learn industry-relevant skills through hands-on lessons, video tutorials, downloadable resources, and quizzes taught by peer mentors.
+    </p>
+  </div>
+</div>
+
+<div class="container" style="padding-top: 32px; padding-bottom: 70px;">
+  <div class="search-layout">
+    <!-- Filter Sidebar -->
+    <aside class="search-sidebar">
+      <div class="search-filter-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin: 0;">Filters</h2>
+          {% if q or selected_category or selected_level or selected_price or (sort_by and sort_by != 'newest') %}
+            <a href="{{ url_for('courses.catalog') }}" style="font-size: 0.82rem; color: var(--danger);">Reset All</a>
+          {% endif %}
+        </div>
+
+        <form method="GET" action="{{ url_for('courses.catalog') }}" id="courses-filter-form">
+          <!-- Keyword Search -->
+          <div class="form-group">
+            <label class="form-label" for="q">Keyword or Topic</label>
+            <input type="text" name="q" id="q" class="form-control" placeholder="e.g. Python, UI/UX, Flask" value="{{ q or '' }}">
+          </div>
+
+          <!-- Category Filter -->
+          <div class="form-group">
+            <label class="form-label" for="category">Category</label>
+            <select name="category" id="category" class="form-control">
+              <option value="">All Categories</option>
+              {% for cat_val, cat_label in [('Programming', 'Programming & Software'), ('Web Development', 'Web Development'), ('Data Science', 'Data Science & AI'), ('Design', 'UI/UX & Graphic Design'), ('Business', 'Business & Entrepreneurship'), ('Languages', 'Languages & Communication'), ('Other', 'Other Skills')] %}
+                <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Level Filter -->
+          <div class="form-group">
+            <label class="form-label" for="level">Skill Level</label>
+            <select name="level" id="level" class="form-control">
+              <option value="">All Levels</option>
+              <option value="beginner" {% if selected_level == 'beginner' %}selected{% endif %}>Beginner</option>
+              <option value="intermediate" {% if selected_level == 'intermediate' %}selected{% endif %}>Intermediate</option>
+              <option value="advanced" {% if selected_level == 'advanced' %}selected{% endif %}>Advanced</option>
+            </select>
+          </div>
+
+          <!-- Price Filter -->
+          <div class="form-group">
+            <label class="form-label" for="price">Pricing</label>
+            <select name="price" id="price" class="form-control">
+              <option value="">All Courses</option>
+              <option value="free" {% if selected_price == 'free' %}selected{% endif %}>Free Only</option>
+              <option value="paid" {% if selected_price == 'paid' %}selected{% endif %}>Paid Only</option>
+            </select>
+          </div>
+
+          <!-- Sorting -->
+          <div class="form-group">
+            <label class="form-label" for="sort">Sort By</label>
+            <select name="sort" id="sort" class="form-control">
+              <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+              <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+              <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px;">
+            Apply Filters
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Results Main Grid -->
+    <main class="search-results-main">
+      <div class="search-results-bar">
+        <div style="font-size: 0.95rem; color: var(--text-secondary);">
+          Showing <strong>{{ pagination.total }}</strong> course{{ 's' if pagination.total != 1 else '' }}
+          {% if q %}for "<span style="color: var(--text-primary); font-weight: 600;">{{ q }}</span>"{% endif %}
+        </div>
+        {% if current_user.is_authenticated and current_user.is_teacher %}
+          <a href="{{ url_for('courses.create') }}" class="btn btn-primary btn-sm">+ Create Course</a>
+        {% endif %}
+      </div>
+
+      {% if courses %}
+        <div class="course-cards-grid">
+          {% for course in courses %}
+            <div class="course-card">
+              <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="course-card-thumb-link">
+                <div class="course-card-thumb">
+                  {% if course.thumbnail_url %}
+                    <img src="{{ course.thumbnail_url }}" alt="{{ course.title }}">
+                  {% else %}
+                    <div class="course-card-thumb-placeholder">
+                      <span>📖</span>
+                    </div>
+                  {% endif %}
+                  <span class="course-badge-level badge-{{ course.level }}">
+                    {{ course.level|capitalize }}
+                  </span>
+                </div>
+              </a>
+
+              <div class="course-card-body">
+                <div class="course-card-meta">
+                  <span class="course-category-tag">{{ course.category or 'General' }}</span>
+                  <span class="course-lessons-count">📚 {{ course.lessons.count() }} lesson{{ 's' if course.lessons.count() != 1 else '' }}</span>
+                </div>
+
+                <h3 class="course-card-title">
+                  <a href="{{ url_for('courses.course_detail', course_id=course.id) }}">
+                    {{ course.title }}
+                  </a>
+                </h3>
+
+                <p class="course-card-desc">
+                  {{ course.description or 'No overview description provided.' }}
+                </p>
+
+                <div class="course-card-instructor">
+                  <div class="course-instructor-avatar">
+                    {% if course.teacher and course.teacher.user and course.teacher.user.profile_photo %}
+                      <img src="{{ course.teacher.user.profile_photo }}" alt="{{ course.teacher.user.full_name }}">
+                    {% else %}
+                      <span>{{ (course.teacher.user.full_name if course.teacher and course.teacher.user else 'I')[:1].upper() }}</span>
+                    {% endif %}
+                  </div>
+                  <div class="course-instructor-info">
+                    <span class="instructor-label">Instructor</span>
+                    <a href="{{ url_for('teacher.public_profile', teacher_id=course.teacher_id) }}" class="instructor-name">
+                      {{ course.teacher.user.full_name if course.teacher and course.teacher.user else 'Peer Mentor' }}
+                    </a>
+                  </div>
+                </div>
+
+                <div class="course-card-footer">
+                  <div class="course-card-price">
+                    {% if not course.price or course.price == 0 %}
+                      <span class="badge-free">Free</span>
+                    {% else %}
+                      <span class="price-val">NPR {{ "%.0f"|format(course.price) }}</span>
+                    {% endif %}
+                  </div>
+
+                  <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="btn btn-outline btn-sm">
+                    View Course &rarr;
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+          <div class="pagination-wrapper">
+            {% if pagination.has_prev %}
+              <a href="{{ url_for('courses.catalog', page=pagination.prev_num, q=q, category=selected_category, level=selected_level, price=selected_price, sort=sort_by) }}" class="page-link">
+                &larr; Prev
+              </a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+              {% if p %}
+                {% if p == pagination.page %}
+                  <span class="page-link active">{{ p }}</span>
+                {% else %}
+                  <a href="{{ url_for('courses.catalog', page=p, q=q, category=selected_category, level=selected_level, price=selected_price, sort=sort_by) }}" class="page-link">
+                    {{ p }}
+                  </a>
+                {% endif %}
+              {% else %}
+                <span class="page-ellipsis">&hellip;</span>
+              {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+              <a href="{{ url_for('courses.catalog', page=pagination.next_num, q=q, category=selected_category, level=selected_level, price=selected_price, sort=sort_by) }}" class="page-link">
+                Next &rarr;
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      {% else %}
+        <!-- Friendly Empty State -->
+        <div class="empty-state-box">
+          <div style="font-size: 3rem; margin-bottom: 12px;">🎓</div>
+          <h3>No courses found matching your criteria</h3>
+          <p style="color: var(--text-secondary); max-width: 440px; margin: 8px auto 20px;">
+            Try adjusting your search terms, selecting "All Categories", or clearing specific filters.
+          </p>
+          <a href="{{ url_for('courses.catalog') }}" class="btn btn-primary btn-sm">
+            Reset Filters
+          </a>
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+{% endblock %}

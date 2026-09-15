@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Lesson' if is_edit else 'Add New Lesson' }} — {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px; padding-top: 36px; padding-bottom: 70px;">
+  <div style="margin-bottom: 24px;">
+    <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Curriculum</a>
+    <h1 style="font-size: 2rem; margin-top: 6px;">{{ 'Edit Lesson' if is_edit else 'Add New Lesson' }}</h1>
+    <p style="color: var(--text-secondary); font-size: 0.95rem;">
+      Course: <strong>{{ course.title }}</strong>
+    </p>
+  </div>
+
+  <div class="auth-card" style="max-width: 100%; padding: 36px 32px;">
+    <form method="POST" enctype="multipart/form-data" novalidate id="lesson-form">
+      {{ form.hidden_tag() }}
+
+      <!-- Title -->
+      <div class="form-group">
+        <label class="form-label" for="title">Lesson Title <span style="color: var(--danger);">*</span></label>
+        {{ form.title(class="form-control", id="title") }}
+        {% for error in form.title.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Sequence Order, Type, & Duration -->
+      <div style="display: grid; grid-template-columns: 1fr 2fr 1.2fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label" for="order">Sequence # <span style="color: var(--danger);">*</span></label>
+          {{ form.order(class="form-control", id="order") }}
+          {% for error in form.order.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="content_type">Lesson Type <span style="color: var(--danger);">*</span></label>
+          {{ form.content_type(class="form-control", id="content_type", onchange="switchContentType(this.value)") }}
+          {% for error in form.content_type.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="duration_minutes">Duration (Mins)</label>
+          {{ form.duration_minutes(class="form-control", id="duration_minutes") }}
+          {% for error in form.duration_minutes.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Free Preview Checkbox -->
+      <div class="form-group" style="background: var(--bg-alt); padding: 14px 18px; border-radius: var(--radius-md); margin-top: 6px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
+          {{ form.is_preview(id="is_preview", style="width: 18px; height: 18px;") }}
+          <span style="font-weight: 600; font-size: 0.95rem;">Allow Free Preview</span>
+        </label>
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-left: 28px; margin-top: 2px;">
+          If enabled, learners can view this lesson without having to enroll in the course first.
+        </div>
+      </div>
+
+      <!-- Summary Description -->
+      <div class="form-group">
+        <label class="form-label" for="description">Lesson Overview / Summary</label>
+        {{ form.description(class="form-control", id="description") }}
+        {% for error in form.description.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- ── Dynamic Content Sections ────────────────────────── -->
+
+      <!-- 1. Video Section -->
+      <div id="section-video" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
+        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">🎥 Video File Details</h3>
+        {% if is_edit and lesson and lesson.video_url %}
+          <div style="font-size: 0.88rem; color: var(--success); margin-bottom: 12px;">
+            ✓ Current video uploaded: <a href="{{ lesson.video_url }}" target="_blank">View Video File ↗</a>
+          </div>
+        {% endif %}
+        <div class="form-group">
+          <label class="form-label" for="video_file">Upload Video File (MP4, up to 500MB)</label>
+          {{ form.video_file(class="form-control", id="video_file", accept="video/mp4") }}
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Uploaded directly to Cloudinary with local storage fallback in development.</div>
+          {% for error in form.video_file.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 2. PDF Document Section -->
+      <div id="section-pdf" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
+        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">📄 PDF Notes / Reading Material</h3>
+        {% if is_edit and lesson and lesson.pdf_url %}
+          <div style="font-size: 0.88rem; color: var(--success); margin-bottom: 12px;">
+            ✓ Current document uploaded: <a href="{{ lesson.pdf_url }}" target="_blank">View PDF ↗</a>
+          </div>
+        {% endif %}
+        <div class="form-group">
+          <label class="form-label" for="pdf_file">Upload PDF Document (up to 50MB)</label>
+          {{ form.pdf_file(class="form-control", id="pdf_file", accept=".pdf,application/pdf") }}
+          {% for error in form.pdf_file.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 3. Text Section -->
+      <div id="section-text" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
+        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">📝 Article / Text Body</h3>
+        <div class="form-group">
+          <label class="form-label" for="text_content">Lesson Content</label>
+          {{ form.text_content(class="form-control", id="text_content") }}
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Supports paragraphs, code snippets, notes, and study guides.</div>
+          {% for error in form.text_content.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 4. Quiz Section -->
+      <div id="section-quiz" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 style="font-size: 1.2rem; margin: 0;">💡 Multiple-Choice Quiz Builder</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 2px 0 0;">Create questions with 4 options and mark the correct choice.</p>
+          </div>
+          <div style="width: 140px;">
+            <label class="form-label" for="quiz_pass_score" style="font-size: 0.8rem;">Pass Score (%)</label>
+            {{ form.quiz_pass_score(class="form-control", id="quiz_pass_score") }}
+          </div>
+        </div>
+
+        <div id="quiz-questions-container">
+          {% for q_subform in form.quiz_questions %}
+            {% set q_idx = loop.index0 %}
+            <div class="quiz-question-box" id="quiz-question-{{ q_idx }}" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 18px; position: relative;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <strong style="font-size: 1rem; color: var(--text-primary);">Question #{{ loop.index }}</strong>
+                <button type="button" class="btn btn-sm" onclick="removeQuestion({{ q_idx }})" style="background: transparent; color: var(--danger); border: none; font-size: 1.1rem; cursor: pointer;" title="Remove Question">&times; Remove</button>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Question Prompt</label>
+                {{ q_subform.question(class="form-control", placeholder="e.g. What does CPU stand for?") }}
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                  <label class="form-label">Option 1</label>
+                  {{ q_subform.option_1(class="form-control", placeholder="Option 1") }}
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Option 2</label>
+                  {{ q_subform.option_2(class="form-control", placeholder="Option 2") }}
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Option 3</label>
+                  {{ q_subform.option_3(class="form-control", placeholder="Option 3") }}
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Option 4</label>
+                  {{ q_subform.option_4(class="form-control", placeholder="Option 4") }}
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top: 6px;">
+                <label class="form-label">Which option is the correct answer?</label>
+                {{ q_subform.answer(class="form-control") }}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="btn btn-outline btn-sm" onclick="addQuestionRow()" style="margin-top: 8px;">
+          + Add Question
+        </button>
+      </div>
+
+      <!-- Submit & Cancel -->
+      <div style="margin-top: 32px; display: flex; gap: 14px; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary btn-lg" style="min-width: 180px;">
+          {{ 'Save Lesson Changes' if is_edit else 'Add Lesson to Course' }}
+        </button>
+        <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-secondary btn-lg">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function switchContentType(val) {
+    document.querySelectorAll('.content-type-panel').forEach(el => el.style.display = 'none');
+    const panel = document.getElementById('section-' + val);
+    if (panel) {
+      panel.style.display = 'block';
+    }
+  }
+
+  // Initialize correct panel on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('content_type');
+    if (sel) {
+      switchContentType(sel.value);
+    }
+    // If no quiz questions yet and type is quiz, add one by default
+    const container = document.getElementById('quiz-questions-container');
+    if (container && container.children.length === 0) {
+      addQuestionRow();
+    }
+  });
+
+  let questionCounter = {{ form.quiz_questions|length }};
+
+  function addQuestionRow() {
+    const container = document.getElementById('quiz-questions-container');
+    const idx = questionCounter++;
+
+    const div = document.createElement('div');
+    div.className = 'quiz-question-box';
+    div.id = 'quiz-question-' + idx;
+    div.style = 'background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 18px; position: relative;';
+
+    div.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <strong style="font-size: 1rem; color: var(--text-primary);">Question #${idx + 1}</strong>
+        <button type="button" class="btn btn-sm" onclick="removeQuestion(${idx})" style="background: transparent; color: var(--danger); border: none; font-size: 1.1rem; cursor: pointer;">&times; Remove</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Question Prompt</label>
+        <input type="text" name="quiz_questions-${idx}-question" class="form-control" placeholder="e.g. What does HTML stand for?" required>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="form-group">
+          <label class="form-label">Option 1</label>
+          <input type="text" name="quiz_questions-${idx}-option_1" class="form-control" placeholder="Option 1" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Option 2</label>
+          <input type="text" name="quiz_questions-${idx}-option_2" class="form-control" placeholder="Option 2" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Option 3</label>
+          <input type="text" name="quiz_questions-${idx}-option_3" class="form-control" placeholder="Option 3">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Option 4</label>
+          <input type="text" name="quiz_questions-${idx}-option_4" class="form-control" placeholder="Option 4">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 6px;">
+        <label class="form-label">Which option is the correct answer?</label>
+        <select name="quiz_questions-${idx}-answer" class="form-control">
+          <option value="0">Option 1</option>
+          <option value="1">Option 2</option>
+          <option value="2">Option 3</option>
+          <option value="3">Option 4</option>
+        </select>
+      </div>
+    `;
+
+    container.appendChild(div);
+  }
+
+  function removeQuestion(idx) {
+    const el = document.getElementById('quiz-question-' + idx);
+    if (el) {
+      el.remove();
+    }
+  }
+</script>
+{% endblock %}

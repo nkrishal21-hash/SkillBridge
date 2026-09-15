@@ -21,7 +21,7 @@
       <nav>
         <ul class="nav-links">
           <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
-          <li><a href="{{ url_for('courses.list_courses') if 'courses.list_courses' in url_map else '#' }}" class="nav-link">Courses</a></li>
+          <li><a href="{{ url_for('courses.catalog') }}" class="nav-link">Courses</a></li>
           <li><a href="{{ url_for('teacher.search') }}" class="nav-link">Find Mentors</a></li>
         </ul>
       </nav>

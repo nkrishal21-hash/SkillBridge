@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lesson.title }} — {{ course.title }} | SkillBridge{% endblock %}
+
+{% block content %}
+<div class="lesson-viewer-header" style="background: white; border-bottom: 1px solid var(--border-subtle); padding: 16px 0;">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to {{ course.title }}</a>
+      <h1 style="font-size: 1.4rem; margin-top: 4px; margin-bottom: 0;">Lesson {{ lesson.order }}: {{ lesson.title }}</h1>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+      {% if lesson.is_preview %}
+        <span class="badge badge-preview">Free Preview</span>
+      {% endif %}
+
+      {% if is_owner %}
+        <a href="{{ url_for('courses.edit_lesson', course_id=course.id, lesson_id=lesson.id) }}" class="btn btn-outline btn-sm">
+          ✏️ Edit Lesson
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container" style="padding-top: 28px; padding-bottom: 70px;">
+  <div class="lesson-viewer-layout" style="display: grid; grid-template-columns: 1fr 340px; gap: 28px; align-items: start;">
+    <!-- Main Content Area -->
+    <main class="lesson-main-content">
+      <!-- Media Player / Reader Container -->
+      <div class="content-box" style="padding: 24px; margin-bottom: 24px;">
+        {% if lesson.content_type == 'video' %}
+          {% if lesson.video_url %}
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: var(--radius-md); background: black; box-shadow: var(--shadow-md);">
+              <video controls controlsList="nodownload" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                <source src="{{ lesson.video_url }}" type="video/mp4">
+                Your browser does not support HTML5 video streaming.
+              </video>
+            </div>
+          {% else %}
+            <div style="text-align: center; padding: 48px 20px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
+              <div style="font-size: 2.5rem; margin-bottom: 8px;">🎬</div>
+              <p>No video file has been uploaded for this lesson yet.</p>
+            </div>
+          {% endif %}
+
+        {% elif lesson.content_type == 'pdf' %}
+          {% if lesson.pdf_url %}
+            <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle);">
+              <div style="padding: 14px 18px; background: var(--bg-alt); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600; font-size: 0.95rem;">📄 Attached PDF Notes</span>
+                <a href="{{ lesson.pdf_url }}" target="_blank" download class="btn btn-outline btn-sm">
+                  ⬇️ Download PDF
+                </a>
+              </div>
+              <iframe src="{{ lesson.pdf_url }}" style="width: 100%; height: 600px; border: none;" title="Lesson PDF Document"></iframe>
+            </div>
+          {% else %}
+            <div style="text-align: center; padding: 48px 20px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
+              <div style="font-size: 2.5rem; margin-bottom: 8px;">📄</div>
+              <p>No PDF document has been attached to this lesson yet.</p>
+            </div>
+          {% endif %}
+
+        {% elif lesson.content_type == 'text' %}
+          <div style="padding: 10px 6px;">
+            {% if lesson.text_content %}
+              <div class="profile-bio-text" style="font-size: 1.05rem; line-height: 1.8; color: var(--text-primary);">
+                {{ lesson.text_content|nl2br }}
+              </div>
+            {% else %}
+              <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                <p>No text content has been written for this lesson yet.</p>
+              </div>
+            {% endif %}
+          </div>
+
+        {% elif lesson.content_type == 'quiz' %}
+          <div class="quiz-container">
+            <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 24px;">
+              <h2 style="font-size: 1.3rem; margin-bottom: 4px;">Knowledge Check: Interactive Quiz</h2>
+              <p style="font-size: 0.9rem; color: var(--text-secondary);">
+                Passing score required: <strong>{{ lesson.quiz_pass_score or 60 }}%</strong>. Complete all questions below and submit.
+              </p>
+            </div>
+
+            {% if quiz_questions %}
+              <form method="POST" action="{{ url_for('courses.submit_quiz', course_id=course.id, lesson_id=lesson.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                {% for q_item in quiz_questions %}
+                  {% set q_num = loop.index0 %}
+                  <div class="quiz-card" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; margin-bottom: 22px;">
+                    <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 14px;">
+                      {{ loop.index }}. {{ q_item.question }}
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                      {% for opt_text in q_item.options %}
+                        <label class="quiz-option-label" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s ease;">
+                          <input type="radio" name="question_{{ q_num }}" value="{{ loop.index0 }}" required style="width: 18px; height: 18px;">
+                          <span style="font-size: 0.95rem;">{{ opt_text }}</span>
+                        </label>
+                      {% endfor %}
+                    </div>
+                  </div>
+                {% endfor %}
+
+                <button type="submit" class="btn btn-primary btn-lg" style="min-width: 200px;">
+                  Submit Quiz Answers
+                </button>
+              </form>
+            {% else %}
+              <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                <p>No questions have been configured for this quiz yet.</p>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Description / Lecture Notes -->
+      {% if lesson.description %}
+        <div class="content-box" style="margin-bottom: 24px;">
+          <h3 style="font-size: 1.1rem; margin-bottom: 10px;">Lecture Notes &amp; Overview</h3>
+          <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6;">
+            {{ lesson.description|nl2br }}
+          </p>
+        </div>
+      {% endif %}
+
+      <!-- Bottom Navigation & Completion Bar -->
+      <div class="content-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+          {% if prev_lesson %}
+            <a href="{{ url_for('courses.lesson_view', course_id=course.id, lesson_id=prev_lesson.id) }}" class="btn btn-outline btn-sm">
+              &larr; Previous: {{ prev_lesson.title|truncate(24) }}
+            </a>
+          {% endif %}
+        </div>
+
+        <div>
+          {% if enrollment and lesson.content_type != 'quiz' %}
+            {% if is_completed %}
+              <button type="button" class="btn btn-secondary btn-sm" disabled style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; cursor: default;">
+                ✓ Completed
+              </button>
+            {% else %}
+              <form method="POST" action="{{ url_for('courses.complete_lesson', course_id=course.id, lesson_id=lesson.id) }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary btn-sm">
+                  Mark Lesson Complete &rarr;
+                </button>
+              </form>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <div>
+          {% if next_lesson %}
+            <a href="{{ url_for('courses.lesson_view', course_id=course.id, lesson_id=next_lesson.id) }}" class="btn btn-outline btn-sm">
+              Next: {{ next_lesson.title|truncate(24) }} &rarr;
+            </a>
+          {% else %}
+            <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="btn btn-secondary btn-sm">
+              Finish &amp; Return to Overview
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+
+    <!-- Sidebar: Course Syllabus & Navigation -->
+    <aside class="lesson-sidebar">
+      <div class="content-box" style="position: sticky; top: 96px; padding: 20px;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 12px;">Curriculum Outline</h3>
+
+        {% if enrollment %}
+          <!-- Learner Progress Bar -->
+          <div style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--border-subtle);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+              <span style="color: var(--text-secondary); font-weight: 500;">Course Progress</span>
+              <span style="font-weight: 700; color: var(--primary);">{{ enrollment.progress_percent }}%</span>
+            </div>
+            <div class="progress-track" style="height: 8px; background: var(--bg-alt); border-radius: var(--radius-full); overflow: hidden;">
+              <div class="progress-fill" style="width: {{ enrollment.progress_percent }}%; height: 100%; background: var(--primary);"></div>
+            </div>
+          </div>
+        {% endif %}
+
+        <!-- Lessons Sequence Navigation -->
+        <div class="syllabus-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto;">
+          {% for l in all_lessons %}
+            {% set l_can_view = is_owner or l.is_preview or enrollment %}
+            {% set l_is_done = l.id in completed_ids %}
+            {% set is_current = (l.id == lesson.id) %}
+
+            <div style="border-radius: var(--radius-md); padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid {{ 'var(--primary)' if is_current else 'var(--border-subtle)' }}; background: {{ 'var(--primary-light)' if is_current else 'white' }};">
+              <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: {{ 'var(--primary)' if is_current else 'var(--text-muted)' }};">
+                  {% if l_is_done %}
+                    <span style="color: var(--success); font-size: 0.95rem;">✓</span>
+                  {% else %}
+                    {{ l.order }}
+                  {% endif %}
+                </span>
+
+                <div style="min-width: 0;">
+                  {% if l_can_view %}
+                    <a href="{{ url_for('courses.lesson_view', course_id=course.id, lesson_id=l.id) }}" style="font-size: 0.88rem; font-weight: {{ '700' if is_current else '500' }}; color: {{ 'var(--primary)' if is_current else 'var(--text-primary)' }}; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      {{ l.title }}
+                    </a>
+                  {% else %}
+                    <span style="font-size: 0.88rem; color: var(--text-muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      {{ l.title }}
+                    </span>
+                  {% endif %}
+
+                  <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 6px; align-items: center;">
+                    <span>{{ l.content_type|capitalize }}</span>
+                    {% if l.duration_minutes %}
+                      <span>&bull; {{ l.duration_minutes }}m</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                {% if not l_can_view %}
+                  <span title="Locked — enroll to view" style="font-size: 0.85rem;">🔒</span>
+                {% elif l.is_preview %}
+                  <span class="badge badge-preview" style="font-size: 0.65rem; padding: 2px 6px;">Preview</span>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}
