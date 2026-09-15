@@ -14,13 +14,36 @@
         {{ profile.headline if profile and profile.headline else 'Share your expertise with learners worldwide.' }}
       </p>
     </div>
-    <div style="display: flex; gap: 12px;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-outline btn-sm">
+        ✏️ Edit Profile
+      </a>
+      {% if profile and profile.id %}
+        <a href="{{ url_for('teacher.public_profile', teacher_id=profile.id) }}" class="btn btn-secondary btn-sm" target="_blank">
+          👁️ View Public Profile
+        </a>
+      {% endif %}
       <a href="#" class="btn btn-primary btn-sm">+ Create New Course</a>
     </div>
   </div>
 </section>
 
-<div class="container" style="padding-top: 30px; padding-bottom: 60px;">
+<div class="container" style="padding-top: 24px; padding-bottom: 60px;">
+  <!-- Profile Completion Banner -->
+  {% if not profile_complete %}
+    <div class="alert alert-warning" style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong>Complete your profile to appear in mentor search results!</strong>
+        <div style="font-size: 0.85rem; margin-top: 2px;">
+          Learners search for verified details. Please set your professional headline, skills, and hourly rate.
+        </div>
+      </div>
+      <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-primary btn-sm" style="background: #b45309; border-color: #b45309;">
+        Complete Profile Now &rarr;
+      </a>
+    </div>
+  {% endif %}
+
   <!-- Stats Summary -->
   <div class="dashboard-stats">
     <div class="stat-card">
@@ -35,7 +58,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-label">Mentorship Requests</div>
-      <div class="stat-value">{{ user.bookings_as_teacher.filter_by(booking_status='pending').count() }}</div>
+      <div class="stat-value">{{ pending_count }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Average Rating</div>
@@ -43,7 +66,13 @@
     </div>
     <div class="stat-card">
       <div class="stat-label">Hourly Rate</div>
-      <div class="stat-value" style="font-size: 1.5rem;">NPR {{ profile.hourly_rate if profile and profile.hourly_rate else '0' }}/hr</div>
+      <div class="stat-value" style="font-size: 1.5rem;">
+        {% if profile and profile.hourly_rate is not none %}
+          NPR {{ "%.2f"|format(profile.hourly_rate) }}/hr
+        {% else %}
+          Not Set
+        {% endif %}
+      </div>
     </div>
   </div>
 
@@ -61,7 +90,13 @@
       <h3 style="margin-bottom: 16px; font-size: 1.25rem;">Booking Queue</h3>
       <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
         <div style="font-size: 2.5rem; margin-bottom: 10px;">📅</div>
-        <p style="font-size: 0.95rem;">No pending 1-on-1 booking requests.</p>
+        <p style="font-size: 0.95rem;">
+          {% if pending_count > 0 %}
+            You have {{ pending_count }} pending booking request(s).
+          {% else %}
+            No pending 1-on-1 booking requests.
+          {% endif %}
+        </p>
       </div>
     </div>
   </div>

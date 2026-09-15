@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.user.full_name }} — Mentor Profile | SkillBridge{% endblock %}
+
+{% block content %}
+<div class="teacher-profile-page">
+  <!-- Profile Hero Banner -->
+  <section class="profile-hero">
+    <div class="container">
+      <div class="profile-hero-inner">
+        <div class="profile-hero-avatar">
+          {% if profile.user.profile_photo %}
+            <img src="{{ profile.user.profile_photo }}" alt="{{ profile.user.full_name }}">
+          {% else %}
+            <span>{{ profile.user.full_name[:1].upper() }}</span>
+          {% endif %}
+        </div>
+
+        <div class="profile-hero-main">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h1 style="font-size: 2.2rem; margin-bottom: 0;">{{ profile.user.full_name }}</h1>
+            {% if profile.is_verified %}
+              <span class="badge badge-verified">✓ Verified Instructor</span>
+            {% endif %}
+          </div>
+
+          <p class="profile-headline">
+            {{ profile.headline or 'SkillBridge Peer Mentor' }}
+          </p>
+
+          <div class="profile-meta-row">
+            <div class="meta-pill">
+              ⭐ <strong>{{ "%.1f"|format(profile.average_rating or 0.0) }}</strong>
+              <span style="color: var(--text-muted);">({{ profile.total_reviews }} reviews)</span>
+            </div>
+
+            {% if profile.experience_years %}
+              <div class="meta-pill">
+                💼 {{ profile.experience_years }} years exp.
+              </div>
+            {% endif %}
+
+            {% if profile.teaching_languages %}
+              <div class="meta-pill">
+                🌐 {{ profile.teaching_languages }}
+              </div>
+            {% endif %}
+
+            <div class="meta-pill" style="font-weight: 700; color: var(--primary);">
+              NPR {{ "%.2f"|format(profile.hourly_rate or 0) }}/hr
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-hero-actions">
+          {% if is_owner %}
+            <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-primary">
+              ✏️ Edit Profile
+            </a>
+          {% else %}
+            <button type="button" class="btn btn-primary btn-lg" style="opacity: 0.85; cursor: not-allowed;" title="Mentorship booking opens in Phase 5">
+              🗓️ Book Session (Coming Soon)
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Body Content -->
+  <div class="container" style="padding-top: 40px; padding-bottom: 70px;">
+    <div class="profile-layout-grid">
+      <!-- Main Column -->
+      <div class="profile-main-col">
+        <!-- About Section -->
+        <div class="content-box">
+          <h2 class="section-title">About Me</h2>
+          {% if profile.bio %}
+            <p class="profile-bio-text">{{ profile.bio|nl2br }}</p>
+          {% else %}
+            <p style="color: var(--text-muted); font-style: italic;">No bio provided yet.</p>
+          {% endif %}
+        </div>
+
+        <!-- Skills Section -->
+        <div class="content-box">
+          <h2 class="section-title">Skills &amp; Subjects</h2>
+          {% if skills_list %}
+            <div class="skills-pill-group">
+              {% for skill in skills_list %}
+                <span class="skill-pill">{{ skill }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="color: var(--text-muted);">No skills listed yet.</p>
+          {% endif %}
+        </div>
+
+        <!-- Qualifications Section -->
+        {% if profile.qualifications %}
+          <div class="content-box">
+            <h2 class="section-title">Qualifications &amp; Certifications</h2>
+            <p class="profile-bio-text">{{ profile.qualifications|nl2br }}</p>
+          </div>
+        {% endif %}
+
+        <!-- Weekly Availability -->
+        <div class="content-box">
+          <h2 class="section-title">Weekly Availability</h2>
+          {% if available_days %}
+            <div class="avail-week-pills">
+              {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
+                <div class="day-slot-badge {{ 'active' if d in available_days else 'inactive' }}">
+                  <span class="day-name">{{ d }}</span>
+                  <span class="day-status">{{ 'Available' if d in available_days else 'Off' }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p style="color: var(--text-muted);">Availability schedule not specified.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Sidebar Column -->
+      <aside class="profile-sidebar-col">
+        <div class="content-box" style="position: sticky; top: 96px;">
+          <h3 style="font-size: 1.15rem; margin-bottom: 16px;">Quick Info</h3>
+          
+          <div class="sidebar-stat-item">
+            <span class="sidebar-stat-label">Hourly Rate</span>
+            <span class="sidebar-stat-val" style="color: var(--primary);">NPR {{ "%.2f"|format(profile.hourly_rate or 0) }}</span>
+          </div>
+
+          <div class="sidebar-stat-item">
+            <span class="sidebar-stat-label">Rating</span>
+            <span class="sidebar-stat-val">⭐ {{ "%.1f"|format(profile.average_rating or 0.0) }} / 5.0</span>
+          </div>
+
+          <div class="sidebar-stat-item">
+            <span class="sidebar-stat-label">Member Since</span>
+            <span class="sidebar-stat-val">{{ profile.user.created_at.strftime('%b %Y') if profile.user.created_at else 'Recent' }}</span>
+          </div>
+
+          {% if profile.linkedin_url or profile.website_url %}
+            <div style="border-top: 1px solid var(--border-subtle); margin-top: 20px; padding-top: 18px;">
+              <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; color: var(--text-muted); text-transform: uppercase;">
+                External Links
+              </div>
+              {% if profile.linkedin_url %}
+                <a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="social-link-btn">
+                  🔗 LinkedIn Profile
+                </a>
+              {% endif %}
+              {% if profile.website_url %}
+                <a href="{{ profile.website_url }}" target="_blank" rel="noopener noreferrer" class="social-link-btn">
+                  🌐 Personal Website
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+
+          <div style="margin-top: 24px;">
+            {% if is_owner %}
+              <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-outline btn-block">
+                Edit This Profile
+              </a>
+            {% else %}
+              <a href="{{ url_for('teacher.search') }}" class="btn btn-outline btn-block">
+                &larr; Browse Other Mentors
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -10,7 +10,7 @@
 |---|---|---|---|
 | 1 | Setup & Models | ✅ Done | 2026-09-14 |
 | 2 | Authentication | ✅ Done | 2026-09-15 |
-| 3 | Teacher Profile & Search | ⬜ Not started | |
+| 3 | Teacher Profile & Search | ✅ Done | 2026-09-15 |
 | 4 | Course Management | ⬜ Not started | |
 | 5 | Booking System | ⬜ Not started | |
 | 6 | Live Class & Chat | ⬜ Not started | |
@@ -119,25 +119,36 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 3 — Teacher Profile & Search
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-15 / 2026-09-15
 
 **Checklist**
-- [ ] Teacher profile edit page (photo, bio, skills, qualifications, price, availability)
-- [ ] File uploads routed through **Cloudinary** (not local disk)
-- [ ] Public teacher profile page
-- [ ] Learner search with filters (skill, rating, price, availability)
-- [ ] Results sorted by rating
-- [ ] Teacher cards (photo, skills, rating, price, verified badge)
+- [x] Teacher profile edit page (photo, bio, skills, qualifications, price, availability)
+- [x] File uploads routed through **Cloudinary** with graceful local fallback
+- [x] Public teacher profile page
+- [x] Learner search with filters (skill, rating, price, availability)
+- [x] Results sorted by rating, price, experience
+- [x] Teacher cards (photo, skills, rating, price, verified badge)
 
 **Files created/modified:**
--
+- `app/teacher/forms.py` (`TeacherProfileForm` with photo, headline, bio, skills, rate, availability)
+- `app/teacher/utils.py` (`upload_profile_photo`, `parse_skills`, `availability_to_json`, `availability_from_json`, `available_days_list`)
+- `app/teacher/routes.py` (`dashboard`, `profile_edit`, `search`, `public_profile`)
+- `app/templates/teacher/profile_edit.html` (profile form, photo preview script, availability grid)
+- `app/templates/teacher/public_profile.html` (hero layout, skills pills, stats sidebar, placeholder booking button)
+- `app/templates/teacher/search.html` (filter sidebar, mentor cards grid, pagination, empty state)
+- `app/templates/teacher/dashboard.html` (added Edit Profile / View Public Profile links and profile completion banner)
+- `app/templates/base.html` (unconditionally enabled "Find Mentors" navbar link)
+- `app/static/css/style.css` (CSS tokens and layouts for search, teacher cards, profile hero, availability pills)
 
 **Blockers / deviations from master prompt:**
--
+- **Weekly Availability Schema**: Availability stored as per-day JSON booleans (`{"Mon": true, "Tue": false, ...}`) on `TeacherProfile.availability`. Detailed time-slot granularity is deferred to Phase 5 (Booking Calendar).
+- **Search Gating Criteria**: Search results gate on profile completeness (`headline` + `skills` + `hourly_rate` present) rather than `is_verified`, enabling search functionality prior to Phase 8 admin verification workflows.
+- **Dashboard Bug Fixes**: Corrected invalid `booking_status` filter in `teacher/dashboard.html` and `learner/dashboard.html` to target the actual `status` column on `Booking` (`status="pending"` for teacher, `status="approved"` for learner).
 
 **Notes for report/viva:**
--
+- Profile photo uploads utilize Cloudinary API (`cloudinary.uploader.upload`) with dynamic transformation (400x400 face crop), seamlessly falling back to local disk storage (`app/static/uploads/profile_photos/`) in dev environments without breaking.
+- Mentor search features multi-column ILIKE matching (skills, headline, bio, full name), numerical rating/price filtering, day boolean matching, dynamic sorting, and clean 9-item pagination.
 
 ---
 

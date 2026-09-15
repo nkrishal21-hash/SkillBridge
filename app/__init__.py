@@ -105,7 +105,16 @@ def create_app(config_name: str = None) -> Flask:
     app.register_blueprint(payments_bp, url_prefix="/payments")
     app.register_blueprint(certificates_bp, url_prefix="/certificates")
 
-    # ── Main / landing page route (placeholder until Phase 3 UI) ──────────────
+    # ── Template filters ──────────────────────────────────────────────────────
+    from markupsafe import Markup, escape
+
+    @app.template_filter("nl2br")
+    def nl2br_filter(s):
+        if not s:
+            return ""
+        return Markup("<br>".join(escape(s).split("\n")))
+
+    # ── Main / landing page route ─────────────────────────────────────────────
     from flask import render_template
 
     @app.route("/")

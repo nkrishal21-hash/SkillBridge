@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Mentor Profile — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px; padding-top: 36px; padding-bottom: 60px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div>
+      <a href="{{ url_for('teacher.dashboard') }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Dashboard</a>
+      <h1 style="font-size: 1.9rem; margin-top: 6px;">Edit Mentor Profile</h1>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        Keep your expertise, pricing, and availability up to date so learners can discover you.
+      </p>
+    </div>
+    {% if profile and profile.id %}
+      <a href="{{ url_for('teacher.public_profile', teacher_id=profile.id) }}" class="btn btn-outline btn-sm" target="_blank">
+        Preview Public Page ↗
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="auth-card" style="max-width: 100%; padding: 36px 32px;">
+    <form method="POST" action="{{ url_for('teacher.profile_edit') }}" enctype="multipart/form-data" novalidate>
+      {{ form.hidden_tag() }}
+
+      <!-- Profile Photo Upload & Preview Section -->
+      <div style="display: flex; align-items: center; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 28px; flex-wrap: wrap;">
+        <div class="profile-avatar-preview" style="width: 90px; height: 90px; border-radius: var(--radius-full); overflow: hidden; background: var(--bg-alt); border: 2px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: var(--primary); flex-shrink: 0;">
+          {% if profile and profile.user and profile.user.profile_photo %}
+            <img src="{{ profile.user.profile_photo }}" alt="{{ profile.user.full_name }}" style="width: 100%; height: 100%; object-fit: cover;" id="photo-preview-img">
+          {% elif current_user.is_authenticated and current_user.profile_photo %}
+            <img src="{{ current_user.profile_photo }}" alt="{{ current_user.full_name }}" style="width: 100%; height: 100%; object-fit: cover;" id="photo-preview-img">
+          {% else %}
+            <span id="photo-fallback-initial">{{ (profile.user.full_name if profile and profile.user else (current_user.full_name if current_user.is_authenticated else 'T'))[:1].upper() }}</span>
+          {% endif %}
+        </div>
+        <div style="flex: 1; min-width: 240px;">
+          <label class="form-label" for="photo">Change Profile Photo</label>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px;">
+            Recommended: square image, at least 400x400px (JPG, PNG, GIF, WEBP up to 16MB).
+          </div>
+          {{ form.photo(class="form-control", id="photo", accept="image/*", onchange="previewImage(this)") }}
+          {% for error in form.photo.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Professional Headline -->
+      <div class="form-group">
+        <label class="form-label" for="headline">Professional Headline <span style="color: var(--danger);">*</span></label>
+        {{ form.headline(class="form-control", id="headline") }}
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">A short summary that appears under your name on search cards.</div>
+        {% for error in form.headline.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Skills -->
+      <div class="form-group">
+        <label class="form-label" for="skills">Skills & Subjects <span style="color: var(--danger);">*</span></label>
+        {{ form.skills(class="form-control", id="skills") }}
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Separate skills with commas (e.g. Python, SQL, Web Design, Data Structures).</div>
+        {% for error in form.skills.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Hourly Rate & Experience Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group">
+          <label class="form-label" for="hourly_rate">Hourly Mentorship Rate (NPR) <span style="color: var(--danger);">*</span></label>
+          {{ form.hourly_rate(class="form-control", id="hourly_rate") }}
+          {% for error in form.hourly_rate.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="experience_years">Years of Experience</label>
+          {{ form.experience_years(class="form-control", id="experience_years") }}
+          {% for error in form.experience_years.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Teaching Languages -->
+      <div class="form-group">
+        <label class="form-label" for="teaching_languages">Teaching Languages</label>
+        {{ form.teaching_languages(class="form-control", id="teaching_languages") }}
+        {% for error in form.teaching_languages.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Bio / About -->
+      <div class="form-group">
+        <label class="form-label" for="bio">About You & Teaching Approach</label>
+        {{ form.bio(class="form-control", id="bio") }}
+        {% for error in form.bio.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Qualifications -->
+      <div class="form-group">
+        <label class="form-label" for="qualifications">Qualifications & Certifications</label>
+        {{ form.qualifications(class="form-control", id="qualifications") }}
+        {% for error in form.qualifications.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Weekly Availability -->
+      <div class="form-group" style="padding-top: 10px;">
+        <label class="form-label">Weekly Availability</label>
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">
+          Select the days you are typically available for 1-on-1 mentorship sessions:
+        </div>
+        <div class="availability-checkbox-grid">
+          {% for subfield in form.availability %}
+            <label class="avail-day-box">
+              {{ subfield() }}
+              <span>{{ subfield.label.text }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        {% for error in form.availability.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Social Links Grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+        <div class="form-group">
+          <label class="form-label" for="linkedin_url">LinkedIn URL</label>
+          {{ form.linkedin_url(class="form-control", id="linkedin_url") }}
+          {% for error in form.linkedin_url.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="website_url">Website / Portfolio URL</label>
+          {{ form.website_url(class="form-control", id="website_url") }}
+          {% for error in form.website_url.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; display: flex; gap: 14px;">
+        <button type="submit" class="btn btn-primary btn-lg" id="save-profile-btn" style="min-width: 180px;">
+          Save Profile Changes
+        </button>
+        <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-secondary btn-lg">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function previewImage(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        let img = document.getElementById('photo-preview-img');
+        const fallback = document.getElementById('photo-fallback-initial');
+        if (!img) {
+          img = document.createElement('img');
+          img.id = 'photo-preview-img';
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'cover';
+          const container = document.querySelector('.profile-avatar-preview');
+          if (fallback) fallback.remove();
+          container.appendChild(img);
+        }
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+</script>
+{% endblock %}

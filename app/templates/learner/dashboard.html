@@ -29,7 +29,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-label">Upcoming Sessions</div>
-      <div class="stat-value">{{ user.bookings_as_learner.filter_by(booking_status='confirmed').count() }}</div>
+      <div class="stat-value">{{ user.bookings_as_learner.filter_by(status='approved').count() }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Certificates Earned</div>

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Find Expert Mentors — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="search-page-header">
+  <div class="container">
+    <h1 style="font-size: 2.2rem; margin-bottom: 8px;">Discover Peer Mentors</h1>
+    <p style="color: var(--text-secondary); font-size: 1.05rem; max-width: 680px;">
+      Find verified teachers and industry practitioners ready to guide you 1-on-1 in your learning journey.
+    </p>
+  </div>
+</div>
+
+<div class="container" style="padding-top: 32px; padding-bottom: 70px;">
+  <div class="search-layout">
+    <!-- Filter Sidebar -->
+    <aside class="search-sidebar">
+      <div class="search-filter-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="font-size: 1.15rem; margin: 0;">Filters</h2>
+          {% if q or min_rating or max_price or selected_day or (sort_by and sort_by != 'rating') %}
+            <a href="{{ url_for('teacher.search') }}" style="font-size: 0.82rem; color: var(--danger);">Reset All</a>
+          {% endif %}
+        </div>
+
+        <form method="GET" action="{{ url_for('teacher.search') }}" id="search-filter-form">
+          <!-- Keyword Search -->
+          <div class="form-group">
+            <label class="form-label" for="q">Keyword or Skill</label>
+            <input type="text" name="q" id="q" class="form-control" placeholder="e.g. Python, SQL, Alex" value="{{ q or '' }}">
+          </div>
+
+          <!-- Minimum Rating -->
+          <div class="form-group">
+            <label class="form-label" for="min_rating">Minimum Rating</label>
+            <select name="min_rating" id="min_rating" class="form-control">
+              <option value="">Any Rating</option>
+              <option value="4.5" {% if min_rating == 4.5 %}selected{% endif %}>⭐ 4.5 &amp; above</option>
+              <option value="4.0" {% if min_rating == 4.0 %}selected{% endif %}>⭐ 4.0 &amp; above</option>
+              <option value="3.0" {% if min_rating == 3.0 %}selected{% endif %}>⭐ 3.0 &amp; above</option>
+            </select>
+          </div>
+
+          <!-- Maximum Hourly Price -->
+          <div class="form-group">
+            <label class="form-label" for="max_price">Max Rate (NPR / hr)</label>
+            <input type="number" name="max_price" id="max_price" class="form-control" placeholder="e.g. 1500" min="0" step="50" value="{{ max_price if max_price is not none else '' }}">
+          </div>
+
+          <!-- Availability Day -->
+          <div class="form-group">
+            <label class="form-label" for="day">Available On</label>
+            <select name="day" id="day" class="form-control">
+              <option value="">Any Day</option>
+              {% for code, day_name in [('Mon', 'Monday'), ('Tue', 'Tuesday'), ('Wed', 'Wednesday'), ('Thu', 'Thursday'), ('Fri', 'Friday'), ('Sat', 'Saturday'), ('Sun', 'Sunday')] %}
+                <option value="{{ code }}" {% if selected_day == code %}selected{% endif %}>{{ day_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Sorting -->
+          <div class="form-group">
+            <label class="form-label" for="sort">Sort By</label>
+            <select name="sort" id="sort" class="form-control">
+              <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>Highest Rated</option>
+              <option value="price_low" {% if sort_by == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+              <option value="price_high" {% if sort_by == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+              <option value="experience" {% if sort_by == 'experience' %}selected{% endif %}>Most Experienced</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px;">
+            Apply Filters
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Results Main Grid -->
+    <main class="search-results-main">
+      <div class="search-results-bar">
+        <div style="font-size: 0.95rem; color: var(--text-secondary);">
+          Showing <strong>{{ pagination.total }}</strong> mentor{{ 's' if pagination.total != 1 else '' }}
+          {% if q %}for "<span style="color: var(--text-primary); font-weight: 600;">{{ q }}</span>"{% endif %}
+        </div>
+      </div>
+
+      {% if teachers %}
+        <div class="teacher-cards-grid">
+          {% for teacher in teachers %}
+            {% set teacher_skills = parse_skills(teacher.skills) %}
+            <div class="teacher-card">
+              <div class="teacher-card-top">
+                <div class="teacher-card-avatar">
+                  {% if teacher.user.profile_photo %}
+                    <img src="{{ teacher.user.profile_photo }}" alt="{{ teacher.user.full_name }}">
+                  {% else %}
+                    <span>{{ teacher.user.full_name[:1].upper() }}</span>
+                  {% endif %}
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <h3 class="teacher-card-name">{{ teacher.user.full_name }}</h3>
+                    {% if teacher.is_verified %}
+                      <span class="badge badge-verified" style="font-size: 0.65rem; padding: 2px 6px;">✓ Verified</span>
+                    {% endif %}
+                  </div>
+                  <div class="teacher-card-rating">
+                    ⭐ <strong>{{ "%.1f"|format(teacher.average_rating or 0.0) }}</strong>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">({{ teacher.total_reviews }})</span>
+                  </div>
+                </div>
+              </div>
+
+              <p class="teacher-card-headline">
+                {{ teacher.headline or 'Peer Mentor' }}
+              </p>
+
+              <!-- Skills Badges -->
+              <div class="teacher-card-skills">
+                {% for skill in teacher_skills[:3] %}
+                  <span class="skill-mini-pill">{{ skill }}</span>
+                {% endfor %}
+                {% if teacher_skills|length > 3 %}
+                  <span class="skill-mini-pill" style="background: transparent; border: 1px dashed var(--border-subtle); color: var(--text-muted);">
+                    +{{ teacher_skills|length - 3 }} more
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="teacher-card-footer">
+                <div>
+                  <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Hourly Rate</div>
+                  <div class="teacher-card-price">
+                    NPR {{ "%.0f"|format(teacher.hourly_rate or 0) }}<span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);">/hr</span>
+                  </div>
+                </div>
+                <a href="{{ url_for('teacher.public_profile', teacher_id=teacher.id) }}" class="btn btn-outline btn-sm">
+                  View Profile &rarr;
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination.pages > 1 %}
+          <div class="pagination-wrapper">
+            {% if pagination.has_prev %}
+              <a href="{{ url_for('teacher.search', page=pagination.prev_num, q=q, min_rating=min_rating, max_price=max_price, day=selected_day, sort=sort_by) }}" class="page-link">
+                &larr; Prev
+              </a>
+            {% endif %}
+
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+              {% if p %}
+                {% if p == pagination.page %}
+                  <span class="page-link active">{{ p }}</span>
+                {% else %}
+                  <a href="{{ url_for('teacher.search', page=p, q=q, min_rating=min_rating, max_price=max_price, day=selected_day, sort=sort_by) }}" class="page-link">
+                    {{ p }}
+                  </a>
+                {% endif %}
+              {% else %}
+                <span class="page-ellipsis">&hellip;</span>
+              {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+              <a href="{{ url_for('teacher.search', page=pagination.next_num, q=q, min_rating=min_rating, max_price=max_price, day=selected_day, sort=sort_by) }}" class="page-link">
+                Next &rarr;
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      {% else %}
+        <!-- Friendly Empty State -->
+        <div class="empty-state-box">
+          <div style="font-size: 3rem; margin-bottom: 12px;">🔍</div>
+          <h3>No mentors found matching your criteria</h3>
+          <p style="color: var(--text-secondary); max-width: 440px; margin: 8px auto 20px;">
+            Try adjusting your search terms, clearing specific filters, or searching for broader subjects like "Python" or "Design".
+          </p>
+          <a href="{{ url_for('teacher.search') }}" class="btn btn-primary btn-sm">
+            Reset Filters
+          </a>
+        </div>
+      {% endif %}
+    </main>
+  </div>
+</div>
+{% endblock %}
