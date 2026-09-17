@@ -391,6 +391,37 @@ a:hover {
   border: 1px solid #a7f3d0;
 }
 
+/* ── Booking Status Badges ───────────────────────────────── */
+.badge-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-status-approved {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-status-rejected {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.badge-status-cancelled {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.badge-status-completed {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
 /* ── Flash Toast Messages ────────────────────────────────── */
 .flash-container {
   position: fixed;
@@ -1587,6 +1618,32 @@ a:hover {
 
 @media (max-width: 860px) {
   .lesson-viewer-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Phase 5: Mentorship & Booking System ────────────────── */
+.booking-card {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.booking-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.booking-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 768px) {
+  .booking-form-row {
     grid-template-columns: 1fr !important;
   }
 }

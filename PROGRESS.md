@@ -194,24 +194,40 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 5 — Booking System
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-17 / 2026-09-17
 
 **Checklist**
-- [ ] Learner: view teacher's slots, submit booking
-- [ ] Teacher: approve/reject booking
-- [ ] Booking history (both roles)
-- [ ] Email notification — new booking → teacher
-- [ ] Email notification — approve/reject → learner
+- [x] Learner: view teacher's slots, submit booking
+- [x] Teacher: approve/reject booking
+- [x] Booking history (both roles)
+- [x] Email notification — new booking → teacher
+- [x] Email notification — approve/reject → learner
 
 **Files created/modified:**
--
+- `app/booking/forms.py` (`BookingForm` with slot picker, duration options, past date validator; `BookingResponseForm` for teacher feedback notes)
+- `app/booking/utils.py` (`calculate_session_times`, `send_new_booking_email`, `send_booking_response_email` with console fallback in dev mode)
+- `app/booking/routes.py` (Blueprint routes: `new`, `detail`, `approve`, `reject`, `cancel`, `history` with role guards, conflict detection, and status filtering)
+- `app/templates/booking/new.html` (mentor summary card, date/time/duration picker, live fee estimator, topic/notes inputs)
+- `app/templates/booking/detail.html` (status badges, timings, participants, Jitsi room preview, teacher approval/rejection forms, cancellation CTA)
+- `app/templates/booking/history.html` (tabbed filtering by status with counts, booking cards, pagination, role-aware empty states)
+- `app/templates/base.html` (added Mentorship Sessions / Session Bookings links to user navigation dropdown)
+- `app/templates/teacher/public_profile.html` (connected "Book a Session" CTA to `booking.new` using `profile.user_id`)
+- `app/templates/teacher/dashboard.html` (wired "Mentorship Requests" stat card and "Booking Queue" review CTA)
+- `app/templates/learner/dashboard.html` (wired "Upcoming Sessions" stat card and "Upcoming Mentorship" panel with booking links)
+- `app/learner/routes.py` (queried upcoming active bookings for the learner dashboard)
+- `app/static/css/style.css` (status badge tokens `.badge-status-pending`, `.badge-status-approved`, `.badge-status-rejected`, etc., and `.booking-card` styles)
 
 **Blockers / deviations from master prompt:**
--
+- **Availability Granularity**: `TeacherProfile.availability` is stored as day-of-week boolean flags (e.g. `{"Mon": true, ...}`). Specific time slot availability is chosen by the learner from standard half-hour daytime slots (08:00 to 20:00) with server-side overlap prevention against existing pending/approved bookings.
+- **Jitsi Video Call Embed**: When approved, a unique Jitsi room identifier (e.g. `skillbridge-<id>-<hex>`) is generated and persisted to `Booking.jitsi_room`; the interactive Jitsi Meet iFrame UI and live chat integration are implemented in Phase 6.
+- **Payment Processing**: Session fee is snapshotted to `Booking.amount` based on duration and the mentor's hourly rate; payment gateway checkout via eSewa/Khalti is implemented in Phase 7.
 
 **Notes for report/viva:**
--
+- **Time Overlap Conflict Prevention**: Concurrency conflicts are prevented at scheduling time by checking `Booking.start_time < new_end` and `Booking.end_time > new_start` for the teacher on the selected date for bookings in `('pending', 'approved')` status.
+- **Email Notification Fallback**: Email dispatchers first output clear, formatted notification details directly to the console before attempting SMTP transmission via Flask-Mail, enabling offline local testing without requiring real email credentials.
+- **Foreign Key Convention**: Reconciled teacher references between blueprints; routes use `User.id` for `Booking.teacher_id` (matching foreign key to `users.id`) while resolving `TeacherProfile` seamlessly.
+
 
 ---
 

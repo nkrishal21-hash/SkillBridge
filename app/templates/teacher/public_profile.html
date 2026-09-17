@@ -58,9 +58,9 @@
               ✏️ Edit Profile
             </a>
           {% else %}
-            <button type="button" class="btn btn-primary btn-lg" style="opacity: 0.85; cursor: not-allowed;" title="Mentorship booking opens in Phase 5">
-              🗓️ Book Session (Coming Soon)
-            </button>
+            <a href="{{ url_for('booking.new', teacher_id=profile.user_id) }}" class="btn btn-primary btn-lg">
+              🗓️ Book a Session
+            </a>
           {% endif %}
         </div>
       </div>

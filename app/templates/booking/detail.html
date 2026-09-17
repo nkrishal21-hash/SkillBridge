@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Booking #{{ booking.id }}: {{ booking.topic }} — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px; padding-top: 36px; padding-bottom: 70px;">
+  <!-- Breadcrumb & Top Bar -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <a href="{{ url_for('booking.history') }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Booking History</a>
+      <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap;">
+        <h1 style="font-size: 1.8rem; margin: 0;">Mentorship Session #{{ booking.id }}</h1>
+        <span class="badge badge-status-{{ booking.status }}" style="font-size: 0.82rem; padding: 4px 10px; text-transform: uppercase;">
+          ● {{ booking.status }}
+        </span>
+      </div>
+    </div>
+
+    <div>
+      <a href="{{ url_for('booking.history') }}" class="btn btn-outline btn-sm">
+        View All Bookings
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Booking Card -->
+  <div class="content-box" style="padding: 32px; margin-bottom: 24px;">
+    <!-- Date & Timing Row -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
+      <div>
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Date</div>
+        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px;">
+          📅 {{ booking.session_date.strftime('%a, %b %d, %Y') }}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Time Window</div>
+        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px;">
+          ⏰ {{ booking.start_time.strftime('%I:%M %p') }} &ndash; {{ booking.end_time.strftime('%I:%M %p') }}
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">({{ booking.duration_minutes }} minutes)</div>
+      </div>
+
+      <div>
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Session Fee</div>
+        <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-top: 4px;">
+          NPR {{ "%.2f"|format(booking.amount or 0) }}
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Requested On</div>
+        <div style="font-size: 0.92rem; color: var(--text-secondary); margin-top: 4px;">
+          {{ booking.created_at.strftime('%b %d, %Y %I:%M %p') if booking.created_at else 'Recent' }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Participants Row -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
+      <!-- Mentor Info -->
+      <div style="display: flex; gap: 14px; align-items: center;">
+        <div class="teacher-card-avatar" style="width: 52px; height: 52px; font-size: 1.3rem;">
+          {% if booking.teacher.profile_photo %}
+            <img src="{{ booking.teacher.profile_photo }}" alt="{{ booking.teacher.full_name }}">
+          {% else %}
+            <span>{{ booking.teacher.full_name[:1].upper() }}</span>
+          {% endif %}
+        </div>
+        <div>
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Mentor</div>
+          <a href="{{ url_for('teacher.public_profile', teacher_id=booking.teacher.teacher_profile.id) if booking.teacher.teacher_profile else '#' }}" style="font-weight: 700; color: var(--text-primary); font-size: 1.05rem;">
+            {{ booking.teacher.full_name }} ↗
+          </a>
+          <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ booking.teacher.email }}</div>
+        </div>
+      </div>
+
+      <!-- Learner Info -->
+      <div style="display: flex; gap: 14px; align-items: center;">
+        <div class="teacher-card-avatar" style="width: 52px; height: 52px; font-size: 1.3rem; background: linear-gradient(135deg, #6366f1, #a855f7);">
+          {% if booking.learner.profile_photo %}
+            <img src="{{ booking.learner.profile_photo }}" alt="{{ booking.learner.full_name }}">
+          {% else %}
+            <span>{{ booking.learner.full_name[:1].upper() }}</span>
+          {% endif %}
+        </div>
+        <div>
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Learner</div>
+          <div style="font-weight: 700; color: var(--text-primary); font-size: 1.05rem;">
+            {{ booking.learner.full_name }}
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ booking.learner.email }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Topic & Notes -->
+    <div style="margin-bottom: 24px;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 8px;">Mentorship Topic</h3>
+      <p style="font-size: 1.05rem; color: var(--text-primary); font-weight: 600; margin-bottom: 16px;">
+        {{ booking.topic }}
+      </p>
+
+      {% if booking.learner_notes %}
+        <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px;">
+          <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Learner Questions &amp; Context</div>
+          <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0; white-space: pre-line;">{{ booking.learner_notes }}</p>
+        </div>
+      {% endif %}
+
+      {% if booking.teacher_response_note %}
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 16px;">
+          <div style="font-size: 0.8rem; text-transform: uppercase; color: #166534; font-weight: 600; margin-bottom: 4px;">Instructor Response Note</div>
+          <p style="color: #14532d; font-size: 0.95rem; margin: 0; white-space: pre-line;">{{ booking.teacher_response_note }}</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Live Session Jitsi Call Container (If Approved) -->
+    {% if booking.status == 'approved' %}
+      <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-lg); padding: 22px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <span style="font-size: 1.4rem;">📹</span>
+          <h3 style="font-size: 1.15rem; color: #065f46; margin: 0;">Live Mentorship Room Reserved</h3>
+        </div>
+        <p style="color: #047857; font-size: 0.92rem; line-height: 1.5; margin-bottom: 12px;">
+          Your 1-on-1 session is confirmed! The live video call room with whiteboard will be available at your scheduled time.
+        </p>
+        <div style="display: flex; align-items: center; gap: 10px; background: white; border: 1px dashed #6ee7b7; border-radius: var(--radius-md); padding: 10px 14px;">
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Jitsi Room:</span>
+          <code style="font-weight: 700; color: #065f46; font-size: 0.95rem;">{{ booking.jitsi_room }}</code>
+          <span class="badge badge-preview" style="margin-left: auto; font-size: 0.72rem;">Phase 6 Video Embed</span>
+        </div>
+      </div>
+    {% elif booking.status == 'pending' %}
+      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-lg); padding: 18px; margin-bottom: 24px; color: #92400e; font-size: 0.92rem;">
+        ⏳ <strong>Awaiting Instructor Approval:</strong> The mentor will review your topic and proposed time slot. You will receive an email once approved or updated.
+      </div>
+    {% endif %}
+
+    <!-- Action Controls -->
+    <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+      <!-- Teacher Approval Controls -->
+      {% if is_teacher and booking.status == 'pending' %}
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; width: 100%;">
+          <div style="flex: 1; min-width: 280px; background: var(--bg-alt); padding: 20px; border-radius: var(--radius-md);">
+            <h4 style="font-size: 1rem; margin-bottom: 10px;">Respond to Request</h4>
+            <form method="POST" action="{{ url_for('booking.approve', booking_id=booking.id) }}" style="margin-bottom: 10px;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="form-group" style="margin-bottom: 10px;">
+                <input type="text" name="teacher_response_note" class="form-control" placeholder="Optional approval note or meeting instructions...">
+              </div>
+              <button type="submit" class="btn btn-primary" style="background: #10b981; border-color: #10b981;">
+                ✓ Approve Session
+              </button>
+            </form>
+
+            <form method="POST" action="{{ url_for('booking.reject', booking_id=booking.id) }}" onsubmit="return confirm('Are you sure you want to decline this session request?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);">
+                ✕ Decline Request
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Cancellation Control (Learner or Teacher while pending/approved) -->
+      {% if booking.status in ['pending', 'approved'] %}
+        <form method="POST" action="{{ url_for('booking.cancel', booking_id=booking.id) }}" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5;">
+            Cancel Session
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -49,8 +49,10 @@
 
               {% if current_user.role == 'learner' %}
                 <a href="{{ url_for('learner.dashboard') }}" class="dropdown-item">📊 My Dashboard</a>
+                <a href="{{ url_for('booking.history') }}" class="dropdown-item">📅 Mentorship Sessions</a>
               {% elif current_user.role == 'teacher' %}
                 <a href="{{ url_for('teacher.dashboard') }}" class="dropdown-item">👨‍🏫 Teacher Hub</a>
+                <a href="{{ url_for('booking.history') }}" class="dropdown-item">📅 Session Bookings</a>
               {% elif current_user.role == 'admin' %}
                 <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">⚙️ Admin Console</a>
               {% endif %}

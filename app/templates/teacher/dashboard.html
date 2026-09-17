@@ -56,10 +56,10 @@
         {% endif %}
       </div>
     </div>
-    <div class="stat-card">
+    <a href="{{ url_for('booking.history', status='pending') }}" class="stat-card" style="text-decoration: none; color: inherit; display: block; transition: transform var(--transition-fast);">
       <div class="stat-label">Mentorship Requests</div>
-      <div class="stat-value">{{ pending_count }}</div>
-    </div>
+      <div class="stat-value" style="color: var(--primary);">{{ pending_count }}</div>
+    </a>
     <div class="stat-card">
       <div class="stat-label">Average Rating</div>
       <div class="stat-value">⭐ {{ profile.average_rating if profile and profile.average_rating else '0.0' }}</div>
@@ -137,15 +137,24 @@
 
     <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
       <h3 style="margin-bottom: 16px; font-size: 1.25rem;">Booking Queue</h3>
-      <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+      <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
         <div style="font-size: 2.5rem; margin-bottom: 10px;">📅</div>
-        <p style="font-size: 0.95rem;">
+        <p style="font-size: 0.95rem; margin-bottom: 14px;">
           {% if pending_count > 0 %}
-            You have {{ pending_count }} pending booking request(s).
+            You have <strong>{{ pending_count }}</strong> pending 1-on-1 session request(s) awaiting your response.
           {% else %}
             No pending 1-on-1 booking requests.
           {% endif %}
         </p>
+        {% if pending_count > 0 %}
+          <a href="{{ url_for('booking.history', status='pending') }}" class="btn btn-primary btn-sm">
+            Review Requests &rarr;
+          </a>
+        {% else %}
+          <a href="{{ url_for('booking.history') }}" class="btn btn-outline btn-sm">
+            View Booking History
+          </a>
+        {% endif %}
       </div>
     </div>
   </div>

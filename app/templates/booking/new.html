@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Book a Session with {{ teacher_user.full_name }} — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 840px; padding-top: 36px; padding-bottom: 70px;">
+  <div style="margin-bottom: 24px;">
+    <a href="{{ url_for('teacher.public_profile', teacher_id=profile.id) }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to {{ teacher_user.full_name }}'s Profile</a>
+    <h1 style="font-size: 2rem; margin-top: 6px;">Schedule a 1-on-1 Mentorship Session</h1>
+    <p style="color: var(--text-secondary); font-size: 0.95rem;">
+      Pick a date and time slot for a personalized learning, code review, or career guidance session.
+    </p>
+  </div>
+
+  <!-- Mentor Summary Card -->
+  <div class="booking-teacher-card" style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 28px; box-shadow: var(--shadow-sm); display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+    <div class="teacher-card-avatar" style="width: 72px; height: 72px; font-size: 1.8rem; border-radius: var(--radius-full); overflow: hidden; background: linear-gradient(135deg, var(--secondary), var(--primary)); color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      {% if teacher_user.profile_photo %}
+        <img src="{{ teacher_user.profile_photo }}" alt="{{ teacher_user.full_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+      {% else %}
+        <span>{{ teacher_user.full_name[:1].upper() }}</span>
+      {% endif %}
+    </div>
+
+    <div style="flex: 1; min-width: 240px;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <h2 style="font-size: 1.25rem; margin: 0;">{{ teacher_user.full_name }}</h2>
+        {% if profile.is_verified %}
+          <span class="badge badge-verified" style="font-size: 0.65rem; padding: 2px 6px;">✓ Verified Instructor</span>
+        {% endif %}
+      </div>
+
+      <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 4px 0 10px;">
+        {{ profile.headline or 'Peer Mentor' }}
+      </p>
+
+      <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 0.85rem;">
+        <div>
+          <span style="color: var(--text-muted);">Rate:</span>
+          <strong style="color: var(--primary);">NPR {{ "%.2f"|format(profile.hourly_rate or 0) }}/hr</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-muted);">Rating:</span>
+          <strong>⭐ {{ "%.1f"|format(profile.average_rating or 0.0) }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Availability Badge Pills -->
+    <div style="min-width: 200px; border-left: 1px solid var(--border-subtle); padding-left: 20px;">
+      <div style="font-size: 0.78rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
+        Weekly Available Days
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+        {% if available_days %}
+          {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
+            <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: {{ '#ecfdf5' if d in available_days else 'var(--bg-alt)' }}; color: {{ '#065f46' if d in available_days else 'var(--text-muted)' }}; font-weight: {{ '700' if d in available_days else 'normal' }};">
+              {{ d }}
+            </span>
+          {% endfor %}
+        {% else %}
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Schedule varies</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking Form Card -->
+  <div class="auth-card" style="max-width: 100%; padding: 36px 32px;">
+    <form method="POST" action="{{ url_for('booking.new', teacher_id=teacher_user.id) }}" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px;">
+        <!-- Date -->
+        <div class="form-group">
+          <label class="form-label" for="session_date">Session Date <span style="color: var(--danger);">*</span></label>
+          {{ form.session_date(class="form-control", id="session_date") }}
+          {% for error in form.session_date.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <!-- Start Time -->
+        <div class="form-group">
+          <label class="form-label" for="start_time">Start Time <span style="color: var(--danger);">*</span></label>
+          {{ form.start_time(class="form-control", id="start_time") }}
+          {% for error in form.start_time.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+
+        <!-- Duration -->
+        <div class="form-group">
+          <label class="form-label" for="duration_minutes">Duration <span style="color: var(--danger);">*</span></label>
+          {{ form.duration_minutes(class="form-control", id="duration_minutes", onchange="updateEstimatedFee()") }}
+          {% for error in form.duration_minutes.errors %}
+            <div class="form-error">⚠ {{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Estimated Fee Banner -->
+      <div style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 0.85rem; color: var(--text-secondary);">Estimated Session Fee:</span>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Calculated from instructor's rate (NPR {{ "%.0f"|format(profile.hourly_rate or 0) }}/hr)</div>
+        </div>
+        <div style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; color: var(--primary);" id="estimated-fee-display">
+          NPR {{ "%.2f"|format((profile.hourly_rate or 0)|float) }}
+        </div>
+      </div>
+
+      <!-- Topic -->
+      <div class="form-group">
+        <label class="form-label" for="topic">Topic / Goals for this Session <span style="color: var(--danger);">*</span></label>
+        {{ form.topic(class="form-control", id="topic") }}
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Be specific so your mentor can prepare relevant code examples or slides.</div>
+        {% for error in form.topic.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label" for="learner_notes">Notes / Specific Questions (Optional)</label>
+        {{ form.learner_notes(class="form-control", id="learner_notes") }}
+        {% for error in form.learner_notes.errors %}
+          <div class="form-error">⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <!-- Submit & Cancel -->
+      <div style="margin-top: 28px; display: flex; gap: 14px; flex-wrap: wrap;">
+        <button type="submit" class="btn btn-primary btn-lg" style="min-width: 220px;">
+          Submit Booking Request
+        </button>
+        <a href="{{ url_for('teacher.public_profile', teacher_id=profile.id) }}" class="btn btn-secondary btn-lg">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const hourlyRate = {{ profile.hourly_rate or 0 }};
+
+  function updateEstimatedFee() {
+    const durationSelect = document.getElementById('duration_minutes');
+    const display = document.getElementById('estimated-fee-display');
+    if (durationSelect && display) {
+      const minutes = parseInt(durationSelect.value, 10) || 60;
+      const fee = (hourlyRate * (minutes / 60)).toFixed(2);
+      display.textContent = 'NPR ' + fee;
+    }
+  }
+
+  // Set min date to today
+  document.addEventListener('DOMContentLoaded', () => {
+    const datePicker = document.getElementById('session_date');
+    if (datePicker) {
+      const today = new Date().toISOString().split('T')[0];
+      datePicker.setAttribute('min', today);
+      if (!datePicker.value) {
+        datePicker.value = today;
+      }
+    }
+    updateEstimatedFee();
+  });
+</script>
+{% endblock %}

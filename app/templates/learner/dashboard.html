@@ -27,10 +27,10 @@
       <div class="stat-label">Enrolled Courses</div>
       <div class="stat-value">{{ user.enrollments.count() }}</div>
     </div>
-    <div class="stat-card">
+    <a href="{{ url_for('booking.history', status='approved') }}" class="stat-card" style="text-decoration: none; color: inherit; display: block; transition: transform var(--transition-fast), box-shadow var(--transition-fast);">
       <div class="stat-label">Upcoming Sessions</div>
-      <div class="stat-value">{{ user.bookings_as_learner.filter_by(status='approved').count() }}</div>
-    </div>
+      <div class="stat-value" style="color: var(--primary);">{{ user.bookings_as_learner.filter_by(status='approved').count() }}</div>
+    </a>
     <div class="stat-card">
       <div class="stat-label">Certificates Earned</div>
       <div class="stat-value">{{ user.certificates.count() }}</div>
@@ -101,11 +101,49 @@
     </div>
 
     <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
-      <h3 style="margin-bottom: 16px; font-size: 1.25rem;">Upcoming Mentorship</h3>
-      {% if user.bookings_as_learner.count() == 0 %}
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 1.25rem;">Upcoming Mentorship</h3>
+        {% if upcoming_bookings and upcoming_bookings|length > 0 %}
+          <a href="{{ url_for('booking.history') }}" class="btn btn-outline btn-sm">All Bookings</a>
+        {% endif %}
+      </div>
+
+      {% if upcoming_bookings and upcoming_bookings|length > 0 %}
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          {% for b in upcoming_bookings %}
+            <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                <div style="min-width: 0;">
+                  <a href="{{ url_for('booking.detail', booking_id=b.id) }}" style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ b.topic }}
+                  </a>
+                  <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+                    with {{ b.teacher.full_name }}
+                  </div>
+                </div>
+                <span class="badge badge-status-{{ b.status }}" style="font-size: 0.72rem; padding: 2px 8px; flex-shrink: 0;">
+                  ● {{ b.status }}
+                </span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); padding-top: 6px; border-top: 1px dashed var(--border-subtle);">
+                <span>📅 {{ b.session_date.strftime('%b %d, %Y') }} &bull; {{ b.start_time.strftime('%I:%M %p') }}</span>
+                <a href="{{ url_for('booking.detail', booking_id=b.id) }}" class="btn btn-ghost btn-sm" style="padding: 2px 6px; font-size: 0.78rem;">
+                  Details &rarr;
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div style="margin-top: 14px; text-align: center;">
+          <a href="{{ url_for('booking.history') }}" style="font-size: 0.85rem; color: var(--primary); font-weight: 600; text-decoration: none;">
+            View all {{ user.bookings_as_learner.count() }} bookings &rarr;
+          </a>
+        </div>
+      {% else %}
         <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
           <div style="font-size: 2.5rem; margin-bottom: 10px;">🗓️</div>
-          <p style="font-size: 0.95rem;">No active session bookings.</p>
+          <p style="font-size: 0.95rem; margin-bottom: 14px;">No active session bookings.</p>
+          <a href="{{ url_for('teacher.search') }}" class="btn btn-primary btn-sm">Find a Mentor</a>
         </div>
       {% endif %}
     </div>
