@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with {{ partner.full_name }} — SkillBridge{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px; padding-top: 24px; padding-bottom: 50px;">
+  <!-- Conversation Wrapper Card -->
+  <div class="content-box chat-box-wrapper" style="padding: 0; display: flex; flex-direction: column; height: 78vh; min-height: 540px; overflow: hidden; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+    
+    <!-- Top Header Bar -->
+    <div class="chat-header-bar">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="{{ url_for('chat.inbox') }}" class="chat-back-btn" title="Back to Inbox">
+          &larr;
+        </a>
+
+        <!-- Partner Avatar -->
+        <div class="teacher-card-avatar" style="width: 44px; height: 44px; font-size: 1.15rem; flex-shrink: 0; background: {% if partner.role == 'teacher' %}linear-gradient(135deg, var(--primary), var(--secondary)){% else %}linear-gradient(135deg, #6366f1, #ec4899){% endif %};">
+          {% if partner.profile_photo %}
+            <img src="{{ partner.profile_photo }}" alt="{{ partner.full_name }}">
+          {% else %}
+            <span>{{ partner.full_name[:1].upper() }}</span>
+          {% endif %}
+        </div>
+
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 style="font-size: 1.1rem; margin: 0; font-weight: 700;">{{ partner.full_name }}</h2>
+            <span class="badge badge-{{ partner.role }}" style="font-size: 0.7rem; padding: 2px 8px;">
+              {{ partner.role }}
+            </span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px;">
+            <span id="connection-status-dot" class="status-dot-connected"></span>
+            <span id="connection-status-text">Connected</span>
+            {% if partner.role == 'teacher' and partner.teacher_profile %}
+              <span>&bull;</span>
+              <a href="{{ url_for('teacher.public_profile', teacher_id=partner.teacher_profile.id) }}" style="color: var(--primary); font-weight: 600;">
+                View Profile ↗
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <a href="{{ url_for('chat.inbox') }}" class="btn btn-outline btn-sm">
+          All Chats
+        </a>
+      </div>
+    </div>
+
+    <!-- Messages Scroll Area -->
+    <div id="messages-container" class="chat-messages-container">
+      <div id="empty-state-notice" style="text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 0.92rem; {{ 'display: none;' if messages|length > 0 else '' }}">
+        <div style="font-size: 2.2rem; margin-bottom: 8px;">👋</div>
+        <p style="margin: 0;">This is the start of your direct conversation with <strong>{{ partner.full_name }}</strong>.</p>
+        <p style="font-size: 0.82rem; margin-top: 4px;">Say hello or ask a question below.</p>
+      </div>
+
+      {% for msg in messages %}
+        {% set is_me = (msg.sender_id == current_user.id) %}
+        <div id="msg-{{ msg.id }}" class="message-row {{ 'row-sent' if is_me else 'row-received' }}">
+          <div class="message-bubble {{ 'bubble-sent' if is_me else 'bubble-received' }}">
+            <div class="message-text">{{ msg.body|nl2br }}</div>
+            <div class="message-meta">
+              <span>{{ msg.sent_at.strftime('%I:%M %p') if msg.sent_at else '' }}</span>
+              {% if is_me %}
+                <span class="read-indicator" title="{{ 'Read' if msg.is_read else 'Delivered' }}">
+                  {{ '✓✓' if msg.is_read else '✓' }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Bottom Input Bar -->
+    <div class="chat-input-bar">
+      <form id="chat-form" style="display: flex; gap: 10px; width: 100%; align-items: center;">
+        <input 
+          type="text" 
+          id="chat-input" 
+          class="form-control chat-input-field" 
+          placeholder="Type your message here..." 
+          autocomplete="off"
+          maxlength="2000"
+          required
+        >
+        <button type="submit" id="chat-send-btn" class="btn btn-primary chat-send-btn">
+          <span>Send</span>
+          <span style="font-size: 1.1rem; line-height: 1;">➤</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function() {
+    const currentUserId = {{ current_user.id }};
+    const partnerId = {{ partner.id }};
+    const messagesContainer = document.getElementById("messages-container");
+    const emptyNotice = document.getElementById("empty-state-notice");
+    const chatForm = document.getElementById("chat-form");
+    const chatInput = document.getElementById("chat-input");
+    const sendBtn = document.getElementById("chat-send-btn");
+    const statusDot = document.getElementById("connection-status-dot");
+    const statusText = document.getElementById("connection-status-text");
+
+    // Auto-scroll messages to bottom
+    function scrollToBottom() {
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+    scrollToBottom();
+
+    // Socket.IO client configured strictly for polling transport (Render free-tier compatible)
+    const socket = io({
+      transports: ["polling"],
+      upgrade: false,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000
+    });
+
+    socket.on("connect", function() {
+      if (statusDot) statusDot.className = "status-dot-connected";
+      if (statusText) statusText.innerText = "Connected";
+      // Join conversation room
+      socket.emit("join", { other_user_id: partnerId });
+    });
+
+    socket.on("disconnect", function() {
+      if (statusDot) statusDot.className = "status-dot-disconnected";
+      if (statusText) statusText.innerText = "Reconnecting...";
+    });
+
+    socket.on("connect_error", function() {
+      if (statusDot) statusDot.className = "status-dot-disconnected";
+      if (statusText) statusText.innerText = "Connection error";
+    });
+
+    // Handle incoming message broadcast
+    socket.on("new_message", function(data) {
+      if (!data || !data.id) return;
+
+      // Filter: only messages between current_user and partner
+      const isRelevant = 
+        (data.sender_id === currentUserId && data.receiver_id === partnerId) ||
+        (data.sender_id === partnerId && data.receiver_id === currentUserId);
+
+      if (!isRelevant) return;
+
+      // Prevent duplicate rendering
+      if (document.getElementById("msg-" + data.id)) return;
+
+      if (emptyNotice) {
+        emptyNotice.style.display = "none";
+      }
+
+      const isMe = (data.sender_id === currentUserId);
+      const rowDiv = document.createElement("div");
+      rowDiv.id = "msg-" + data.id;
+      rowDiv.className = "message-row " + (isMe ? "row-sent" : "row-received");
+
+      const bubbleDiv = document.createElement("div");
+      bubbleDiv.className = "message-bubble " + (isMe ? "bubble-sent" : "bubble-received");
+
+      const textDiv = document.createElement("div");
+      textDiv.className = "message-text";
+      textDiv.textContent = data.body;
+
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "message-meta";
+      
+      const timeSpan = document.createElement("span");
+      timeSpan.textContent = data.sent_at_time || "";
+      metaDiv.appendChild(timeSpan);
+
+      if (isMe) {
+        const readSpan = document.createElement("span");
+        readSpan.className = "read-indicator";
+        readSpan.textContent = data.is_read ? "✓✓" : "✓";
+        metaDiv.appendChild(readSpan);
+      }
+
+      bubbleDiv.appendChild(textDiv);
+      bubbleDiv.appendChild(metaDiv);
+      rowDiv.appendChild(bubbleDiv);
+      messagesContainer.appendChild(rowDiv);
+
+      scrollToBottom();
+
+      // If message is from partner, emit mark_read
+      if (!isMe) {
+        socket.emit("mark_read", { other_user_id: partnerId });
+      }
+    });
+
+    // Handle read receipt event
+    socket.on("messages_read", function(data) {
+      if (data && data.reader_id === partnerId) {
+        const indicators = document.querySelectorAll(".row-sent .read-indicator");
+        indicators.forEach(function(el) {
+          el.textContent = "✓✓";
+          el.title = "Read";
+        });
+      }
+    });
+
+    // Send message on form submit
+    chatForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const body = chatInput.value.trim();
+      if (!body) return;
+
+      socket.emit("send_message", {
+        receiver_id: partnerId,
+        body: body
+      });
+
+      chatInput.value = "";
+      chatInput.focus();
+    });
+
+    // Focus input field on initial load
+    setTimeout(function() {
+      if (chatInput) chatInput.focus();
+    }, 200);
+
+  })();
+</script>
+{% endblock %}

@@ -23,6 +23,16 @@
           <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
           <li><a href="{{ url_for('courses.catalog') }}" class="nav-link">Courses</a></li>
           <li><a href="{{ url_for('teacher.search') }}" class="nav-link">Find Mentors</a></li>
+          {% if current_user.is_authenticated %}
+            <li>
+              <a href="{{ url_for('chat.inbox') }}" class="nav-link">
+                Messages
+                {% if unread_messages_count and unread_messages_count > 0 %}
+                  <span class="unread-badge">{{ unread_messages_count }}</span>
+                {% endif %}
+              </a>
+            </li>
+          {% endif %}
         </ul>
       </nav>
 
@@ -56,6 +66,12 @@
               {% elif current_user.role == 'admin' %}
                 <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">⚙️ Admin Console</a>
               {% endif %}
+              <a href="{{ url_for('chat.inbox') }}" class="dropdown-item" style="display: flex; align-items: center; justify-content: space-between;">
+                <span>💬 Messages</span>
+                {% if unread_messages_count and unread_messages_count > 0 %}
+                  <span class="unread-badge">{{ unread_messages_count }}</span>
+                {% endif %}
+              </a>
 
               <div class="dropdown-divider"></div>
               <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color: var(--danger);">

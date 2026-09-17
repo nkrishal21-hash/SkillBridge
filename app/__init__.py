@@ -105,14 +105,31 @@ def create_app(config_name: str = None) -> Flask:
     app.register_blueprint(payments_bp, url_prefix="/payments")
     app.register_blueprint(certificates_bp, url_prefix="/certificates")
 
-    # ── Template filters ──────────────────────────────────────────────────────
+    # ── Template filters & context processors ────────────────────────────────
     from markupsafe import Markup, escape
+    from flask_login import current_user
+    from app.models import Message
 
     @app.template_filter("nl2br")
     def nl2br_filter(s):
         if not s:
             return ""
         return Markup("<br>".join(escape(s).split("\n")))
+
+    @app.context_processor
+    def inject_chat_context():
+        if current_user.is_authenticated:
+            try:
+                unread_count = Message.query.filter_by(
+                    receiver_id=current_user.id, is_read=False
+                ).count()
+                return {"unread_messages_count": unread_count}
+            except Exception:
+                return {"unread_messages_count": 0}
+        return {"unread_messages_count": 0}
+
+    # ── Register SocketIO event handlers ──────────────────────────────────────
+    from app.chat import events as _chat_events  # noqa: F401
 
     # ── Main / landing page route ─────────────────────────────────────────────
     from flask import render_template

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Messages &amp; Inbox — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 860px; padding-top: 36px; padding-bottom: 70px;">
+  <!-- Header Row -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <h1 style="font-size: 1.8rem; margin: 0;">Messages &amp; Conversations</h1>
+      <p style="color: var(--text-secondary); margin-top: 4px; font-size: 0.95rem;">
+        Direct real-time communication with mentors and learners.
+      </p>
+    </div>
+    <div>
+      <a href="{{ url_for('teacher.search') }}" class="btn btn-outline btn-sm">
+        🔍 Find Mentors
+      </a>
+    </div>
+  </div>
+
+  <!-- Inbox Content Card -->
+  <div class="content-box" style="padding: 0; overflow: hidden;">
+    {% if conversations %}
+      <div class="chat-inbox-list">
+        {% for conv in conversations %}
+          <a href="{{ url_for('chat.conversation', user_id=conv.partner.id) }}" class="chat-inbox-item {{ 'unread' if conv.unread_count > 0 else '' }}">
+            <!-- Avatar -->
+            <div class="teacher-card-avatar" style="width: 52px; height: 52px; font-size: 1.25rem; flex-shrink: 0; background: {% if conv.partner.role == 'teacher' %}linear-gradient(135deg, var(--primary), var(--secondary)){% else %}linear-gradient(135deg, #6366f1, #ec4899){% endif %};">
+              {% if conv.partner.profile_photo %}
+                <img src="{{ conv.partner.profile_photo }}" alt="{{ conv.partner.full_name }}">
+              {% else %}
+                <span>{{ conv.partner.full_name[:1].upper() }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Content Area -->
+            <div class="chat-inbox-content">
+              <div class="chat-inbox-top-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="chat-inbox-name">{{ conv.partner.full_name }}</span>
+                  <span class="badge badge-{{ conv.partner.role }}" style="font-size: 0.72rem; padding: 2px 8px;">
+                    {{ conv.partner.role }}
+                  </span>
+                </div>
+                <span class="chat-inbox-time">
+                  {{ conv.last_message.sent_at.strftime('%b %d, %I:%M %p') if conv.last_message and conv.last_message.sent_at else '' }}
+                </span>
+              </div>
+
+              <div class="chat-inbox-bottom-row">
+                <p class="chat-inbox-snippet">
+                  {% if conv.last_message.sender_id == current_user.id %}
+                    <span style="color: var(--text-muted); font-weight: 500;">You: </span>
+                  {% endif %}
+                  {{ conv.last_message.body|truncate(75, True, '...') }}
+                </p>
+
+                {% if conv.unread_count > 0 %}
+                  <span class="unread-pill">{{ conv.unread_count }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Empty State -->
+      <div style="text-align: center; padding: 60px 24px;">
+        <div style="font-size: 3rem; margin-bottom: 16px;">💬</div>
+        <h3 style="font-size: 1.3rem; margin-bottom: 8px;">No conversations yet</h3>
+        <p style="color: var(--text-secondary); max-width: 440px; margin: 0 auto 24px; font-size: 0.95rem;">
+          Connect with mentors and learners across SkillBridge. You can message mentors directly from their profiles or from your booked mentorship sessions.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+          <a href="{{ url_for('teacher.search') }}" class="btn btn-primary btn-sm">
+            Browse Mentors
+          </a>
+          <a href="{{ url_for('booking.history') }}" class="btn btn-outline btn-sm">
+            Mentorship Bookings
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

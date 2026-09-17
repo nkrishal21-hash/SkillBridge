@@ -12,8 +12,8 @@
 | 2 | Authentication | ✅ Done | 2026-09-15 |
 | 3 | Teacher Profile & Search | ✅ Done | 2026-09-15 |
 | 4 | Course Management | ✅ Done | 2026-09-15 |
-| 5 | Booking System | ⬜ Not started | |
-| 6 | Live Class & Chat | ⬜ Not started | |
+| 5 | Booking System | ✅ Done | 2026-09-17 |
+| 6 | Live Class & Chat | ✅ Done | 2026-09-17 |
 | 7 | Ratings & Payments | ⬜ Not started | |
 | 8 | Certificates & Dashboards | ⬜ Not started | |
 | 9 | Security & UI Polish | ⬜ Not started | |
@@ -232,26 +232,37 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 6 — Live Class & Chat
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-17 / 2026-09-17
 
 **Checklist**
-- [ ] Jitsi iFrame embedded, room name unique per booking
-- [ ] Join restricted to approved booking's learner + teacher
-- [ ] Whiteboard confirmed visible in call toolbar (default on meet.jit.si — no build needed)
-- [ ] SocketIO chat — messages persist to DB
-- [ ] SocketIO configured for **polling transport** (Render free-tier compatibility)
-- [ ] Unread message badge in navbar
-- [ ] Inbox + conversation view templates
+- [x] Jitsi iFrame embedded, room name unique per booking
+- [x] Join restricted to approved booking's learner + teacher
+- [x] Whiteboard confirmed visible in call toolbar (default on meet.jit.si — no build needed)
+- [x] SocketIO chat — messages persist to DB
+- [x] SocketIO configured for **polling transport** (Render free-tier compatibility)
+- [x] Unread message badge in navbar
+- [x] Inbox + conversation view templates
 
 **Files created/modified:**
--
+- `app/chat/events.py` (SocketIO event handlers: `connect`, `join`, `send_message`, `mark_read`)
+- `app/chat/routes.py` (inbox and 1-on-1 conversation view routes)
+- `app/__init__.py` (registered `inject_chat_context` context processor and imported SocketIO events)
+- `app/templates/chat/inbox.html` (inbox list template with recent message snippets and unread counters)
+- `app/templates/chat/conversation.html` (bubble-style chat view with polling Socket.IO client script)
+- `app/templates/base.html` (added Messages nav link and avatar dropdown item with unread badge)
+- `app/templates/booking/detail.html` (embedded Jitsi Meet External API with launch button, room display, and Message participant link)
+- `app/templates/teacher/public_profile.html` (added Message button for authenticated non-owners)
+- `app/static/css/style.css` (CSS styles for chat inbox, message bubbles, unread badges, and Jitsi container)
 
 **Blockers / deviations from master prompt:**
--
+- **Open Messaging Scope**: Chat is available between any two authenticated users (not strictly restricted to users with existing active bookings), allowing learners to contact mentors prior to scheduling sessions.
+- **Jitsi Free Instance Whiteboard**: Video calls utilize the free public server `meet.jit.si` via the External API script (`https://meet.jit.si/external_api.js`). The collaborative whiteboard (Excalidraw) is available natively in the meet.jit.si toolbar without any custom build or third-party license required.
 
 **Notes for report/viva:**
--
+- **Render Free-Tier Compatibility**: Socket.IO client explicitly uses `io({ transports: ["polling"], upgrade: false })` combined with Flask-SocketIO's `async_mode="threading"`, eliminating WebSocket drops on free cloud hosts.
+- **Deterministic Room Routing**: SocketIO rooms follow the deterministic naming schema `f"conv_{min(id1, id2)}_{max(id1, id2)}"`, guaranteeing both participants join the exact same socket room regardless of who initiates the connection.
+- **Global Unread Context Processor**: Unread count is queried via Flask `@app.context_processor` on `Message.query.filter_by(receiver_id=current_user.id, is_read=False)`, surfacing unread badges across all pages without duplicate route queries.
 
 ---
 

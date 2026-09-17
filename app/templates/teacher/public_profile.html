@@ -52,7 +52,7 @@
           </div>
         </div>
 
-        <div class="profile-hero-actions">
+        <div class="profile-hero-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           {% if is_owner %}
             <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-primary">
               ✏️ Edit Profile
@@ -61,6 +61,11 @@
             <a href="{{ url_for('booking.new', teacher_id=profile.user_id) }}" class="btn btn-primary btn-lg">
               🗓️ Book a Session
             </a>
+            {% if current_user.is_authenticated and current_user.id != profile.user_id %}
+              <a href="{{ url_for('chat.conversation', user_id=profile.user_id) }}" class="btn btn-outline btn-lg" style="background: rgba(255,255,255,0.9);">
+                💬 Message
+              </a>
+            {% endif %}
           {% endif %}
         </div>
       </div>
