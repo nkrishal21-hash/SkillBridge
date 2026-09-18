@@ -313,10 +313,13 @@
             </div>
           </div>
 
-          {% if enrollment.progress_percent >= 100 %}
+          {% if enrollment.completed_at or enrollment.progress_percent >= 100 %}
             <div class="alert alert-success" style="font-size: 0.88rem; margin-bottom: 16px;">
-              🎉 <strong>Course Completed!</strong> You have finished all lessons. Certificate downloads will launch in Phase 8!
+              🎉 <strong>Course Completed!</strong> Congratulations on finishing all lessons and assessments!
             </div>
+            <a href="{{ url_for('certificates.generate', course_id=course.id) }}" class="btn btn-primary btn-block btn-lg" style="background: #059669; border-color: #059669; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              🎓 Download Certificate
+            </a>
           {% endif %}
 
           {% if lessons %}

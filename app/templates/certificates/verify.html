@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Certificate — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 760px; padding-top: 50px; padding-bottom: 80px;">
+  <div style="text-align: center; margin-bottom: 32px;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); font-size: 2rem; margin-bottom: 16px;">
+      🎓
+    </div>
+    <h1 style="font-size: 2.1rem; margin-bottom: 8px;">Certificate Credential Verification</h1>
+    <p style="color: var(--text-secondary); font-size: 1.05rem;">
+      Official verification record for SkillBridge course completion credentials.
+    </p>
+  </div>
+
+  {% if cert %}
+    <!-- Verified Certificate Card -->
+    <div class="certificate-verify-card" style="background: white; border: 2px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%); color: white; padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); padding: 4px 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+            ✓ Officially Verified
+          </span>
+          <h3 style="color: white; margin-top: 8px; margin-bottom: 0; font-size: 1.3rem;">Certificate of Completion</h3>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 0.8rem; color: #c7d2fe; text-transform: uppercase; letter-spacing: 0.05em;">Credential ID</div>
+          <code style="background: rgba(0,0,0,0.25); color: #fde68a; padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.05em;">
+            {{ cert.certificate_code }}
+          </code>
+        </div>
+      </div>
+
+      <div style="padding: 32px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 28px;">
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+              Awarded To
+            </div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary);">
+              {{ cert.learner.full_name if cert.learner else 'Registered Learner' }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+              SkillBridge Student
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+              Course Completed
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">
+              {{ cert.course.title if cert.course else 'Course Record' }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+              Curriculum completed 100%
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+              Course Instructor
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">
+              {{ cert.course.teacher.user.full_name if cert.course and cert.course.teacher and cert.course.teacher.user else 'SkillBridge Instructor' }}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+              Issue Date
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">
+              {{ cert.issued_at.strftime('%B %d, %Y') if cert.issued_at else 'Verified' }}
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 16px; border: 1px dashed var(--border-subtle); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+          <div style="font-size: 0.88rem; color: var(--text-secondary);">
+            🔒 This cryptographic credential code corresponds to an authentic certificate stored in the SkillBridge registry.
+          </div>
+          {% if cert.course %}
+            <a href="{{ url_for('courses.course_detail', course_id=cert.course_id) }}" class="btn btn-outline btn-sm">
+              View Course Syllabus &rarr;
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <!-- Invalid / Not Found Card -->
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 40px; text-align: center; box-shadow: var(--shadow-sm);">
+      <div style="font-size: 3rem; margin-bottom: 16px;">⚠️</div>
+      <h2 style="font-size: 1.5rem; color: var(--danger); margin-bottom: 8px;">Invalid or Unrecognized Certificate Code</h2>
+      <p style="color: var(--text-secondary); max-width: 520px; margin: 0 auto 20px auto; font-size: 0.98rem;">
+        No active course completion certificate was found in the SkillBridge registry matching code:
+        <br>
+        <code style="background: var(--bg-alt); padding: 4px 10px; border-radius: 4px; font-weight: 700; color: var(--danger); font-size: 1rem; margin-top: 8px; display: inline-block;">
+          {{ code or 'N/A' }}
+        </code>
+      </p>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 24px;">
+        Please double-check the credential code printed at the bottom of your certificate PDF or contact support.
+      </p>
+      <a href="{{ url_for('courses.catalog') }}" class="btn btn-primary btn-sm">
+        Explore Valid Courses
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

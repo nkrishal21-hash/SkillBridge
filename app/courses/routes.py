@@ -29,6 +29,7 @@ from app.courses.utils import (
     parse_quiz_data,
     format_quiz_data,
 )
+from app.notifications.utils import notify
 
 courses_bp = Blueprint("courses", __name__)
 
@@ -626,7 +627,14 @@ def complete_lesson(course_id: int, lesson_id: int):
     if enrollment.progress_percent >= 100:
         if not enrollment.completed_at:
             enrollment.completed_at = datetime.utcnow()
-        flash("🎉 Course complete! Congratulations on finishing all lessons! (Official PDF certificates will be available in Phase 8).", "success")
+            notify(
+                user_id=current_user.id,
+                title=f"Course Completed: {course.title} 🎓",
+                body="Congratulations on finishing all lessons! Your official Certificate of Completion is ready to download.",
+                notif_type="course",
+                link=url_for("certificates.generate", course_id=course.id),
+            )
+        flash("🎉 Course complete! Congratulations on finishing all lessons! Your Certificate of Completion is ready to download.", "success")
     else:
         flash(f"Lesson '{lesson.title}' marked as completed! Progress: {enrollment.progress_percent}%.", "success")
 
@@ -693,7 +701,14 @@ def submit_quiz(course_id: int, lesson_id: int):
             if enrollment.progress_percent >= 100:
                 if not enrollment.completed_at:
                     enrollment.completed_at = datetime.utcnow()
-                flash(f"🎉 Excellent! You passed with {score_pct}% ({correct_count}/{total_questions} correct)! You have completed the entire course!", "success")
+                    notify(
+                        user_id=current_user.id,
+                        title=f"Course Completed: {course.title} 🎓",
+                        body="Congratulations on completing the curriculum and quizzes! Your official Certificate of Completion is ready to download.",
+                        notif_type="course",
+                        link=url_for("certificates.generate", course_id=course.id),
+                    )
+                flash(f"🎉 Excellent! You passed with {score_pct}% ({correct_count}/{total_questions} correct)! You have completed the entire course! Your certificate is ready.", "success")
             else:
                 flash(f"✅ Well done! You passed the quiz with {score_pct}% ({correct_count}/{total_questions} correct). Lesson marked complete!", "success")
 

@@ -29,6 +29,7 @@ from app.payments.utils import (
     verify_esewa_callback,
     check_esewa_status,
 )
+from app.notifications.utils import notify
 
 payments_bp = Blueprint("payments", __name__)
 
@@ -292,6 +293,17 @@ def esewa_success():
             booking.payment_id = payment.id
 
     db.session.commit()
+
+    # Send in-app notification to learner
+    item_title = payment.course.title if (payment.payment_for == "course" and payment.course) else ("1-on-1 Mentorship Session" if payment.payment_for == "booking" else "SkillBridge Order")
+    notify(
+        user_id=payment.learner_id,
+        title=f"Payment Confirmed: NPR {payment.amount:.2f}",
+        body=f"Your payment via {payment.gateway.upper()} for '{item_title}' was confirmed successfully.",
+        notif_type="payment",
+        link=url_for("payments.receipt", payment_id=payment.id),
+    )
+
     flash("🎉 Payment successful! Your order has been confirmed.", "success")
     return render_template("payments/success.html", payment=payment)
 

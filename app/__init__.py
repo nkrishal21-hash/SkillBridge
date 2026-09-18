@@ -95,6 +95,7 @@ def create_app(config_name: str = None) -> Flask:
     from app.payments.routes import payments_bp
     from app.certificates.routes import certificates_bp
     from app.reviews.routes import reviews_bp
+    from app.notifications.routes import notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(learner_bp, url_prefix="/learner")
@@ -106,11 +107,12 @@ def create_app(config_name: str = None) -> Flask:
     app.register_blueprint(payments_bp, url_prefix="/payments")
     app.register_blueprint(certificates_bp, url_prefix="/certificates")
     app.register_blueprint(reviews_bp, url_prefix="/reviews")
+    app.register_blueprint(notifications_bp, url_prefix="/notifications")
 
     # ── Template filters & context processors ────────────────────────────────
     from markupsafe import Markup, escape
     from flask_login import current_user
-    from app.models import Message
+    from app.models import Message, Notification
 
     @app.template_filter("nl2br")
     def nl2br_filter(s):
@@ -119,16 +121,30 @@ def create_app(config_name: str = None) -> Flask:
         return Markup("<br>".join(escape(s).split("\n")))
 
     @app.context_processor
-    def inject_chat_context():
+    def inject_global_badges():
         if current_user.is_authenticated:
             try:
-                unread_count = Message.query.filter_by(
+                unread_msgs = Message.query.filter_by(
                     receiver_id=current_user.id, is_read=False
                 ).count()
-                return {"unread_messages_count": unread_count}
             except Exception:
-                return {"unread_messages_count": 0}
-        return {"unread_messages_count": 0}
+                unread_msgs = 0
+
+            try:
+                unread_notifs = Notification.query.filter_by(
+                    user_id=current_user.id, is_read=False
+                ).count()
+            except Exception:
+                unread_notifs = 0
+
+            return {
+                "unread_messages_count": unread_msgs,
+                "unread_notifications_count": unread_notifs,
+            }
+        return {
+            "unread_messages_count": 0,
+            "unread_notifications_count": 0,
+        }
 
     # ── Register SocketIO event handlers ──────────────────────────────────────
     from app.chat import events as _chat_events  # noqa: F401

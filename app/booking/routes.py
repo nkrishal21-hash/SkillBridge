@@ -28,6 +28,7 @@ from app.booking.utils import (
     send_new_booking_email,
     send_booking_response_email,
 )
+from app.notifications.utils import notify
 
 booking_bp = Blueprint("booking", __name__)
 
@@ -130,6 +131,15 @@ def new(teacher_id: int):
                 "success",
             )
 
+        # Send in-app notification to teacher
+        notify(
+            user_id=booking.teacher_id,
+            title=f"New Mentorship Request: {booking.topic}",
+            body=f"{current_user.full_name} requested a {booking.duration_minutes}-min session on {booking.session_date.strftime('%b %d, %Y')}.",
+            notif_type="booking",
+            link=url_for("booking.detail", booking_id=booking.id),
+        )
+
         return redirect(url_for("booking.detail", booking_id=booking.id))
 
     return render_template(
@@ -222,6 +232,15 @@ def approve(booking_id: int):
 
     db.session.commit()
 
+    # Send in-app notification to learner
+    notify(
+        user_id=booking.learner_id,
+        title=f"Booking Approved: {booking.topic}",
+        body=f"{current_user.full_name} has approved your session for {booking.session_date.strftime('%b %d, %Y')} at {booking.start_time.strftime('%I:%M %p')}.",
+        notif_type="booking",
+        link=url_for("booking.detail", booking_id=booking.id),
+    )
+
     # Send response email to learner
     send_booking_response_email(booking)
     flash("Session approved! The learner has been notified by email.", "success")
@@ -253,6 +272,15 @@ def reject(booking_id: int):
         booking.teacher_response_note = note
 
     db.session.commit()
+
+    # Send in-app notification to learner
+    notify(
+        user_id=booking.learner_id,
+        title=f"Booking Request Update: {booking.topic}",
+        body=f"{current_user.full_name} was unable to accept your booking request.",
+        notif_type="booking",
+        link=url_for("booking.detail", booking_id=booking.id),
+    )
 
     # Send response email to learner
     send_booking_response_email(booking)

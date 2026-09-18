@@ -20,6 +20,7 @@ from app.models import Review, Rating, Booking, Course, Enrollment, TeacherProfi
 from app.auth.utils import learner_required
 from app.reviews import reviews_bp
 from app.reviews.forms import ReviewForm
+from app.notifications.utils import notify
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -93,6 +94,16 @@ def review_booking(booking_id: int):
         teacher_profile.total_reviews = int(stats[1] or 0)
 
         db.session.commit()
+
+        # Notify teacher of new review
+        notify(
+            user_id=booking.teacher_id,
+            title=f"New Session Review ({rating_val}★)",
+            body=f"{current_user.full_name} left a {rating_val}-star review for '{booking.topic}'.",
+            notif_type="review",
+            link=url_for("booking.detail", booking_id=booking.id),
+        )
+
         flash("⭐ Thank you! Your review and rating have been published.", "success")
     else:
         for field, errors in form.errors.items():
@@ -175,6 +186,16 @@ def review_course(course_id: int):
         teacher_profile.total_reviews = int(stats[1] or 0)
 
         db.session.commit()
+
+        # Notify instructor of new course review
+        notify(
+            user_id=teacher_profile.user_id,
+            title=f"New Course Review ({rating_val}★)",
+            body=f"{current_user.full_name} left a {rating_val}-star review on '{course.title}'.",
+            notif_type="review",
+            link=url_for("courses.course_detail", course_id=course.id),
+        )
+
         flash("⭐ Thank you! Your course review and rating have been published.", "success")
     else:
         for field, errors in form.errors.items():

@@ -5,9 +5,9 @@ Handles teacher dashboard, profile editing, mentor search, and public profile vi
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
 from app import db
-from app.models import TeacherProfile, User
+from app.models import TeacherProfile, User, Payment, Booking, Course, Review
 from app.auth.utils import teacher_required
 from app.teacher.forms import TeacherProfileForm
 from app.teacher.utils import (
@@ -27,7 +27,7 @@ teacher_bp = Blueprint("teacher", __name__)
 @login_required
 @teacher_required
 def dashboard():
-    """Teacher studio dashboard with profile completeness and booking indicators."""
+    """Teacher studio dashboard with earnings, courses, bookings, and student reviews."""
     profile = current_user.teacher_profile
     if not profile:
         profile = TeacherProfile(user=current_user)
@@ -42,12 +42,46 @@ def dashboard():
     # Use status="pending" (column on Booking model is status)
     pending_count = current_user.bookings_as_teacher.filter_by(status="pending").count()
 
+    # Query teacher's booking IDs and course IDs for earnings calculation
+    teacher_booking_subq = db.session.query(Booking.id).filter(Booking.teacher_id == current_user.id)
+    teacher_course_subq = db.session.query(Course.id).filter(Course.teacher_id == profile.id)
+
+    earnings_condition = and_(
+        Payment.status == "success",
+        or_(
+            and_(Payment.payment_for == "booking", Payment.booking_id_ref.in_(teacher_booking_subq)),
+            and_(Payment.payment_for == "course", Payment.course_id.in_(teacher_course_subq)),
+        ),
+    )
+
+    total_earnings = (
+        db.session.query(func.coalesce(func.sum(Payment.amount), 0.0))
+        .filter(earnings_condition)
+        .scalar()
+    ) or 0.0
+
+    recent_payments = (
+        Payment.query.filter(earnings_condition)
+        .order_by(Payment.completed_at.desc(), Payment.id.desc())
+        .limit(5)
+        .all()
+    )
+
+    recent_reviews = (
+        profile.reviews.order_by(Review.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
     return render_template(
         "teacher/dashboard.html",
         user=current_user,
         profile=profile,
         profile_complete=profile_complete,
         pending_count=pending_count,
+        total_earnings=float(total_earnings),
+        recent_payments=recent_payments,
+        recent_reviews=recent_reviews,
     )
 
 
@@ -201,10 +235,20 @@ def public_profile(teacher_id: int):
         and current_user.id == profile.user_id
     )
 
+    is_favorited = False
+    if current_user.is_authenticated and current_user.is_learner:
+        from app.models import Favorite
+        is_favorited = (
+            Favorite.query.filter_by(
+                learner_id=current_user.id, teacher_id=profile.id
+            ).first() is not None
+        )
+
     return render_template(
         "teacher/public_profile.html",
         profile=profile,
         skills_list=skills_list,
         available_days=available_days,
         is_owner=is_owner,
+        is_favorited=is_favorited,
     )

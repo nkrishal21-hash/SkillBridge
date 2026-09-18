@@ -65,6 +65,18 @@
               <a href="{{ url_for('chat.conversation', user_id=profile.user_id) }}" class="btn btn-outline btn-lg" style="background: rgba(255,255,255,0.9);">
                 💬 Message
               </a>
+              {% if current_user.is_learner %}
+                <form method="POST" action="{{ url_for('learner.toggle_favorite', teacher_profile_id=profile.id) }}" style="display: inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline btn-lg favorite-heart-toggle {{ 'favorited' if is_favorited else '' }}" style="background: rgba(255,255,255,0.9); display: inline-flex; align-items: center; gap: 6px;" title="{{ 'Remove from favorites' if is_favorited else 'Save to favorites' }}">
+                    {% if is_favorited %}
+                      <span style="color: #ef4444;">❤️</span> Saved
+                    {% else %}
+                      <span>🤍</span> Save Mentor
+                    {% endif %}
+                  </button>
+                </form>
+              {% endif %}
             {% endif %}
           {% endif %}
         </div>
