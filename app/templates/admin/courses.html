@@ -85,7 +85,8 @@
               Preview
             </a>
             {% if not course.is_approved %}
-              <form method="POST" action="{{ url_for('admin.approve_course', course_id=course.id) }}">
+              <form method="POST" action="{{ url_for('admin.approve_course', course_id=course.id) }}"
+                    onsubmit="return confirm('Approve \'{{ course.title }}\' for the public catalog?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-primary btn-sm" style="background: var(--success); border-color: var(--success);">
                   ✓ Approve

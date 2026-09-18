@@ -18,7 +18,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from app import db
-from app.models import Course, Lesson, Enrollment, TeacherProfile, Review
+from app.models import Course, Lesson, Enrollment, TeacherProfile, Review, Certificate
 from app.auth.utils import teacher_required, learner_required
 from app.courses.forms import CourseForm, LessonForm
 from app.reviews.forms import ReviewForm
@@ -515,6 +515,43 @@ def enroll(course_id: int):
     if first_lesson:
         return redirect(url_for("courses.lesson_view", course_id=course.id, lesson_id=first_lesson.id))
     return redirect(url_for("courses.course_detail", course_id=course.id))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10b. Unenroll from Course (Learner Only)
+# ─────────────────────────────────────────────────────────────────────────────
+@courses_bp.route("/<int:course_id>/unenroll", methods=["POST"])
+@login_required
+@learner_required
+def unenroll(course_id: int):
+    """
+    Unenroll the current learner from a course.
+    Deletes the Enrollment record, and deletes any Certificate associated with this
+    learner and course (since the certificate represents an enrollment that no longer exists).
+    """
+    course = Course.query.get_or_404(course_id)
+    enrollment = Enrollment.query.filter_by(
+        learner_id=current_user.id,
+        course_id=course.id
+    ).first()
+
+    if not enrollment:
+        flash("You are not currently enrolled in this course.", "warning")
+        return redirect(url_for("courses.course_detail", course_id=course.id))
+
+    # Also delete Certificate if one was issued for this course
+    cert = Certificate.query.filter_by(
+        learner_id=current_user.id,
+        course_id=course.id
+    ).first()
+    if cert:
+        db.session.delete(cert)
+
+    db.session.delete(enrollment)
+    db.session.commit()
+
+    flash(f"You have been unenrolled from '{course.title}'.", "info")
+    return redirect(request.referrer or url_for("courses.course_detail", course_id=course.id))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -284,7 +284,7 @@
               ✏️ Edit Course Details
             </a>
 
-            <form method="POST" action="{{ url_for('courses.toggle_publish', course_id=course.id) }}">
+            <form method="POST" action="{{ url_for('courses.toggle_publish', course_id=course.id) }}" {% if course.is_published %}onsubmit="return confirm('Move this course to unpublished drafts? It will no longer appear in the catalog.');"{% endif %}>
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               {% if course.is_published %}
                 <button type="submit" class="btn btn-secondary btn-block" style="margin-top: 6px;">
@@ -338,6 +338,13 @@
               {% endif %}
             </a>
           {% endif %}
+
+          <form method="POST" action="{{ url_for('courses.unenroll', course_id=course.id) }}" onsubmit="return confirm('Are you sure you want to unenroll from this course? Your progress and certificate will be permanently removed.');" style="margin-top: 14px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline btn-block btn-sm" style="color: var(--danger); border-color: #fca5a5;">
+              Unenroll from Course
+            </button>
+          </form>
 
         {% else %}
           <!-- Not Enrolled State -->

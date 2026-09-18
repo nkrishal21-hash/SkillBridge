@@ -2017,3 +2017,101 @@ a:hover {
   color: var(--text-muted);
   font-weight: 700;
 }
+
+/* ── Phase 9: Responsive Polish & Mobile 375px Optimizations ── */
+.dashboard-two-col {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.dashboard-even-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.dashboard-three-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.checkout-creds-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 860px) {
+  .dashboard-two-col,
+  .dashboard-even-col,
+  .dashboard-three-col {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Compact Navbar for 375px screens */
+  .brand-name {
+    font-size: 1.2rem;
+  }
+
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .navbar-inner {
+    height: 60px;
+  }
+
+  .nav-actions .btn {
+    padding: 5px 9px;
+    font-size: 0.78rem;
+  }
+
+  .user-badge-btn span:not(.badge) {
+    display: none;
+  }
+
+  .user-badge-btn {
+    padding: 3px 6px;
+  }
+
+  /* Stat cards on mobile */
+  .dashboard-stats {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stat-card {
+    padding: 16px !important;
+  }
+
+  /* Checkout test credentials stack on mobile */
+  .checkout-creds-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Chat send button compact */
+  .chat-send-btn span:first-child {
+    display: none;
+  }
+
+  /* Headings size balance */
+  .hero h1 {
+    font-size: 1.85rem !important;
+  }
+
+  .dashboard-header h2 {
+    font-size: 1.45rem !important;
+  }
+}
+

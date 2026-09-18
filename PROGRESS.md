@@ -16,7 +16,7 @@
 | 6 | Live Class & Chat | ✅ Done | 2026-09-17 |
 | 7 | Ratings & Payments | ✅ Done | 2026-09-18 |
 | 8 | Certificates & Dashboards | ✅ Done | 2026-09-18 |
-| 9 | Security & UI Polish | ⬜ Not started | |
+| 9 | Security & UI Polish | ✅ Done | 2026-09-18 |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
 
 Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
@@ -370,33 +370,44 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 9 — Security & UI Polish
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-18 / 2026-09-18
 
 **Checklist**
-- [ ] CSRF tokens verified on every form
-- [ ] Role-check decorators on every protected route
-- [ ] File upload validation (type + size) enforced
-- [ ] IDOR checks — ownership verified before edit/delete
-- [ ] Login rate limiting (5 attempts)
-- [ ] Navbar: unread badge + notification bell
-- [ ] Confirmation modals (cancel booking, unenroll)
-- [ ] Responsive check at 375px
-- [ ] 404 / 500 error pages
-- [ ] Flash message styling (success/error/info)
-- [ ] Empty-state messages (no courses, no bookings, no reviews)
-- [ ] `.env.example` finalized
-- [ ] `requirements.txt` versions pinned
-- [ ] `README.md` written
+- [x] CSRF tokens verified on every form (GET search forms, Socket.IO chat, and eSewa external-POST form deliberately excluded — all correct)
+- [x] Role-check decorators on every protected route (`@learner_required`, `@teacher_required`, `@admin_required` audited across all 7 blueprint route files)
+- [x] File upload validation (type + size) enforced (`upload_course_thumbnail`, `upload_lesson_video`, `upload_lesson_pdf`, `upload_certificate_pdf`, `upload_profile_picture` all validate extension + byte size)
+- [x] IDOR checks — ownership verified before edit/delete (every mutating route compares `current_user.id` against resource owner, `abort(403)` on mismatch)
+- [x] Login rate limiting (5 attempts, 15-min lockout via `User.increment_failed_login` / `is_locked` — implemented in Phase 2, verified unchanged)
+- [x] Navbar: unread badge + notification bell (implemented in Phase 8, verified in base.html)
+- [x] Confirmation modals on all destructive actions: cancel/reject booking, complete session, unenroll from course, delete lesson, unpublish course/lesson, admin verify/unverify, admin approve/unapprove
+- [x] Responsive check at 375px — navbar collapse, hero headers, stat grids, booking detail, checkout all tested and fixed with mobile-specific overrides
+- [x] 404 / 500 error pages (implemented in Phase 1, styled with design system)
+- [x] Flash message styling (success/error/info/warning — all four variants in base.html toast block)
+- [x] Empty-state messages on all list views (no courses, no bookings, no reviews, no notifications, no favorites)
+- [x] `.env.example` finalized (all keys present, no real secrets)
+- [x] `requirements.txt` versions pinned
+- [x] `README.md` written
 
 **Files created/modified:**
--
+- `README.md` — new: project overview, tech stack, folder structure, local setup, env vars, external services, deployment guide
+- `app/courses/routes.py` — added `POST /courses/<course_id>/unenroll` route (deletes Enrollment + associated Certificate)
+- `app/templates/courses/course_detail.html` — unenroll button + confirm; publish toggle confirm
+- `app/templates/courses/manage_lessons.html` — delete lesson confirm; unpublish confirm
+- `app/templates/booking/detail.html` — complete session confirm; responsive grid layout
+- `app/templates/admin/teachers.html` — verify/unverify confirms
+- `app/templates/admin/courses.html` — approve/unapprove confirms
+- `app/static/css/style.css` — `.dashboard-two-col`, `.dashboard-even-col`, `.dashboard-three-col` responsive grid classes; 375 px mobile overrides
+- `app/templates/learner/dashboard.html`, `teacher/dashboard.html`, `admin/dashboard.html`, `payments/checkout.html` — migrated to new responsive grid classes
 
 **Blockers / deviations from master prompt:**
--
+- Unenroll feature was not in the original Phase 9 checklist but was added here as it is a natural complement to the cancel booking / destructive-action audit.
 
 **Notes for report/viva:**
--
+- IDOR protection uses a consistent pattern across all blueprints: fetch resource by primary key (`get_or_404`), then assert `current_user.id == resource.owner_id`, else `abort(403)`. No route relies solely on a role decorator for ownership.
+- File upload validation uses `seek(0, SEEK_END)` / `tell()` / `seek(0)` to measure byte size without reading the whole file into memory before validation — safe for large video uploads.
+- Confirmation dialogs use native `window.confirm()` (zero JS dependencies, always synchronous) rather than custom modal libraries, keeping the codebase lightweight.
+- `README.md` documents graceful-fallback behaviour for all optional services (Cloudinary → local disk, eSewa → mock, Google OAuth → skipped) so the app runs fully offline in dev.
 
 ---
 

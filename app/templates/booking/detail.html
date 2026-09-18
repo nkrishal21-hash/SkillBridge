@@ -71,7 +71,7 @@
     </div>
 
     <!-- Participants Row -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
+  <div class="dashboard-even-col" style="padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
       <!-- Mentor Info -->
       <div style="display: flex; gap: 14px; align-items: center;">
         <div class="teacher-card-avatar" style="width: 52px; height: 52px; font-size: 1.3rem;">
@@ -280,7 +280,7 @@
       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
         <!-- Complete Session Button (Once eligible) -->
         {% if can_mark_complete %}
-          <form method="POST" action="{{ url_for('booking.complete', booking_id=booking.id) }}">
+          <form method="POST" action="{{ url_for('booking.complete', booking_id=booking.id) }}" onsubmit="return confirm('Mark this mentorship session as completed?');">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-primary btn-sm" style="background: #0d9488; border-color: #0d9488;">
               ✓ Mark Session Complete
