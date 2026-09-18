@@ -15,7 +15,7 @@
 | 5 | Booking System | ✅ Done | 2026-09-17 |
 | 6 | Live Class & Chat | ✅ Done | 2026-09-17 |
 | 7 | Ratings & Payments | ✅ Done | 2026-09-18 |
-| 8 | Certificates & Dashboards | ⬜ Not started | |
+| 8 | Certificates & Dashboards | ✅ Done | 2026-09-18 |
 | 9 | Security & UI Polish | ⬜ Not started | |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
 
@@ -316,25 +316,56 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 8 — Certificates & Dashboards
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-18 / 2026-09-18
 
 **Checklist**
-- [ ] PDF certificate generation (ReportLab) with all required fields
-- [ ] Certificate stored (Cloudinary) + record in `certificates` table
-- [ ] Download route works
-- [ ] Learner dashboard (courses, sessions, certificates, notifications, favorites)
-- [ ] Teacher dashboard (courses, bookings, earnings, reviews)
-- [ ] Admin dashboard (users, courses, payments, teacher verification queue)
+- [x] PDF certificate generation (ReportLab landscape A4 — branding, learner name, course title, instructor, date, verification code)
+- [x] Certificate stored on Cloudinary (`resource_type="raw"`) with local fallback in `app/static/uploads/certificates/`
+- [x] `Certificate` record persisted with `uq_certificate` constraint enforced; re-visiting generate redirects to download
+- [x] Download route: Cloudinary redirect or local `send_from_directory` with IDOR guard
+- [x] Public verification page: `/certificates/verify/<code>` — no auth required, employer-friendly
+- [x] In-app Notification system: `notify()` helper + inbox route + mark-read / mark-all-read
+- [x] Navbar notification bell badge wired via context processor
+- [x] Learner dashboard: enrolled courses + progress bars, upcoming mentorship, certificates grid, recent notifications, saved mentors
+- [x] Favorites toggle: `/learner/favorites/<id>/toggle` — save/unsave teacher; IntegrityError handled gracefully
+- [x] Teacher dashboard: courses list (with enrollment count + approval badge), booking queue card, earnings overview panel (gradient card + recent transactions), student reviews panel (star visualizer + review cards)
+- [x] Admin dashboard: platform stats, revenue card, teacher verification + course approval queue alert cards, recent transactions table
+- [x] Admin — Teacher Verification Queue: `/admin/teachers` — verify / revoke with notification to teacher on verify
+- [x] Admin — Course Approval Queue: `/admin/courses` — approve / revoke with notification to teacher on approve
+- [x] Admin — Payment Audit Log: `/admin/payments` — paginated full history with status filter tabs
+- [x] Admin — User Listing: `/admin/users` — paginated with role filter tabs
 
 **Files created/modified:**
--
+- `app/certificates/utils.py` — `generate_certificate_code`, `generate_certificate_pdf` (ReportLab), `upload_certificate_pdf` (Cloudinary/local)
+- `app/certificates/routes.py` — `generate`, `download`, `verify` routes
+- `app/templates/certificates/verify.html` — public verification page
+- `app/templates/courses/course_detail.html` — added Download Certificate button for completed enrollments
+- `app/notifications/__init__.py`, `utils.py`, `routes.py` — full in-app notification module
+- `app/templates/notifications/index.html` — notification inbox with pagination and mark-all-read
+- `app/templates/base.html` — notification bell with unread badge
+- `app/learner/routes.py` — dashboard with certificates/notifications/favorites; toggle_favorite route
+- `app/templates/learner/dashboard.html` — full rebuild: courses, sessions, certificates, notifications, favorites
+- `app/templates/teacher/public_profile.html` — favorite toggle button
+- `app/teacher/routes.py` — dashboard passes total_earnings, recent_payments, recent_reviews
+- `app/templates/teacher/dashboard.html` — earnings panel + reviews panel added
+- `app/admin/routes.py` — full admin routes: dashboard, teacher_list, verify_teacher, unverify_teacher, course_list, approve_course, unapprove_course, payment_list, user_list
+- `app/templates/admin/dashboard.html` — full rebuild with stats, revenue, queue cards, recent tx
+- `app/templates/admin/teachers.html` — teacher verification queue with verify/revoke actions
+- `app/templates/admin/courses.html` — course approval queue with approve/revoke actions
+- `app/templates/admin/payments.html` — paginated payment audit log
+- `app/templates/admin/users.html` — paginated user listing with role filter
+- `app/static/css/style.css` — Phase 8 additions: certificate-card hover, admin-queue-card hover, notif-unread style
 
 **Blockers / deviations from master prompt:**
--
+- **Course catalog visibility**: Catalog still shows `is_published=True` courses without gating on `is_approved`. Admin approval adds a verified badge but does not block learner access (keeping demo usable before any admin approvals are granted).
+- **Khalti gateway**: Deliberately deferred from Phase 7 (eSewa-only per scope). Not changed in Phase 8.
 
 **Notes for report/viva:**
--
+- `generate_certificate_pdf` uses ReportLab Canvas on a landscape A4 page (841×595 pt) with double decorative border (indigo + gold), centered learner name with dynamic underline bar, instructor/date signature blocks, decorative seal circle, and a bottom verification code bar.
+- `upload_certificate_pdf` mirrors `upload_lesson_pdf` using `resource_type="raw"` for Cloudinary binary upload; falls back to local disk in dev environments without crashing.
+- Admin verification/approval actions both trigger `notify()` to send in-app notifications to the affected teacher, closing the feedback loop without requiring email delivery.
+- All admin POST actions (verify, approve, revoke) are CSRF-protected via Flask-WTF's `{{ csrf_token() }}` hidden inputs.
 
 ---
 

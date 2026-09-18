@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Course Approval Queue — Admin — SkillBridge{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="font-size: 0.8rem; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+        <a href="{{ url_for('admin.dashboard') }}" style="color: inherit; text-decoration: none;">⚙️ Admin</a> / Course Moderation
+      </div>
+      <h2>Course Approval Queue 📚</h2>
+      <p style="color: var(--text-secondary); margin-top: 4px;">Review submitted courses and approve them for the public catalog.</p>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-top: 24px; padding-bottom: 60px;">
+
+  <!-- Tabs -->
+  <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0;">
+    <a href="{{ url_for('admin.course_list', filter='pending') }}"
+       style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; color: {{ 'white' if filter_status == 'pending' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      Pending Approval
+    </a>
+    <a href="{{ url_for('admin.course_list', filter='approved') }}"
+       style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'approved' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'approved' else 'transparent' }}; color: {{ 'white' if filter_status == 'approved' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      Approved
+    </a>
+    <a href="{{ url_for('admin.course_list', filter='all') }}"
+       style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'all' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'all' else 'transparent' }}; color: {{ 'white' if filter_status == 'all' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      All Courses
+    </a>
+  </div>
+
+  {% if courses %}
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      {% for course in courses %}
+        <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1;">
+            <!-- Thumbnail -->
+            <div style="width: 58px; height: 58px; border-radius: var(--radius-md); overflow: hidden; background: var(--bg-alt); flex-shrink: 0;">
+              {% if course.thumbnail_url %}
+                <img src="{{ course.thumbnail_url }}" alt="{{ course.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+              {% else %}
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">📖</div>
+              {% endif %}
+            </div>
+
+            <!-- Info -->
+            <div style="min-width: 0;">
+              <div style="font-weight: 700; font-size: 1rem; color: var(--text-primary); margin-bottom: 3px;">
+                {{ course.title }}
+                {% if course.is_approved %}
+                  <span class="badge" style="font-size: 0.68rem; background: rgba(5, 150, 105, 0.15); color: #047857; margin-left: 8px;">✓ Approved</span>
+                {% endif %}
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 5px;">
+                by {{ course.teacher.user.full_name if course.teacher and course.teacher.user else 'Unknown Instructor' }}
+              </div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.78rem; color: var(--text-muted);">
+                <span>📂 {{ course.category or 'Uncategorized' }}</span>
+                <span>&bull;</span>
+                <span>{{ course.level | capitalize }}</span>
+                <span>&bull;</span>
+                <span>{{ course.lessons.count() }} lesson{{ 's' if course.lessons.count() != 1 else '' }}</span>
+                <span>&bull;</span>
+                <span>{{ 'Free' if not course.price or course.price == 0 else ('NPR ' ~ ('%.0f'|format(course.price))) }}</span>
+                <span>&bull;</span>
+                <span>{{ course.enrollments.count() }} enrolled</span>
+                {% if course.approved_at %}
+                  <span>&bull;</span>
+                  <span style="color: var(--success);">Approved {{ course.approved_at.strftime('%b %d, %Y') }}</span>
+                {% else %}
+                  <span>&bull;</span>
+                  <span>Submitted {{ course.created_at.strftime('%b %d, %Y') }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+            <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="btn btn-outline btn-sm" target="_blank">
+              Preview
+            </a>
+            {% if not course.is_approved %}
+              <form method="POST" action="{{ url_for('admin.approve_course', course_id=course.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary btn-sm" style="background: var(--success); border-color: var(--success);">
+                  ✓ Approve
+                </button>
+              </form>
+            {% else %}
+              <form method="POST" action="{{ url_for('admin.unapprove_course', course_id=course.id) }}"
+                    onsubmit="return confirm('Revoke approval for \'{{ course.title }}\'?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);">
+                  ✕ Revoke
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+      <div style="font-size: 2.5rem; margin-bottom: 12px;">
+        {% if filter_status == 'approved' %}✅{% elif filter_status == 'all' %}📂{% else %}📋{% endif %}
+      </div>
+      <p style="font-size: 1rem; margin-bottom: 0; font-weight: 600; color: var(--text-secondary);">
+        {% if filter_status == 'approved' %}No approved courses yet.
+        {% elif filter_status == 'all' %}No courses on the platform yet.
+        {% else %}No courses pending approval.{% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

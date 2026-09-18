@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Audit Log — Admin — SkillBridge{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="font-size: 0.8rem; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+        <a href="{{ url_for('admin.dashboard') }}" style="color: inherit; text-decoration: none;">⚙️ Admin</a> / Payments
+      </div>
+      <h2>Payment Audit Log 💳</h2>
+      <p style="color: var(--text-secondary); margin-top: 4px;">Full transaction history across all platform payments. Total revenue: <strong>NPR {{ "%.2f"|format(revenue_total) }}</strong></p>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-top: 24px; padding-bottom: 60px;">
+
+  <!-- Filter Tabs -->
+  <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+    {% for tab, label in [('all', 'All'), ('success', '✅ Success'), ('initiated', '⏳ Initiated'), ('failed', '❌ Failed'), ('refunded', '↩️ Refunded')] %}
+      <a href="{{ url_for('admin.payment_list', filter=tab) }}"
+         class="btn btn-sm {{ 'btn-primary' if filter_status == tab else 'btn-outline' }}">
+        {{ label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  {% if payments %}
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden;">
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+          <thead>
+            <tr style="background: var(--bg-alt); border-bottom: 2px solid var(--border-subtle);">
+              <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">ID</th>
+              <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Learner</th>
+              <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Type</th>
+              <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Gateway</th>
+              <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Status</th>
+              <th style="text-align: right; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Amount</th>
+              <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Date</th>
+              <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Tx ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in payments %}
+              <tr style="border-bottom: 1px solid var(--border-subtle); transition: background var(--transition-fast);" onmouseover="this.style.background='var(--bg-alt)'" onmouseout="this.style.background='white'">
+                <td style="padding: 11px 16px; color: var(--text-muted); font-size: 0.8rem;">#{{ p.id }}</td>
+                <td style="padding: 11px 16px;">
+                  <div style="font-weight: 600; color: var(--text-primary);">{{ p.learner.full_name if p.learner else '—' }}</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">{{ p.learner.email if p.learner else '' }}</div>
+                </td>
+                <td style="padding: 11px 16px; color: var(--text-secondary);">
+                  {% if p.payment_for == 'booking' %}📅 Booking{% else %}🎓 Course{% endif %}
+                </td>
+                <td style="padding: 11px 16px;">
+                  <span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--primary); font-size: 0.72rem;">{{ p.gateway | upper }}</span>
+                </td>
+                <td style="padding: 11px 16px;">
+                  {% if p.status == 'success' %}
+                    <span class="badge" style="background: rgba(5, 150, 105, 0.1); color: #047857; font-size: 0.72rem;">✅ Success</span>
+                  {% elif p.status == 'failed' %}
+                    <span class="badge" style="background: rgba(220, 38, 38, 0.1); color: var(--danger); font-size: 0.72rem;">❌ Failed</span>
+                  {% elif p.status == 'refunded' %}
+                    <span class="badge" style="background: rgba(124, 58, 237, 0.1); color: #7C3AED; font-size: 0.72rem;">↩️ Refunded</span>
+                  {% else %}
+                    <span class="badge" style="background: rgba(245, 158, 11, 0.1); color: #B45309; font-size: 0.72rem;">⏳ Initiated</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 11px 16px; text-align: right; font-weight: 800; color: {{ 'var(--success)' if p.status == 'success' else 'var(--text-muted)' }};">
+                  NPR {{ "%.0f"|format(p.amount) }}
+                </td>
+                <td style="padding: 11px 16px; color: var(--text-muted); font-size: 0.8rem;">
+                  {{ p.completed_at.strftime('%b %d, %Y') if p.completed_at else p.initiated_at.strftime('%b %d, %Y') }}
+                </td>
+                <td style="padding: 11px 16px; font-size: 0.74rem; color: var(--text-muted);">
+                  {% if p.gateway_transaction_id %}
+                    <code style="background: var(--bg-alt); padding: 1px 4px; border-radius: 3px; font-size: 0.72rem;">{{ p.gateway_transaction_id[:16] }}…</code>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+      <div style="display: flex; justify-content: center; gap: 6px; margin-top: 24px; flex-wrap: wrap;">
+        {% if pagination.has_prev %}
+          <a href="{{ url_for('admin.payment_list', page=pagination.prev_num, filter=filter_status) }}" class="btn btn-outline btn-sm">&larr; Prev</a>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if p %}
+            <a href="{{ url_for('admin.payment_list', page=p, filter=filter_status) }}" class="btn btn-sm {{ 'btn-primary' if p == pagination.page else 'btn-outline' }}">{{ p }}</a>
+          {% else %}
+            <span style="padding: 6px 10px; color: var(--text-muted);">…</span>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+          <a href="{{ url_for('admin.payment_list', page=pagination.next_num, filter=filter_status) }}" class="btn btn-outline btn-sm">Next &rarr;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+      <div style="font-size: 2.5rem; margin-bottom: 12px;">💳</div>
+      <p style="font-size: 1rem; margin-bottom: 0; font-weight: 600; color: var(--text-secondary);">
+        No {{ filter_status if filter_status != 'all' else '' }} payment records found.
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

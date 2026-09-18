@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Verification Queue — Admin — SkillBridge{% endblock %}
+
+{% block content %}
+<section class="dashboard-header">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <div style="font-size: 0.8rem; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
+        <a href="{{ url_for('admin.dashboard') }}" style="color: inherit; text-decoration: none;">⚙️ Admin</a> / Teacher Verifications
+      </div>
+      <h2>Instructor Verification Queue 👩‍🏫</h2>
+      <p style="color: var(--text-secondary); margin-top: 4px;">Review and grant verified status to qualified instructor profiles.</p>
+    </div>
+  </div>
+</section>
+
+<div class="container" style="padding-top: 24px; padding-bottom: 60px;">
+
+  <!-- Tabs -->
+  <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0;">
+    <a href="{{ url_for('admin.teacher_list', filter='pending') }}"
+       style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; color: {{ 'white' if filter_status == 'pending' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      Pending Review
+    </a>
+    <a href="{{ url_for('admin.teacher_list', filter='verified') }}"
+       style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'verified' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'verified' else 'transparent' }}; color: {{ 'white' if filter_status == 'verified' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      Verified
+    </a>
+  </div>
+
+  {% if profiles %}
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      {% for profile in profiles %}
+        <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1;">
+            <!-- Avatar -->
+            <div style="width: 52px; height: 52px; border-radius: var(--radius-full); overflow: hidden; background: var(--bg-alt); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: var(--primary); flex-shrink: 0;">
+              {% if profile.user and profile.user.profile_photo %}
+                <img src="{{ profile.user.profile_photo }}" alt="{{ profile.user.full_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+              {% else %}
+                {{ (profile.user.full_name if profile.user else 'T')[:1].upper() }}
+              {% endif %}
+            </div>
+
+            <!-- Info -->
+            <div style="min-width: 0;">
+              <div style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">
+                {{ profile.user.full_name if profile.user else 'Unknown User' }}
+                {% if profile.is_verified %}
+                  <span class="badge badge-verified" style="font-size: 0.7rem; margin-left: 8px;">✓ Verified</span>
+                {% endif %}
+              </div>
+              <div style="font-size: 0.83rem; color: var(--text-muted); margin-top: 2px;">{{ profile.user.email if profile.user else '—' }}</div>
+              {% if profile.headline %}
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">{{ profile.headline }}</div>
+              {% endif %}
+              <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 0.78rem; color: var(--text-muted);">
+                {% if profile.skills %}
+                  <span>🛠️ {{ profile.skills[:60] }}{% if profile.skills|length > 60 %}…{% endif %}</span>
+                {% endif %}
+                {% if profile.hourly_rate %}
+                  <span>💰 NPR {{ "%.0f"|format(profile.hourly_rate) }}/hr</span>
+                {% endif %}
+                {% if profile.experience_years %}
+                  <span>📅 {{ profile.experience_years }} yr{{ 's' if profile.experience_years != 1 else '' }} exp</span>
+                {% endif %}
+                <span>⭐ {{ "%.1f"|format(profile.average_rating|float or 0.0) }} ({{ profile.total_reviews }} reviews)</span>
+                <span>📚 {{ profile.courses.count() }} course{{ 's' if profile.courses.count() != 1 else '' }}</span>
+              </div>
+              {% if profile.verified_at %}
+                <div style="font-size: 0.75rem; color: var(--success); margin-top: 4px;">
+                  Verified on {{ profile.verified_at.strftime('%b %d, %Y') }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
+            <a href="{{ url_for('teacher.public_profile', teacher_id=profile.id) }}" class="btn btn-outline btn-sm" target="_blank">
+              View Profile
+            </a>
+            {% if not profile.is_verified %}
+              <form method="POST" action="{{ url_for('admin.verify_teacher', profile_id=profile.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-primary btn-sm" style="background: var(--success); border-color: var(--success);">
+                  ✓ Verify
+                </button>
+              </form>
+            {% else %}
+              <form method="POST" action="{{ url_for('admin.unverify_teacher', profile_id=profile.id) }}"
+                    onsubmit="return confirm('Revoke verification for {{ profile.user.full_name if profile.user else 'this teacher' }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);">
+                  ✕ Revoke
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+      <div style="font-size: 2.5rem; margin-bottom: 12px;">
+        {% if filter_status == 'verified' %}✅{% else %}📋{% endif %}
+      </div>
+      <p style="font-size: 1rem; margin-bottom: 0; font-weight: 600; color: var(--text-secondary);">
+        {% if filter_status == 'verified' %}
+          No verified instructors yet.
+        {% else %}
+          No teacher profiles pending review.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

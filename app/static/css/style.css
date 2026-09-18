@@ -1987,3 +1987,33 @@ a:hover {
   font-size: 1.1rem;
   letter-spacing: 2px;
 }
+
+/* ── Phase 8: Certificates, Dashboards & Admin ────────────── */
+.certificate-card {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.certificate-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.12);
+}
+
+.admin-queue-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Notification inbox item highlight */
+.notif-unread {
+  border-left: 3px solid var(--primary) !important;
+  background: rgba(79, 70, 229, 0.03) !important;
+}
+
+/* Admin table row hover handled inline; helper for consistent look */
+.admin-table th {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
