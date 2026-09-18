@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout — {{ item_title }} — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 680px; padding-top: 40px; padding-bottom: 70px;">
+  <!-- Breadcrumb -->
+  <div style="margin-bottom: 24px;">
+    {% if payment_for == 'course' %}
+      <a href="{{ url_for('courses.course_detail', course_id=target.id) }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Course Detail</a>
+    {% else %}
+      <a href="{{ url_for('booking.detail', booking_id=target.id) }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Booking #{{ target.id }}</a>
+    {% endif %}
+    <h1 style="font-size: 1.85rem; margin-top: 8px; margin-bottom: 4px;">Secure Checkout</h1>
+    <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0;">
+      Complete your payment using Nepal's official eSewa sandbox gateway.
+    </p>
+  </div>
+
+  <!-- Order Summary Card -->
+  <div class="content-box checkout-card" style="padding: 28px; margin-bottom: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 20px; margin-bottom: 20px;">
+      <div>
+        <span class="badge badge-info" style="font-size: 0.78rem; text-transform: uppercase; margin-bottom: 6px; display: inline-block;">
+          {{ item_type }}
+        </span>
+        <h2 style="font-size: 1.25rem; margin-bottom: 4px; color: var(--text-primary);">{{ item_title }}</h2>
+        <div style="font-size: 0.88rem; color: var(--text-secondary);">
+          Instructor: <strong>{{ instructor_name }}</strong>
+        </div>
+      </div>
+      <div style="text-align: right; flex-shrink: 0;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Amount</div>
+        <div style="font-size: 1.45rem; font-weight: 800; color: var(--primary);">
+          NPR {{ total_amount }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Pricing Breakdown Table -->
+    <div class="checkout-breakdown" style="font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+        <span>Item Price</span>
+        <span style="font-weight: 600; color: var(--text-primary);">NPR {{ total_amount }}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+        <span>Government Taxes &amp; VAT</span>
+        <span style="font-weight: 600; color: var(--text-primary);">NPR 0.00</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+        <span>Service Charges</span>
+        <span style="font-weight: 600; color: var(--text-primary);">NPR 0.00</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding: 12px 0 0; border-top: 1px dashed var(--border-subtle); margin-top: 6px; font-size: 1.05rem;">
+        <strong style="color: var(--text-primary);">Total Payable</strong>
+        <strong style="color: var(--primary); font-size: 1.25rem;">NPR {{ total_amount }}</strong>
+      </div>
+    </div>
+
+    <!-- Order Metadata -->
+    <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 24px; font-size: 0.84rem; color: var(--text-secondary);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span>Order Reference:</span>
+        <code style="font-weight: 600; color: var(--text-primary);">{{ esewa_form.transaction_uuid }}</code>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>Payment Gateway:</span>
+        <span style="font-weight: 600; color: #16a34a;">eSewa Sandbox (UAT / EPAYTEST)</span>
+      </div>
+    </div>
+
+    <!-- eSewa Sandbox Credentials Helper Box -->
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px; font-size: 0.88rem; color: #166534;">
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 8px;">
+        <span>🧪</span> eSewa UAT Sandbox Test Credentials
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.84rem;">
+        <div><strong>eSewa ID / Mobile:</strong> <code>9806800001</code></div>
+        <div><strong>Password:</strong> <code>Nepal@123</code></div>
+        <div><strong>MPIN:</strong> <code>1122</code></div>
+        <div><strong>Token / OTP:</strong> <code>123456</code></div>
+      </div>
+      <div style="font-size: 0.78rem; color: #15803d; margin-top: 8px;">
+        * No real money is deducted. Use the credentials above to complete the sandbox payment.
+      </div>
+    </div>
+
+    <!-- eSewa Form Submission -->
+    <form action="{{ gateway_url }}" method="POST" id="esewa-payment-form">
+      {% for name, value in esewa_form.items() %}
+        <input type="hidden" name="{{ name }}" value="{{ value }}">
+      {% endfor %}
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button type="submit" class="btn btn-primary btn-block btn-lg" style="background: #41a124; border-color: #41a124; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px;">
+          <span>🍃 Pay NPR {{ total_amount }} with eSewa</span> &rarr;
+        </button>
+
+        {% if payment_for == 'course' %}
+          <a href="{{ url_for('courses.course_detail', course_id=target.id) }}" class="btn btn-outline btn-block btn-sm" style="text-align: center;">
+            Cancel and Return
+          </a>
+        {% else %}
+          <a href="{{ url_for('booking.detail', booking_id=target.id) }}" class="btn btn-outline btn-block btn-sm" style="text-align: center;">
+            Cancel and Return
+          </a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

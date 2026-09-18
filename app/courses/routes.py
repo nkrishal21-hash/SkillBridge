@@ -18,9 +18,10 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from app import db
-from app.models import Course, Lesson, Enrollment, TeacherProfile
+from app.models import Course, Lesson, Enrollment, TeacherProfile, Review
 from app.auth.utils import teacher_required, learner_required
 from app.courses.forms import CourseForm, LessonForm
+from app.reviews.forms import ReviewForm
 from app.courses.utils import (
     upload_course_thumbnail,
     upload_lesson_video,
@@ -135,6 +136,21 @@ def course_detail(course_id: int):
     lessons = course.lessons.order_by(Lesson.order.asc()).all()
     total_duration = sum(l.duration_minutes or 0 for l in lessons)
 
+    # Reviews and learner completion status
+    reviews = Review.query.filter_by(course_id=course.id).order_by(Review.created_at.desc()).all()
+    user_review = None
+    review_form = None
+    can_review = False
+
+    if current_user.is_authenticated and enrollment and enrollment.completed_at:
+        user_review = Review.query.filter_by(
+            learner_id=current_user.id,
+            course_id=course.id
+        ).first()
+        if not user_review:
+            can_review = True
+            review_form = ReviewForm()
+
     return render_template(
         "courses/course_detail.html",
         course=course,
@@ -143,6 +159,10 @@ def course_detail(course_id: int):
         is_owner=is_owner,
         enrollment=enrollment,
         completed_ids=completed_ids,
+        reviews=reviews,
+        user_review=user_review,
+        can_review=can_review,
+        review_form=review_form,
     )
 
 
@@ -470,10 +490,9 @@ def enroll(course_id: int):
     """
     course = Course.query.get_or_404(course_id)
 
-    # If course is paid, show placeholder (payment gateway launches in Phase 7)
+    # If course is paid, redirect directly to secure checkout
     if course.price and course.price > 0.00:
-        flash(f"Paid enrollment for NPR {course.price:.2f} will be available when the payment system launches in Phase 7!", "info")
-        return redirect(url_for("courses.course_detail", course_id=course.id))
+        return redirect(url_for("payments.checkout", payment_for="course", target_id=course.id))
 
     # Free course enrollment
     try:

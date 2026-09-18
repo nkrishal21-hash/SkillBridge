@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Receipt #REC-{{ payment.id }} — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 680px; padding-top: 40px; padding-bottom: 70px;">
+  <!-- Print & Back Navigation (hidden when printing) -->
+  <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <a href="{{ url_for('learner.dashboard') }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Dashboard</a>
+    <button type="button" onclick="window.print();" class="btn btn-outline btn-sm" style="display: flex; align-items: center; gap: 6px;">
+      🖨️ Print Receipt
+    </button>
+  </div>
+
+  <!-- Printable Receipt Card -->
+  <div class="content-box receipt-card" style="padding: 36px; border: 1px solid var(--border-subtle); background: white;">
+    <!-- Receipt Header -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--border-subtle); padding-bottom: 24px; margin-bottom: 24px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.6rem; font-weight: 800; color: var(--primary); font-family: var(--font-heading);">SkillBridge</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+          Peer-to-Peer Learning &amp; Mentorship Platform<br>
+          Kathmandu, Nepal
+        </div>
+      </div>
+
+      <div style="text-align: right;">
+        <div style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase;">Official Receipt</div>
+        <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 2px;">
+          Receipt #: <strong>REC-SKB-{{ "%05d"|format(payment.id) }}</strong>
+        </div>
+        <div style="font-size: 0.84rem; color: var(--text-muted);">
+          Date: {{ payment.completed_at.strftime('%b %d, %Y') if payment.completed_at else payment.initiated_at.strftime('%b %d, %Y') }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Billed To & Gateway Info -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; font-size: 0.9rem;">
+      <div>
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Billed To:</div>
+        <div style="font-weight: 700; color: var(--text-primary); font-size: 1.05rem;">{{ payment.learner.full_name }}</div>
+        <div style="color: var(--text-secondary);">{{ payment.learner.email }}</div>
+        <div style="color: var(--text-muted); font-size: 0.82rem; margin-top: 2px;">Learner Account ID: #{{ payment.learner_id }}</div>
+      </div>
+
+      <div>
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px;">Payment Details:</div>
+        <div><strong>Gateway:</strong> eSewa Sandbox (EPAYTEST)</div>
+        <div><strong>Order Ref:</strong> <code>{{ payment.gateway_reference_id }}</code></div>
+        <div><strong>Txn Code:</strong> <code>{{ payment.gateway_transaction_id or 'N/A' }}</code></div>
+        <div><strong>Status:</strong> <span class="badge badge-status-approved" style="text-transform: uppercase; font-size: 0.75rem;">● {{ payment.status }}</span></div>
+      </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 0.92rem;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--border-subtle); background: var(--bg-alt);">
+          <th style="padding: 10px 12px; text-align: left; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Description</th>
+          <th style="padding: 10px 12px; text-align: center; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Type</th>
+          <th style="padding: 10px 12px; text-align: right; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">Amount (NPR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom: 1px solid var(--border-subtle);">
+          <td style="padding: 14px 12px;">
+            {% if payment.payment_for == 'course' and payment.course %}
+              <strong>{{ payment.course.title }}</strong>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+                Instructor: {{ payment.course.teacher.user.full_name if payment.course.teacher else 'SkillBridge Teacher' }}
+              </div>
+            {% elif payment.payment_for == 'booking' %}
+              <strong>Mentorship Session #{{ payment.booking_id_ref }}</strong>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
+                1-on-1 scheduled live mentorship
+              </div>
+            {% else %}
+              <strong>SkillBridge Educational Service</strong>
+            {% endif %}
+          </td>
+          <td style="padding: 14px 12px; text-align: center; color: var(--text-secondary); text-transform: capitalize;">
+            {{ payment.payment_for }}
+          </td>
+          <td style="padding: 14px 12px; text-align: right; font-weight: 700; color: var(--text-primary);">
+            {{ "%.2f"|format(payment.amount or 0) }}
+          </td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2" style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-secondary);">Subtotal:</td>
+          <td style="padding: 12px; text-align: right; font-weight: 700;">NPR {{ "%.2f"|format(payment.amount or 0) }}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding: 6px 12px; text-align: right; font-weight: 600; color: var(--text-secondary);">Taxes:</td>
+          <td style="padding: 6px 12px; text-align: right;">NPR 0.00</td>
+        </tr>
+        <tr style="border-top: 2px solid var(--border-subtle); font-size: 1.1rem;">
+          <td colspan="2" style="padding: 14px 12px; text-align: right; font-weight: 800; color: var(--text-primary);">Total Paid:</td>
+          <td style="padding: 14px 12px; text-align: right; font-weight: 800; color: var(--primary);">NPR {{ "%.2f"|format(payment.amount or 0) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Footer Note -->
+    <div style="border-top: 1px dashed var(--border-subtle); padding-top: 16px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+      This is a computer-generated sandbox receipt from SkillBridge. For questions or academic verification, please contact support@skillbridge.edu.np.
+    </div>
+  </div>
+</div>
+
+<style>
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  .no-print, nav, footer, .navbar {
+    display: none !important;
+  }
+  .receipt-card {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+}
+</style>
+{% endblock %}

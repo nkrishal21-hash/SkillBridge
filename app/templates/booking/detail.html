@@ -47,6 +47,19 @@
         <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-top: 4px;">
           NPR {{ "%.2f"|format(booking.amount or 0) }}
         </div>
+        {% if has_paid %}
+          <div style="margin-top: 4px;">
+            <span class="badge badge-payment-success" style="font-size: 0.76rem; padding: 3px 8px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: var(--radius-full);">
+              ✓ Payment Confirmed
+            </span>
+          </div>
+        {% elif booking.status == 'approved' and booking.amount and booking.amount > 0 and is_learner %}
+          <div style="margin-top: 6px;">
+            <a href="{{ url_for('payments.checkout', payment_for='booking', target_id=booking.id) }}" class="btn btn-primary btn-xs" style="background: #41a124; border-color: #41a124; padding: 4px 10px; font-size: 0.78rem;">
+              💳 Pay for Session &rarr;
+            </a>
+          </div>
+        {% endif %}
       </div>
 
       <div>
@@ -172,6 +185,68 @@
       <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-lg); padding: 18px; margin-bottom: 24px; color: #92400e; font-size: 0.92rem;">
         ⏳ <strong>Awaiting Instructor Approval:</strong> The mentor will review your topic and proposed time slot. You will receive an email once approved or updated.
       </div>
+    {% elif booking.status == 'completed' %}
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 18px; margin-bottom: 24px; color: #166534; font-size: 0.92rem;">
+        🎓 <strong>Mentorship Session Concluded:</strong> This session has been marked as completed.
+      </div>
+    {% endif %}
+
+    <!-- Completed Session Reviews Block -->
+    {% if booking.status == 'completed' %}
+      <div style="margin-bottom: 24px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+        <h3 style="font-size: 1.15rem; margin-bottom: 14px;">Session Feedback &amp; Review</h3>
+
+        {% if review %}
+          <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="font-size: 1.2rem;">
+                {% for i in range(review.rating_value) %}⭐{% endfor %}
+                <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-left: 6px;">({{ review.rating_value }} / 5)</span>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">
+                Reviewed on {{ review.created_at.strftime('%b %d, %Y') if review.created_at else 'Recent' }}
+              </div>
+            </div>
+            {% if review.review_text %}
+              <p style="color: var(--text-primary); font-size: 0.95rem; margin: 0; white-space: pre-line;">{{ review.review_text }}</p>
+            {% else %}
+              <p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic; margin: 0;">No written comments left.</p>
+            {% endif %}
+          </div>
+        {% elif can_review and review_form %}
+          <div class="review-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 1.3rem;">✍️</span>
+              <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">Rate &amp; Review Your Session</h4>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+              How was your mentorship call with {{ booking.teacher.full_name }}? Share your rating to help your mentor improve and guide other learners.
+            </p>
+
+            <form method="POST" action="{{ url_for('reviews.review_booking', booking_id=booking.id) }}">
+              {{ review_form.hidden_tag() }}
+
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ review_form.rating_value.label.text }}</label>
+                {{ review_form.rating_value(class="form-control", style="max-width: 320px; font-weight: 600;") }}
+              </div>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ review_form.review_text.label.text }}</label>
+                {{ review_form.review_text(class="form-control", rows=3, placeholder="Describe the topics covered, instructor clarity, and key takeaways...") }}
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;">
+                ⭐ Submit Session Review
+              </button>
+            </form>
+          </div>
+        {% else %}
+          <div style="font-size: 0.88rem; color: var(--text-muted); font-style: italic;">
+            No review has been submitted for this session yet.
+          </div>
+        {% endif %}
+      </div>
     {% endif %}
 
     <!-- Action Controls -->
@@ -200,6 +275,25 @@
           </div>
         </div>
       {% endif %}
+
+      <!-- Action Buttons Left/Right -->
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <!-- Complete Session Button (Once eligible) -->
+        {% if can_mark_complete %}
+          <form method="POST" action="{{ url_for('booking.complete', booking_id=booking.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary btn-sm" style="background: #0d9488; border-color: #0d9488;">
+              ✓ Mark Session Complete
+            </button>
+          </form>
+        {% endif %}
+
+        {% if has_paid and payment %}
+          <a href="{{ url_for('payments.receipt', payment_id=payment.id) }}" class="btn btn-outline btn-sm">
+            🧾 View Payment Receipt
+          </a>
+        {% endif %}
+      </div>
 
       <!-- Cancellation Control (Learner or Teacher while pending/approved) -->
       {% if booking.status in ['pending', 'approved'] %}

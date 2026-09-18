@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Successful — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 640px; padding-top: 48px; padding-bottom: 70px;">
+  <div class="content-box text-center" style="padding: 40px 32px; border-top: 5px solid var(--success);">
+    <!-- Success Badge -->
+    <div style="width: 72px; height: 72px; border-radius: var(--radius-full); background: var(--success-light); color: var(--success); display: inline-flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 20px;">
+      ✓
+    </div>
+
+    <h1 style="font-size: 1.9rem; margin-bottom: 8px; color: var(--text-primary);">Payment Confirmed!</h1>
+    <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 28px;">
+      Thank you! Your transaction has been verified and confirmed via eSewa.
+    </p>
+
+    <!-- Receipt Card Summary -->
+    <div class="receipt-summary-box" style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 22px; text-align: left; margin-bottom: 28px; font-size: 0.92rem;">
+      <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border-subtle);">
+        <span style="color: var(--text-muted);">Status</span>
+        <span class="badge badge-status-approved" style="text-transform: uppercase;">● Success</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-subtle);">
+        <span style="color: var(--text-muted);">Amount Paid</span>
+        <strong style="color: var(--primary); font-size: 1.1rem;">NPR {{ "%.2f"|format(payment.amount or 0) }}</strong>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-subtle);">
+        <span style="color: var(--text-muted);">Payment Method</span>
+        <span style="font-weight: 600; color: #16a34a;">eSewa Sandbox</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-subtle);">
+        <span style="color: var(--text-muted);">eSewa Transaction ID</span>
+        <code style="font-weight: 600; color: var(--text-primary);">{{ payment.gateway_transaction_id or 'Pending' }}</code>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-subtle);">
+        <span style="color: var(--text-muted);">Order Reference</span>
+        <code style="font-weight: 600; color: var(--text-primary);">{{ payment.gateway_reference_id }}</code>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+        <span style="color: var(--text-muted);">Date &amp; Time</span>
+        <span style="color: var(--text-secondary);">
+          {{ payment.completed_at.strftime('%b %d, %Y %I:%M %p UTC') if payment.completed_at else 'Just now' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Next Step Actions -->
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      {% if payment.payment_for == 'course' and payment.course %}
+        <a href="{{ url_for('courses.course_detail', course_id=payment.course_id) }}" class="btn btn-primary btn-lg btn-block">
+          🚀 Go to Course &amp; Start Learning
+        </a>
+      {% elif payment.payment_for == 'booking' and payment.booking_id_ref %}
+        <a href="{{ url_for('booking.detail', booking_id=payment.booking_id_ref) }}" class="btn btn-primary btn-lg btn-block">
+          🗓️ View Mentorship Session Details
+        </a>
+      {% else %}
+        <a href="{{ url_for('learner.dashboard') }}" class="btn btn-primary btn-lg btn-block">
+          Return to Learner Dashboard
+        </a>
+      {% endif %}
+
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 6px;">
+        <a href="{{ url_for('payments.receipt', payment_id=payment.id) }}" class="btn btn-outline btn-sm">
+          🧾 View Printable Receipt
+        </a>
+        <a href="{{ url_for('learner.dashboard') }}" class="btn btn-outline btn-sm">
+          My Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

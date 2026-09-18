@@ -168,6 +168,101 @@
           </div>
         {% endif %}
       </div>
+
+      <!-- Course Reviews & Ratings Section -->
+      <div class="content-box" style="margin-top: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 class="section-title" style="margin-bottom: 4px; border: none; padding: 0;">Course Reviews &amp; Ratings</h2>
+            <div style="font-size: 0.88rem; color: var(--text-muted);">
+              {{ reviews|length }} review{{ 's' if reviews|length != 1 else '' }} from learners who completed this course
+            </div>
+          </div>
+        </div>
+
+        <!-- Inline Review Submission Form for Completed Learners -->
+        {% if can_review and review_form %}
+          <div class="review-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 1.3rem;">✍️</span>
+              <h3 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">Share Your Experience</h3>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+              Congratulations on completing the course! Help future learners by rating this course and sharing your honest feedback.
+            </p>
+
+            <form method="POST" action="{{ url_for('reviews.review_course', course_id=course.id) }}">
+              {{ review_form.hidden_tag() }}
+
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ review_form.rating_value.label.text }}</label>
+                {{ review_form.rating_value(class="form-control", style="max-width: 320px; font-weight: 600;") }}
+              </div>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ review_form.review_text.label.text }}</label>
+                {{ review_form.review_text(class="form-control", rows=3, placeholder="What did you learn? What was great about the instructor's delivery?") }}
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;">
+                ⭐ Submit Course Review
+              </button>
+            </form>
+          </div>
+        {% elif user_review %}
+          <!-- Learner's Already Submitted Review -->
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="font-size: 0.82rem; font-weight: 700; color: #166534; text-transform: uppercase;">Your Submitted Review</div>
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                {{ user_review.created_at.strftime('%b %d, %Y') if user_review.created_at else 'Recent' }}
+              </div>
+            </div>
+            <div style="font-size: 1.15rem; margin-bottom: 6px;">
+              {% for i in range(user_review.rating_value) %}⭐{% endfor %}
+              <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-secondary); margin-left: 4px;">({{ user_review.rating_value }}/5)</span>
+            </div>
+            {% if user_review.review_text %}
+              <p style="color: #14532d; font-size: 0.94rem; margin: 0; white-space: pre-line;">{{ user_review.review_text }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- List of Course Reviews -->
+        {% if reviews %}
+          <div class="reviews-list" style="display: flex; flex-direction: column; gap: 16px;">
+            {% for rev in reviews %}
+              <div class="review-card" style="padding: 16px; border-bottom: 1px solid var(--border-subtle);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-full); background: var(--bg-alt); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary);">
+                      {{ rev.learner.full_name[:1].upper() if rev.learner else 'L' }}
+                    </div>
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">
+                        {{ rev.learner.full_name if rev.learner else 'SkillBridge Learner' }}
+                      </div>
+                      <div style="font-size: 0.78rem; color: var(--text-muted);">
+                        {{ rev.created_at.strftime('%b %d, %Y') if rev.created_at else 'Recent' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size: 0.95rem;">
+                    {% for i in range(rev.rating_value) %}⭐{% endfor %}
+                  </div>
+                </div>
+                {% if rev.review_text %}
+                  <p style="color: var(--text-secondary); font-size: 0.92rem; margin: 0; line-height: 1.5; white-space: pre-line;">{{ rev.review_text }}</p>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 0.9rem;">
+            No reviews yet for this course. Enroll and complete all lessons to be the first to leave a review!
+          </div>
+        {% endif %}
+      </div>
     </div>
 
     <!-- Right Sidebar Action Widget -->
@@ -266,11 +361,11 @@
                   </button>
                 </form>
               {% else %}
-                <button type="button" class="btn btn-primary btn-block btn-lg" style="opacity: 0.85; cursor: not-allowed;" title="Payment integration launches in Phase 7">
-                  🔒 Enroll (NPR {{ "%.0f"|format(course.price) }})
-                </button>
+                <a href="{{ url_for('payments.checkout', payment_for='course', target_id=course.id) }}" class="btn btn-primary btn-block btn-lg" style="background: #41a124; border-color: #41a124;">
+                  💳 Enroll in Course (NPR {{ "%.2f"|format(course.price) }})
+                </a>
                 <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 8px;">
-                  eSewa &amp; Khalti checkout launches in Phase 7!
+                  Instant activation via eSewa Sandbox
                 </div>
               {% endif %}
             {% else %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Unsuccessful — SkillBridge{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 620px; padding-top: 48px; padding-bottom: 70px;">
+  <div class="content-box text-center" style="padding: 40px 32px; border-top: 5px solid var(--danger);">
+    <!-- Warning Badge -->
+    <div style="width: 72px; height: 72px; border-radius: var(--radius-full); background: var(--danger-light); color: var(--danger); display: inline-flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 20px;">
+      ✕
+    </div>
+
+    <h1 style="font-size: 1.85rem; margin-bottom: 8px; color: var(--text-primary);">Payment Not Completed</h1>
+    <p style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 24px;">
+      {{ error_message or "The transaction was cancelled or could not be processed by eSewa." }}
+    </p>
+
+    {% if payment %}
+      <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 24px; font-size: 0.88rem;">
+        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+          <span style="color: var(--text-muted);">Order Reference:</span>
+          <code>{{ payment.gateway_reference_id }}</code>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+          <span style="color: var(--text-muted);">Amount:</span>
+          <strong>NPR {{ "%.2f"|format(payment.amount or 0) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: 4px 0;">
+          <span style="color: var(--text-muted);">Status:</span>
+          <span class="badge badge-status-rejected" style="text-transform: uppercase;">{{ payment.status }}</span>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="alert alert-info" style="font-size: 0.88rem; text-align: left; margin-bottom: 28px;">
+      ℹ️ <strong>Need Help?</strong> You can retry this transaction anytime. In test mode, make sure to use the sandbox credentials:
+      <code style="display: block; margin-top: 4px;">ID: 9806800001 &bull; Pass: Nepal@123 &bull; MPIN: 1122 &bull; Token: 123456</code>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      {% if payment %}
+        <a href="{{ url_for('payments.checkout', payment_for=payment.payment_for, target_id=(payment.course_id if payment.payment_for == 'course' else payment.booking_id_ref)) }}" class="btn btn-primary btn-lg btn-block">
+          🔄 Try Payment Again
+        </a>
+      {% endif %}
+
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 6px;">
+        <a href="{{ url_for('courses.catalog') }}" class="btn btn-outline btn-sm">
+          Explore Courses
+        </a>
+        <a href="{{ url_for('learner.dashboard') }}" class="btn btn-outline btn-sm">
+          Learner Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

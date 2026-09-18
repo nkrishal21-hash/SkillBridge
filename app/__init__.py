@@ -94,6 +94,7 @@ def create_app(config_name: str = None) -> Flask:
     from app.chat.routes import chat_bp
     from app.payments.routes import payments_bp
     from app.certificates.routes import certificates_bp
+    from app.reviews.routes import reviews_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(learner_bp, url_prefix="/learner")
@@ -104,6 +105,7 @@ def create_app(config_name: str = None) -> Flask:
     app.register_blueprint(chat_bp, url_prefix="/chat")
     app.register_blueprint(payments_bp, url_prefix="/payments")
     app.register_blueprint(certificates_bp, url_prefix="/certificates")
+    app.register_blueprint(reviews_bp, url_prefix="/reviews")
 
     # ── Template filters & context processors ────────────────────────────────
     from markupsafe import Markup, escape

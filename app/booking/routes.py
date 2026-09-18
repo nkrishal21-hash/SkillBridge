@@ -5,7 +5,7 @@ cancellations, detail views, and booking history.
 """
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from flask import (
     Blueprint,
     render_template,
@@ -18,10 +18,11 @@ from flask import (
 from flask_login import login_required, current_user
 from sqlalchemy import or_, and_
 from app import db
-from app.models import Booking, User, TeacherProfile
+from app.models import Booking, User, TeacherProfile, Payment
 from app.auth.utils import learner_required, teacher_required
 from app.teacher.utils import available_days_list
 from app.booking.forms import BookingForm, BookingResponseForm
+from app.reviews.forms import ReviewForm
 from app.booking.utils import (
     calculate_session_times,
     send_new_booking_email,
@@ -160,12 +161,35 @@ def detail(booking_id: int):
     is_learner = (current_user.id == booking.learner_id)
     response_form = BookingResponseForm()
 
+    # Payment status check
+    payment = Payment.query.filter_by(
+        booking_id_ref=booking.id,
+        status="success"
+    ).first()
+    has_paid = (payment is not None)
+
+    # Session completion eligibility
+    session_end = datetime.combine(booking.session_date, booking.end_time)
+    is_past = (datetime.now() >= session_end)
+    can_mark_complete = (booking.status == "approved" and is_past)
+
+    # Review status
+    review = booking.review
+    can_review = (booking.status == "completed" and is_learner and review is None)
+    review_form = ReviewForm() if can_review else None
+
     return render_template(
         "booking/detail.html",
         booking=booking,
         is_teacher=is_teacher,
         is_learner=is_learner,
         response_form=response_form,
+        payment=payment,
+        has_paid=has_paid,
+        can_mark_complete=can_mark_complete,
+        review=review,
+        can_review=can_review,
+        review_form=review_form,
     )
 
 
@@ -258,6 +282,37 @@ def cancel(booking_id: int):
     db.session.commit()
 
     flash("The session booking has been cancelled.", "info")
+    return redirect(url_for("booking.detail", booking_id=booking.id))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Complete Booking (Learner or Teacher)
+# ─────────────────────────────────────────────────────────────────────────────
+@booking_bp.route("/<int:booking_id>/complete", methods=["POST"])
+@login_required
+def complete(booking_id: int):
+    """
+    Learner or Teacher marks an approved booking as completed once the scheduled
+    session date and end time has passed.
+    """
+    booking = Booking.query.get_or_404(booking_id)
+
+    if current_user.id not in (booking.learner_id, booking.teacher_id) and not current_user.is_admin:
+        abort(403)
+
+    if booking.status != "approved":
+        flash(f"Booking #{booking.id} cannot be marked complete because its current status is '{booking.status}'.", "warning")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    session_end = datetime.combine(booking.session_date, booking.end_time)
+    if datetime.now() < session_end:
+        flash("This session cannot be marked complete before its scheduled end time has elapsed.", "warning")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    booking.status = "completed"
+    db.session.commit()
+
+    flash("🎉 Session marked as completed! You can now submit your rating and review.", "success")
     return redirect(url_for("booking.detail", booking_id=booking.id))
 
 
