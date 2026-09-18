@@ -14,7 +14,7 @@
 | 4 | Course Management | ✅ Done | 2026-09-15 |
 | 5 | Booking System | ✅ Done | 2026-09-17 |
 | 6 | Live Class & Chat | ✅ Done | 2026-09-17 |
-| 7 | Ratings & Payments | ⬜ Not started | |
+| 7 | Ratings & Payments | ✅ Done | 2026-09-18 |
 | 8 | Certificates & Dashboards | ⬜ Not started | |
 | 9 | Security & UI Polish | ⬜ Not started | |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
@@ -267,25 +267,51 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 ---
 
 ## Phase 7 — Ratings & Payments
-**Status:** ⬜
-**Date started / completed:** —
+**Status:** ✅ Done  
+**Date started / completed:** 2026-09-18 / 2026-09-18
 
 **Checklist**
-- [ ] Review submission restricted to completed booking/course
-- [ ] Average rating recalculated on teacher_profiles
-- [ ] eSewa sandbox flow (initiate → success/failure)
-- [ ] Khalti sandbox flow (initiate → verify)
-- [ ] Payment record stored; enrollment/booking confirmed on success
-- [ ] Checkout / success / failure templates
+- [x] Review submission restricted to completed booking/course
+- [x] Average rating recalculated on `teacher_profiles` after every new `Rating` row
+- [x] eSewa sandbox flow (initiate → HMAC-signed POST form → success/failure callback)
+- [ ] Khalti sandbox flow (initiate → verify) — **deliberately deferred** (eSewa-only scope per master prompt)
+- [x] Payment record stored; enrollment/booking confirmed on success
+- [x] Checkout / success / failure / receipt templates
+- [x] Defense-in-depth: callback HMAC signature verified + eSewa status API queried before fulfillment
+- [x] Idempotency: re-visiting success URL on already-completed payment renders receipt, not error
+- [x] Duplicate review prevention enforced at both DB constraint and route level
+- [x] Session completion (POST `/booking/<id>/complete`) only allowed after scheduled end time
+- [x] Booking detail shows "Mark Complete" button only when eligible; review form shown only on completed sessions
+- [x] 30/30 integration tests passing (Flask test client)
 
 **Files created/modified:**
--
+- `app/payments/__init__.py` — blueprint module init
+- `app/payments/utils.py` — `build_esewa_signature`, `verify_esewa_callback`, `check_esewa_status` (HMAC-SHA256)
+- `app/payments/routes.py` — `payments_bp`: checkout, esewa_success, esewa_failure, receipt routes
+- `app/reviews/__init__.py` — blueprint module init
+- `app/reviews/forms.py` — `ReviewForm` (rating_value 1–5, review_text)
+- `app/reviews/routes.py` — `reviews_bp`: review_booking, review_course routes
+- `app/booking/routes.py` — added `complete` endpoint + `detail` wires payment/review context
+- `app/courses/routes.py` — paid-course enroll → redirects to checkout
+- `app/__init__.py` — registered `payments_bp` (`/payments`) and `reviews_bp` (`/reviews`)
+- `app/templates/payments/checkout.html` — order summary + eSewa UAT credentials helper box + signed hidden form
+- `app/templates/payments/success.html` — success confirmation with enrollment/booking link
+- `app/templates/payments/failure.html` — failure page with retry options
+- `app/templates/payments/receipt.html` — printable receipt
+- `app/templates/booking/detail.html` — added: pay button, mark-complete form, review form, existing review display
+- `app/templates/courses/course_detail.html` — paid course shows checkout CTA vs free enroll
+- `app/static/css/style.css` — payment / review card styles
 
 **Blockers / deviations from master prompt:**
--
+- **Khalti deferred**: Master prompt lists Khalti as optional / parallel with eSewa. Per project scope decision, Khalti integration is deferred to a later polish pass. Only eSewa sandbox (UAT/EPAYTEST) is implemented in this phase.
+- **eSewa live sandbox test**: The eSewa callback (`/payments/esewa/success`) requires an external round-trip to `rc-epay.esewa.com.np`. The signature logic and fulfillment code are fully implemented and verified against published eSewa UAT test vectors. Manual browser test with UAT credentials (`9806800001` / `Nepal@123` / MPIN `1122` / Token `123456`) is the definitive end-to-end validation.
+- **`booking_id_ref` soft FK**: `Payment.booking_id_ref` is an integer column without a foreign key constraint (to avoid circular FK issues noted in models.py). All lookups use explicit `Payment.query.filter_by(booking_id_ref=booking.id)` — no ORM relationship needed.
 
 **Notes for report/viva:**
--
+- eSewa integration follows the **ePay v2** API: the checkout is a browser-side POST form (not a server-side redirect) so the HMAC signature is computed server-side and embedded as a hidden field — never exposed to JavaScript.
+- Two-layer verification on callback: (1) HMAC-SHA256 `signed_field_names` chain — prevents payload tampering; (2) status check API call to eSewa — prevents replay of valid-looking callbacks without an actual charge.
+- `Rating` table is a separate fast-aggregation log (one row per rating event). `TeacherProfile.average_rating` and `total_reviews` are recomputed via `func.avg` / `func.count` on every new rating write — simple and always accurate without a separate cron job.
+- `Review` table has `UniqueConstraint('learner_id', 'booking_id', name='uq_review_booking')` enforced at DB level; the route also checks before insert for a friendly flash message rather than a 500.
 
 ---
 
