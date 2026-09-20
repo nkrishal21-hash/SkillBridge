@@ -563,3 +563,33 @@ class Favorite(db.Model):
 
     def __repr__(self):
         return f"<Favorite learner={self.learner_id} teacher={self.teacher_id}>"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 14. REPORTS
+# ─────────────────────────────────────────────────────────────────────────────
+class Report(db.Model):
+    """
+    Incident reports filed by learners or teachers for sessions/behavior.
+    Reviewed by administrators for disciplinary action or refunds.
+    """
+    __tablename__ = "reports"
+
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reported_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id", ondelete="SET NULL"), nullable=True)
+    reason = db.Column(db.Enum("late", "no_show", "misbehavior", "other", name="report_reason"), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(db.Enum("pending", "reviewed", "resolved", "dismissed", name="report_status"), default="pending", nullable=False)
+    admin_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+
+    reporter = db.relationship("User", foreign_keys=[reporter_id])
+    reported = db.relationship("User", foreign_keys=[reported_id])
+    booking = db.relationship("Booking")
+
+    def __repr__(self):
+        return f"<Report {self.id}: {self.reason} status={self.status}>"
+

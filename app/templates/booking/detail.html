@@ -249,6 +249,55 @@
       </div>
     {% endif %}
 
+    <!-- Incident Reporting Block (Approved or Completed sessions) -->
+    {% if booking.status in ['approved', 'completed'] and (is_learner or is_teacher) %}
+      <div style="margin-bottom: 24px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+        <h3 style="font-size: 1.15rem; margin-bottom: 14px;">Trust &amp; Safety</h3>
+
+        {% if pending_report %}
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px;">
+            <span style="font-size: 1.3rem; line-height: 1;">⏳</span>
+            <div>
+              <div style="font-weight: 700; color: #92400e; font-size: 0.92rem;">Incident Report Pending Review</div>
+              <p style="color: #78350f; font-size: 0.85rem; margin-top: 2px; margin-bottom: 0;">
+                You submitted a report for this session on {{ pending_report.created_at.strftime('%b %d, %Y') }}. Our administrative moderation team is currently reviewing the issue.
+              </p>
+            </div>
+          </div>
+        {% elif can_report and report_form %}
+          <div class="report-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <span style="font-size: 1.3rem;">🚨</span>
+              <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">
+                {% if is_learner %}Report Teacher{% else %}Report Student{% endif %}
+              </h4>
+            </div>
+            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+              Encountered attendance issues (late/no-show) or unprofessional conduct with {% if is_learner %}{{ booking.teacher.full_name }}{% else %}{{ booking.learner.full_name }}{% endif %}? File a confidential report for admin review.
+            </p>
+
+            <form method="POST" action="{{ url_for('reports.report_booking', booking_id=booking.id) }}">
+              {{ report_form.hidden_tag() }}
+
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ report_form.reason.label.text }}</label>
+                {{ report_form.reason(class="form-control", style="max-width: 360px; font-weight: 600;") }}
+              </div>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ report_form.description.label.text }}</label>
+                {{ report_form.description(class="form-control", rows=3, placeholder="Describe what happened, relevant times, and any details for administrators...") }}
+              </div>
+
+              <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-weight: 600;">
+                🚨 Submit Report
+              </button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
     <!-- Action Controls -->
     <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
       <!-- Teacher Approval Controls -->

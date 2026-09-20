@@ -4,6 +4,7 @@ Full platform administration: statistics, teacher verification queue,
 course approval queue, payment audit, and user listing.
 """
 
+from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -12,7 +13,7 @@ from app import db
 from app.auth.utils import admin_required
 from app.models import (
     User, TeacherProfile, Course, Booking, Payment,
-    Certificate, Notification,
+    Certificate, Notification, Report,
 )
 from app.notifications.utils import notify
 
@@ -46,6 +47,7 @@ def dashboard():
     ).count()
 
     pending_courses = Course.query.filter_by(is_published=True, is_approved=False).count()
+    pending_reports = Report.query.filter_by(status="pending").count()
 
     # Revenue snapshot
     total_revenue = db.session.query(
@@ -66,6 +68,7 @@ def dashboard():
         stats=stats,
         pending_teachers=pending_teachers,
         pending_courses=pending_courses,
+        pending_reports=pending_reports,
         total_revenue=float(total_revenue),
         recent_payments=recent_payments,
     )
@@ -293,3 +296,178 @@ def user_list():
         users=pagination.items,
         role_filter=role_filter,
     )
+
+
+@admin_bp.route("/users/<int:user_id>/ban", methods=["POST"])
+@login_required
+@admin_required
+def ban_user(user_id: int):
+    """Suspend a user account, preventing login and hiding them from search."""
+    user = User.query.get_or_404(user_id)
+
+    if user.role == "admin":
+        flash("You cannot suspend an administrator account.", "danger")
+        return redirect(request.referrer or url_for("admin.user_list"))
+
+    if not user.is_active:
+        flash(f"User '{user.full_name}' is already suspended.", "info")
+        return redirect(request.referrer or url_for("admin.user_list"))
+
+    user.is_active = False
+    db.session.commit()
+
+    flash(f"🚫 User '{user.full_name}' has been banned and suspended.", "warning")
+    return redirect(request.referrer or url_for("admin.user_list"))
+
+
+@admin_bp.route("/users/<int:user_id>/unban", methods=["POST"])
+@login_required
+@admin_required
+def unban_user(user_id: int):
+    """Restore a suspended user account."""
+    user = User.query.get_or_404(user_id)
+
+    if user.is_active:
+        flash(f"User '{user.full_name}' is already active.", "info")
+        return redirect(request.referrer or url_for("admin.user_list"))
+
+    user.is_active = True
+    db.session.commit()
+
+    flash(f"✅ User '{user.full_name}' has been unbanned and restored.", "success")
+    return redirect(request.referrer or url_for("admin.user_list"))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Incident Reports Queue & Moderation
+# ─────────────────────────────────────────────────────────────────────────────
+@admin_bp.route("/reports")
+@login_required
+@admin_required
+def report_list():
+    """Paginated queue of incident reports with status filtering."""
+    page = request.args.get("page", 1, type=int)
+    filter_status = request.args.get("filter", "pending").strip().lower()
+
+    query = Report.query
+
+    if filter_status in ("pending", "reviewed", "resolved", "dismissed"):
+        query = query.filter_by(status=filter_status)
+
+    pagination = query.order_by(Report.created_at.desc()).paginate(
+        page=page, per_page=15, error_out=False
+    )
+
+    # Queue counts
+    pending_count = Report.query.filter_by(status="pending").count()
+    reviewed_count = Report.query.filter_by(status="reviewed").count()
+    resolved_count = Report.query.filter_by(status="resolved").count()
+    dismissed_count = Report.query.filter_by(status="dismissed").count()
+    total_count = Report.query.count()
+
+    # Pre-fetch associated payments for refund eligibility checking
+    report_items = pagination.items
+    booking_ids = [r.booking_id for r in report_items if r.booking_id]
+    eligible_payments = {}
+    if booking_ids:
+        payments = Payment.query.filter(
+            Payment.payment_for == "booking",
+            Payment.booking_id_ref.in_(booking_ids),
+            Payment.status == "success",
+        ).all()
+        for p in payments:
+            eligible_payments[p.booking_id_ref] = p
+
+    return render_template(
+        "admin/reports.html",
+        user=current_user,
+        pagination=pagination,
+        reports=report_items,
+        filter_status=filter_status,
+        pending_count=pending_count,
+        reviewed_count=reviewed_count,
+        resolved_count=resolved_count,
+        dismissed_count=dismissed_count,
+        total_count=total_count,
+        eligible_payments=eligible_payments,
+    )
+
+
+@admin_bp.route("/reports/<int:report_id>/dismiss", methods=["POST"])
+@login_required
+@admin_required
+def dismiss_report(report_id: int):
+    """Dismiss an incident report with optional administrative notes."""
+    report = Report.query.get_or_404(report_id)
+    admin_notes = request.form.get("admin_notes", "").strip()
+
+    report.status = "dismissed"
+    report.resolved_at = datetime.utcnow()
+    if admin_notes:
+        report.admin_notes = f"{report.admin_notes}\n{admin_notes}" if report.admin_notes else admin_notes
+
+    db.session.commit()
+    flash(f"Report #{report.id} has been dismissed.", "info")
+    return redirect(request.referrer or url_for("admin.report_list", filter="dismissed"))
+
+
+@admin_bp.route("/reports/<int:report_id>/resolve", methods=["POST"])
+@login_required
+@admin_required
+def resolve_report(report_id: int):
+    """Mark an incident report as resolved with optional notes."""
+    report = Report.query.get_or_404(report_id)
+    admin_notes = request.form.get("admin_notes", "").strip()
+
+    report.status = "resolved"
+    report.resolved_at = datetime.utcnow()
+    if admin_notes:
+        report.admin_notes = f"{report.admin_notes}\n{admin_notes}" if report.admin_notes else admin_notes
+
+    db.session.commit()
+    flash(f"✅ Report #{report.id} has been marked as resolved.", "success")
+    return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))
+
+
+@admin_bp.route("/reports/<int:report_id>/refund", methods=["POST"])
+@login_required
+@admin_required
+def refund_report(report_id: int):
+    """
+    Issue an internal booking refund for a report.
+    Flips Payment status to 'refunded', updates Report to 'resolved', and notifies learner.
+    """
+    report = Report.query.get_or_404(report_id)
+
+    if not report.booking_id:
+        flash("This report is not tied to a booking.", "warning")
+        return redirect(request.referrer or url_for("admin.report_list"))
+
+    payment = Payment.query.filter_by(
+        payment_for="booking",
+        booking_id_ref=report.booking_id,
+        status="success",
+    ).first()
+
+    if not payment:
+        flash("Nothing to refund for this booking. No successful payment found.", "warning")
+        return redirect(request.referrer or url_for("admin.report_list"))
+
+    payment.status = "refunded"
+    report.status = "resolved"
+    report.resolved_at = datetime.utcnow()
+    refund_note = f"Refund issued internally for Payment #{payment.id} (NPR {payment.amount})."
+    report.admin_notes = f"{report.admin_notes}\n{refund_note}" if report.admin_notes else refund_note
+    db.session.commit()
+
+    # Notify learner
+    notify(
+        user_id=payment.learner_id,
+        title=f"💳 Mentorship Booking Refund (NPR {payment.amount})",
+        body=f"Your booking #{report.booking_id} session payment has been marked as refunded following administrative review.",
+        notif_type="payment",
+        link=url_for("booking.detail", booking_id=report.booking_id),
+    )
+
+    flash(f"✅ Payment #{payment.id} (NPR {payment.amount}) marked as refunded. Report #{report.id} marked as resolved.", "success")
+    return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))

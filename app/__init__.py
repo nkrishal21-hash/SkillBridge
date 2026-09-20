@@ -96,6 +96,7 @@ def create_app(config_name: str = None) -> Flask:
     from app.certificates.routes import certificates_bp
     from app.reviews.routes import reviews_bp
     from app.notifications.routes import notifications_bp
+    from app.reports.routes import reports_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(learner_bp, url_prefix="/learner")
@@ -108,6 +109,26 @@ def create_app(config_name: str = None) -> Flask:
     app.register_blueprint(certificates_bp, url_prefix="/certificates")
     app.register_blueprint(reviews_bp, url_prefix="/reviews")
     app.register_blueprint(notifications_bp, url_prefix="/notifications")
+    app.register_blueprint(reports_bp, url_prefix="/reports")
+
+    # ── Immediate session termination for banned / suspended users ───────────
+    from flask import redirect, url_for, flash, session
+    from flask_login import logout_user
+
+    @app.before_request
+    def check_user_active():
+        if current_user.is_authenticated and not current_user.is_active:
+            logout_user()
+            flash("Your account has been suspended.", "danger")
+            return redirect(url_for("auth.login"))
+
+        user_id = session.get("_user_id")
+        if user_id and not current_user.is_authenticated:
+            suspended_user = User.query.get(int(user_id))
+            if suspended_user and not suspended_user.is_active:
+                session.clear()
+                flash("Your account has been suspended.", "danger")
+                return redirect(url_for("auth.login"))
 
     # ── Template filters & context processors ────────────────────────────────
     from markupsafe import Markup, escape

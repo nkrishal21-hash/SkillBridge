@@ -18,11 +18,12 @@ from flask import (
 from flask_login import login_required, current_user
 from sqlalchemy import or_, and_
 from app import db
-from app.models import Booking, User, TeacherProfile, Payment
+from app.models import Booking, User, TeacherProfile, Payment, Report
 from app.auth.utils import learner_required, teacher_required
 from app.teacher.utils import available_days_list
 from app.booking.forms import BookingForm, BookingResponseForm
 from app.reviews.forms import ReviewForm
+from app.reports.forms import ReportForm
 from app.booking.utils import (
     calculate_session_times,
     send_new_booking_email,
@@ -188,6 +189,20 @@ def detail(booking_id: int):
     can_review = (booking.status == "completed" and is_learner and review is None)
     review_form = ReviewForm() if can_review else None
 
+    # Incident report status
+    can_report = False
+    pending_report = None
+    report_form = None
+    if booking.status in ("approved", "completed") and (is_learner or is_teacher):
+        pending_report = Report.query.filter_by(
+            booking_id=booking.id,
+            reporter_id=current_user.id,
+            status="pending",
+        ).first()
+        if not pending_report:
+            can_report = True
+            report_form = ReportForm()
+
     return render_template(
         "booking/detail.html",
         booking=booking,
@@ -200,6 +215,9 @@ def detail(booking_id: int):
         review=review,
         can_review=can_review,
         review_form=review_form,
+        can_report=can_report,
+        pending_report=pending_report,
+        report_form=report_form,
     )
 
 

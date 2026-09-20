@@ -17,6 +17,7 @@
 | 7 | Ratings & Payments | ✅ Done | 2026-09-18 |
 | 8 | Certificates & Dashboards | ✅ Done | 2026-09-18 |
 | 9 | Security & UI Polish | ✅ Done | 2026-09-18 |
+| Post-9 | Trust & Safety: Moderation & Refunds | ✅ Done | 2026-09-20 |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
 
 Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
@@ -408,6 +409,46 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 - File upload validation uses `seek(0, SEEK_END)` / `tell()` / `seek(0)` to measure byte size without reading the whole file into memory before validation — safe for large video uploads.
 - Confirmation dialogs use native `window.confirm()` (zero JS dependencies, always synchronous) rather than custom modal libraries, keeping the codebase lightweight.
 - `README.md` documents graceful-fallback behaviour for all optional services (Cloudinary → local disk, eSewa → mock, Google OAuth → skipped) so the app runs fully offline in dev.
+
+---
+
+## Post-Phase-9 — Trust & Safety: Reporting, Banning, Refunds
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-20 / 2026-09-20
+
+**Checklist**
+- [x] Admin ban/unban mechanism reusing `User.is_active` (no extra columns needed)
+- [x] Session deactivation check in `@app.before_request` hook so banned users are immediately logged out
+- [x] Admin ban protection for admin accounts (cannot ban fellow admins)
+- [x] `Report` model created for session complaints (late, no_show, misbehavior, other) with status workflow
+- [x] Incident reporting blueprint `app/reports/` with CSRF-protected `ReportForm`
+- [x] Soft prevention of duplicate pending reports for the same booking
+- [x] In-app notification alert dispatched to all admins upon new report filing
+- [x] Participant-tailored inline report form in `booking/detail.html` ("Report Teacher" / "Report Student")
+- [x] Admin incident moderation queue `/admin/reports` with status filtering tabs
+- [x] Admin dismiss and resolve actions with optional audit notes
+- [x] Internal booking refund action flipping `Payment.status = 'refunded'` and excluding from teacher earnings
+- [x] Direct moderation ban shortcut from report cards
+- [x] Admin dashboard integration: pending reports counter on stat cards and quick management tools
+
+**Files created/modified:**
+- `app/models.py` — added `Report` model and table definition
+- `app/__init__.py` — registered `reports_bp` and added `@app.before_request` session deactivation check
+- `app/reports/__init__.py` — initialized reports blueprint
+- `app/reports/forms.py` — `ReportForm` with reasons and description
+- `app/reports/routes.py` — `POST /reports/booking/<id>` participant reporting route
+- `app/admin/routes.py` — ban, unban, report listing, dismiss, resolve, and refund handlers
+- `app/booking/routes.py` — passed report form and pending status to booking detail view
+- `app/templates/booking/detail.html` — added inline reporting box and pending report banner
+- `app/templates/admin/users.html` — added active/banned status badges and ban/unban action buttons
+- `app/templates/admin/reports.html` — admin queue with status filtering, cards, and moderation buttons
+- `app/templates/admin/dashboard.html` — added pending reports stat counter and queue alert
+- `app/static/css/style.css` — added `.report-card`, `.report-reason-badge`, `.ban-badge` styles
+- `PROGRESS.md` — documented trust & safety implementation and scope decisions
+
+**Scope Decisions & Architectural Notes:**
+- **Reversible Suspension vs Deletion**: User removal was deliberately implemented as account suspension (`is_active = False`) rather than permanent deletion. This maintains relational integrity (past bookings, payments, courses, reviews) while immediately blocking login and revoking public search listing.
+- **Internal Accounting Refunds**: Refund action updates internal platform accounting (`Payment.status = 'refunded'`) to reverse teacher earnings and notify learners. It does not issue live merchant API payout calls to external gateway providers (eSewa/Khalti sandbox), avoiding unauthorized financial mutations outside the platform's scope.
 
 ---
 
