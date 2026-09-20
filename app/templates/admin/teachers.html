@@ -83,7 +83,7 @@
             </a>
             {% if not profile.is_verified %}
               <form method="POST" action="{{ url_for('admin.verify_teacher', profile_id=profile.id) }}"
-                    onsubmit="return confirm('Grant verified instructor status to {{ profile.user.full_name if profile.user else \'this teacher\' }}?');">
+                    onsubmit="return confirm('Grant verified instructor status to {{ profile.user.full_name if profile.user else 'this teacher' }}?');">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-primary btn-sm" style="background: var(--success); border-color: var(--success);">
                   ✓ Verify
