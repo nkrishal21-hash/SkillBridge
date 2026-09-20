@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% block title %}Payout Management — SkillBridge Admin{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto; padding: 32px 24px;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="margin: 0; font-size: 1.75rem; font-weight: 800;">💰 Payout Management</h1>
+      <p style="margin: 6px 0 0; color: var(--text-secondary); font-size: 0.9rem;">
+        Track and release teacher earnings. Manual confirmation only — no automatic bank transfers.
+      </p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-sm">← Admin Dashboard</a>
+  </div>
+
+  <!-- Disclaimer -->
+  <div style="background: #FEF3C7; border: 1px solid #D97706; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 24px; font-size: 0.86rem; color: #92400E;">
+    <strong>ℹ️ Important:</strong> Releasing a payout confirms that you have manually paid the teacher via bank transfer, eSewa, or another channel outside SkillBridge. This action does <em>not</em> trigger an automatic bank disbursement.
+  </div>
+
+  <!-- Summary Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px;">
+    <div style="background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%); border-radius: var(--radius-lg); padding: 20px; color: white;">
+      <div style="font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Pending Disbursals</div>
+      <div style="font-size: 1.8rem; font-weight: 800;">NPR {{ "%.2f"|format(total_pending_payout) }}</div>
+      <div style="font-size: 0.78rem; opacity: 0.75; margin-top: 4px;">Awaiting manual release</div>
+    </div>
+    <div style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); border-radius: var(--radius-lg); padding: 20px; color: white;">
+      <div style="font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Total Released</div>
+      <div style="font-size: 1.8rem; font-weight: 800;">NPR {{ "%.2f"|format(total_released_payout) }}</div>
+      <div style="font-size: 0.78rem; opacity: 0.75; margin-top: 4px;">Paid out to teachers</div>
+    </div>
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Transactions Pending</div>
+      <div style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">{{ payments | selectattr('payout_status', 'equalto', 'pending') | list | length if filter_status == 'all' else (payments | length if filter_status == 'pending' else '0') }}</div>
+      <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Payments awaiting payout</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0;">
+    {% for tab_key, tab_label in [('pending', '⏳ Pending'), ('released', '✅ Released'), ('all', '📋 All')] %}
+      <a href="{{ url_for('admin.payout_list', filter=tab_key) }}"
+         style="padding: 8px 20px; text-decoration: none; font-size: 0.88rem; font-weight: 600; border-bottom: 3px solid {{ 'var(--primary)' if filter_status == tab_key else 'transparent' }}; color: {{ 'var(--primary)' if filter_status == tab_key else 'var(--text-muted)' }}; margin-bottom: -2px; transition: color var(--transition-fast);">
+        {{ tab_label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <!-- Payout Table -->
+  {% if payments %}
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+        <thead>
+          <tr style="background: var(--bg-alt); border-bottom: 2px solid var(--border-subtle);">
+            <th style="padding: 12px 16px; text-align: left; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Payment #</th>
+            <th style="padding: 12px 16px; text-align: left; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Teacher</th>
+            <th style="padding: 12px 16px; text-align: left; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Item</th>
+            <th style="padding: 12px 16px; text-align: right; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Gross</th>
+            <th style="padding: 12px 16px; text-align: right; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Fee (20%)</th>
+            <th style="padding: 12px 16px; text-align: right; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Payout (80%)</th>
+            <th style="padding: 12px 16px; text-align: center; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Status</th>
+            <th style="padding: 12px 16px; text-align: center; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Date</th>
+            <th style="padding: 12px 16px; text-align: center; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in payments %}
+            {% set t_user = payment.teacher_user %}
+            {% set t_name = t_user.full_name if t_user else '(unknown teacher)' %}
+            {% set t_profile = payment.teacher_profile %}
+            <tr style="border-bottom: 1px solid var(--border-subtle); transition: background var(--transition-fast);" onmouseover="this.style.background='var(--bg-alt)'" onmouseout="this.style.background='white'">
+              <td style="padding: 12px 16px; font-weight: 700; color: var(--text-muted);">#{{ payment.id }}</td>
+              <td style="padding: 12px 16px;">
+                <div style="font-weight: 700; color: var(--text-primary);">{{ t_name }}</div>
+                {% if t_profile %}
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">
+                    <a href="{{ url_for('admin.payout_list') }}?teacher={{ t_profile.id }}" style="color: inherit;" title="Release all for this teacher">
+                      Profile #{{ t_profile.id }}
+                    </a>
+                  </div>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 16px;">
+                <div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ payment.item_title }}">
+                  {{ '📅' if payment.payment_for == 'booking' else '🎓' }} {{ payment.item_title }}
+                </div>
+              </td>
+              <td style="padding: 12px 16px; text-align: right; font-weight: 600;">
+                NPR {{ "%.2f"|format(payment.amount) }}
+              </td>
+              <td style="padding: 12px 16px; text-align: right; color: var(--text-muted);">
+                NPR {{ "%.2f"|format(payment.platform_fee_amount or payment.amount * 0.2) }}
+              </td>
+              <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #059669;">
+                NPR {{ "%.2f"|format(payment.teacher_payout_amount or payment.amount * 0.8) }}
+              </td>
+              <td style="padding: 12px 16px; text-align: center;">
+                {% if payment.payout_status == 'released' %}
+                  <span class="payout-status-badge payout-released">✅ Released</span>
+                  {% if payment.payout_released_at %}
+                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+                      {{ payment.payout_released_at.strftime('%b %d, %Y') }}
+                    </div>
+                  {% endif %}
+                {% elif payment.payout_status == 'pending' %}
+                  <span class="payout-status-badge payout-pending">⏳ Pending</span>
+                {% else %}
+                  <span class="payout-status-badge payout-zero">—</span>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 16px; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+                {{ payment.completed_at.strftime('%b %d, %Y') if payment.completed_at else '—' }}
+              </td>
+              <td style="padding: 12px 16px; text-align: center;">
+                {% if payment.payout_status != 'released' %}
+                  <form method="POST"
+                        action="{{ url_for('admin.release_payout', payment_id=payment.id) }}"
+                        onsubmit="return confirm('Confirm payout release of NPR {{ payment.teacher_payout_amount or (payment.amount * 0.8)|round(2) }} to {{ t_name }}?\n\nThis confirms you have manually transferred the funds outside SkillBridge.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm"
+                            style="background: #059669; color: white; border: none; cursor: pointer; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-md);">
+                      💸 Release
+                    </button>
+                  </form>
+                {% else %}
+                  <span style="font-size: 0.78rem; color: var(--text-muted);">Done</span>
+                {% endif %}
+              </td>
+            </tr>
+
+            <!-- Bulk Release Row (shows once per teacher for pending tab) -->
+            {% if filter_status == 'pending' and t_profile and loop.changed(t_profile.id if t_profile else 0) %}
+              {# We'll render the bulk button only once below the first occurrence of each teacher #}
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bulk Release by Teacher (shown in pending tab) -->
+    {% if filter_status == 'pending' %}
+      {% set teacher_ids_seen = [] %}
+      <div style="margin-top: 24px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px 24px;">
+        <h3 style="margin: 0 0 16px; font-size: 1.1rem; font-weight: 700;">⚡ Bulk Release by Teacher</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px;">
+          Release all pending payouts for a specific teacher at once with a single confirmation.
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+          {% for payment in payments %}
+            {% set t_profile = payment.teacher_profile %}
+            {% if t_profile and t_profile.id not in teacher_ids_seen %}
+              {% if teacher_ids_seen.append(t_profile.id) %}{% endif %}
+              {% set t_name = payment.teacher_user.full_name if payment.teacher_user else 'Teacher #' ~ t_profile.id %}
+              {% set teacher_pending = payments | selectattr('teacher_profile') | selectattr('teacher_profile.id', 'equalto', t_profile.id) | list %}
+              {% set teacher_total = teacher_pending | sum(attribute='teacher_payout_amount') or (teacher_pending | sum(attribute='amount') * 0.8) %}
+              <form method="POST"
+                    action="{{ url_for('admin.release_all_payouts', teacher_profile_id=t_profile.id) }}"
+                    onsubmit="return confirm('Release all pending payouts (NPR {{ teacher_total | round(2) }}) for {{ t_name }}?\n\nThis confirms manual payment outside SkillBridge.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        style="background: white; border: 2px solid #059669; color: #059669; border-radius: var(--radius-md); padding: 10px 18px; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all var(--transition-fast);"
+                        onmouseover="this.style.background='#059669';this.style.color='white';"
+                        onmouseout="this.style.background='white';this.style.color='#059669';">
+                  💸 Release All for {{ t_name }}
+                  <span style="font-size: 0.78rem; opacity: 0.8;">(NPR {{ "%.2f"|format(teacher_total) }})</span>
+                </button>
+              </form>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div style="text-align: center; padding: 60px 20px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+      <div style="font-size: 3rem; margin-bottom: 16px;">
+        {{ '🎉' if filter_status == 'pending' else '📋' }}
+      </div>
+      <h3 style="color: var(--text-secondary); font-weight: 600; margin: 0 0 8px;">
+        {% if filter_status == 'pending' %}
+          All caught up! No pending payouts.
+        {% elif filter_status == 'released' %}
+          No released payouts yet.
+        {% else %}
+          No successful payments found.
+        {% endif %}
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0;">
+        {% if filter_status == 'pending' %}
+          All teacher payouts have been released.
+        {% else %}
+          Check back after payments are processed.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

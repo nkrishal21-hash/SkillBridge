@@ -70,6 +70,11 @@ class Config:
         "https://a.khalti.com/api/v2/epayment/initiate/"
     )
 
+    # ── Platform Commission ───────────────────────────────────────────────────
+    # Percentage of each payment kept by the platform (default 20%).
+    # Teachers receive the remaining 80%.  Override via PLATFORM_COMMISSION_PERCENT env var.
+    PLATFORM_COMMISSION_PERCENT = int(os.environ.get("PLATFORM_COMMISSION_PERCENT", 20))
+
     # ── Flask-SocketIO ────────────────────────────────────────────────────────
     # async_mode='threading' is used so the app works on Render's free tier
     # where raw WebSockets are unreliable.  The JS client is configured to use

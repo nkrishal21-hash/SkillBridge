@@ -11,6 +11,7 @@ then calls db.create_all() to build every table defined in app/models.py.
 
 import sys
 import pymysql
+from sqlalchemy import inspect, text
 from app import create_app, db
 
 
@@ -50,6 +51,61 @@ def ensure_database_exists(uri: str) -> None:
         sys.exit(1)
 
 
+def migrate_payout_columns(app_ctx):
+    """
+    Idempotent migration: add 4 payout columns to the `payments` table
+    if they do not already exist, then backfill existing successful/refunded
+    payments with their 20% platform fee / 80% teacher payout split.
+
+    Safe to run multiple times — no-op on subsequent executions.
+    """
+    inspector = inspect(db.engine)
+    existing_cols = {c["name"] for c in inspector.get_columns("payments")}
+
+    commission_pct = app_ctx.config.get("PLATFORM_COMMISSION_PERCENT", 20)
+
+    new_columns = [
+        ("platform_fee_amount",  "NUMERIC(10,2) NULL"),
+        ("teacher_payout_amount","NUMERIC(10,2) NULL"),
+        ("payout_status",        "ENUM('pending','released') NULL DEFAULT 'pending'"),
+        ("payout_released_at",   "DATETIME NULL"),
+    ]
+
+    added = []
+    for col_name, col_def in new_columns:
+        if col_name not in existing_cols:
+            sql = f"ALTER TABLE payments ADD COLUMN {col_name} {col_def};"
+            db.session.execute(text(sql))
+            added.append(col_name)
+            print(f"[db_init]   + Added column: payments.{col_name}")
+        else:
+            print(f"[db_init]   ✓ Column already present: payments.{col_name}")
+
+    if added:
+        db.session.commit()
+        print(f"[db_init] ✅ Migration complete — {len(added)} column(s) added.")
+    else:
+        print("[db_init] ✅ Migration no-op — all payout columns already present.")
+
+    # ── Backfill existing rows that have NULL platform_fee_amount ────────────
+    backfill_sql = text("""
+        UPDATE payments
+        SET
+            platform_fee_amount  = ROUND(amount * :pct / 100, 2),
+            teacher_payout_amount = amount - ROUND(amount * :pct / 100, 2),
+            payout_status         = 'pending'
+        WHERE status IN ('success', 'refunded')
+          AND platform_fee_amount IS NULL;
+    """)
+    result = db.session.execute(backfill_sql, {"pct": commission_pct})
+    db.session.commit()
+    rows_updated = result.rowcount
+    if rows_updated:
+        print(f"[db_init] ✅ Backfilled {rows_updated} existing payment row(s) with {commission_pct}%/{100-commission_pct}% split.")
+    else:
+        print("[db_init] ✅ Backfill no-op — no rows needed updating.")
+
+
 def main():
     app = create_app()
     uri = app.config["SQLALCHEMY_DATABASE_URI"]
@@ -67,6 +123,11 @@ def main():
         inspector = inspect(db.engine)
         for table in inspector.get_table_names():
             print(f"          • {table}")
+
+        # ── Idempotent payout column migration ───────────────────────────────
+        print("\n[db_init] Running payout column migration...")
+        from flask import current_app as _flask_app
+        migrate_payout_columns(_flask_app._get_current_object())
 
         # ── Seed default admin account (idempotent) ──────────────────────────
         from app.models import User

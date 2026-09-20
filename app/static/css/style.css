@@ -2151,4 +2151,50 @@ a:hover {
   border-color: var(--border-focus);
 }
 
+/* ── Payout Management Styles ─────────────────────────────────────────────── */
+.commission-breakdown-card {
+  background: var(--bg-alt);
+  border-radius: var(--radius-md);
+  padding: 4px 14px;
+  margin-top: 4px;
+}
+
+.payout-status-badge {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.payout-status-badge.payout-pending {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #D97706;
+}
+
+.payout-status-badge.payout-released {
+  background: #D1FAE5;
+  color: #065F46;
+  border: 1px solid #059669;
+}
+
+.payout-status-badge.payout-zero {
+  background: var(--bg-alt);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.payout-card {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.payout-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
 

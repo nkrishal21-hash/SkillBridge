@@ -54,6 +54,19 @@ def dashboard():
         func.coalesce(func.sum(Payment.amount), 0.0)
     ).filter_by(status="success").scalar() or 0.0
 
+    # Pending payouts snapshot
+    total_pending_payouts = db.session.query(
+        func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0)
+    ).filter(
+        Payment.status == "success",
+        Payment.payout_status == "pending",
+    ).scalar() or 0.0
+
+    pending_payout_count = Payment.query.filter(
+        Payment.status == "success",
+        Payment.payout_status == "pending",
+    ).count()
+
     recent_payments = (
         Payment.query
         .filter_by(status="success")
@@ -70,6 +83,8 @@ def dashboard():
         pending_courses=pending_courses,
         pending_reports=pending_reports,
         total_revenue=float(total_revenue),
+        total_pending_payouts=float(total_pending_payouts),
+        pending_payout_count=pending_payout_count,
         recent_payments=recent_payments,
     )
 
@@ -436,6 +451,8 @@ def refund_report(report_id: int):
     """
     Issue an internal booking refund for a report.
     Flips Payment status to 'refunded', updates Report to 'resolved', and notifies learner.
+    If the teacher payout was already released, a prominent warning is shown requiring
+    offline reconciliation.
     """
     report = Report.query.get_or_404(report_id)
 
@@ -453,10 +470,24 @@ def refund_report(report_id: int):
         flash("Nothing to refund for this booking. No successful payment found.", "warning")
         return redirect(request.referrer or url_for("admin.report_list"))
 
+    # ── Payout conflict guard ─────────────────────────────────────────────────
+    if payment.payout_status == "released":
+        flash(
+            f"⚠️ WARNING: Teacher payout for Payment #{payment.id} (NPR {payment.teacher_payout_amount}) "
+            f"was already released on {payment.payout_released_at.strftime('%Y-%m-%d') if payment.payout_released_at else 'unknown date'}. "
+            f"The internal refund has been recorded, but the teacher's payout was already disbursed manually. "
+            f"Offline reconciliation with the teacher is required.",
+            "warning"
+        )
+
     payment.status = "refunded"
     report.status = "resolved"
     report.resolved_at = datetime.utcnow()
-    refund_note = f"Refund issued internally for Payment #{payment.id} (NPR {payment.amount})."
+    payout_note = (
+        f" (Payout already released — offline reconciliation required.)"
+        if payment.payout_status == "released" else ""
+    )
+    refund_note = f"Refund issued internally for Payment #{payment.id} (NPR {payment.amount}).{payout_note}"
     report.admin_notes = f"{report.admin_notes}\n{refund_note}" if report.admin_notes else refund_note
     db.session.commit()
 
@@ -471,3 +502,164 @@ def refund_report(report_id: int):
 
     flash(f"✅ Payment #{payment.id} (NPR {payment.amount}) marked as refunded. Report #{report.id} marked as resolved.", "success")
     return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. Payout Management
+# ─────────────────────────────────────────────────────────────────────────────
+@admin_bp.route("/payouts")
+@login_required
+@admin_required
+def payout_list():
+    """Admin payout management queue — lists teacher payouts with filter tabs."""
+    filter_status = request.args.get("filter", "pending").strip().lower()
+
+    base_q = Payment.query.filter(Payment.status == "success")
+
+    if filter_status == "pending":
+        payments = base_q.filter(Payment.payout_status == "pending").order_by(Payment.completed_at.desc()).all()
+    elif filter_status == "released":
+        payments = base_q.filter(Payment.payout_status == "released").order_by(Payment.payout_released_at.desc()).all()
+    else:  # 'all'
+        payments = base_q.order_by(Payment.completed_at.desc()).all()
+
+    # Per-teacher subtotals for pending payouts
+    teacher_subtotals_raw = db.session.query(
+        Payment.teacher_payout_amount,
+        Payment.payment_for,
+        Payment.course_id,
+        Payment.booking_id_ref,
+    ).filter(
+        Payment.status == "success",
+        Payment.payout_status == "pending",
+    ).all()
+
+    # Overall summary stats
+    total_pending_payout = db.session.query(
+        func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0)
+    ).filter(
+        Payment.status == "success",
+        Payment.payout_status == "pending",
+    ).scalar() or 0.0
+
+    total_released_payout = db.session.query(
+        func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0)
+    ).filter(
+        Payment.status == "success",
+        Payment.payout_status == "released",
+    ).scalar() or 0.0
+
+    teachers_awaiting = db.session.query(
+        func.count(func.distinct(
+            func.coalesce(
+                func.nullif(Payment.course_id, None),
+                Payment.booking_id_ref
+            )
+        ))
+    ).filter(
+        Payment.status == "success",
+        Payment.payout_status == "pending",
+    ).scalar() or 0
+
+    return render_template(
+        "admin/payouts.html",
+        payments=payments,
+        filter_status=filter_status,
+        total_pending_payout=float(total_pending_payout),
+        total_released_payout=float(total_released_payout),
+        teachers_awaiting=teachers_awaiting,
+    )
+
+
+@admin_bp.route("/payouts/<int:payment_id>/release", methods=["POST"])
+@login_required
+@admin_required
+def release_payout(payment_id: int):
+    """Release a single teacher payout — records that manual payment was made."""
+    payment = Payment.query.get_or_404(payment_id)
+
+    if payment.status != "success":
+        flash("Only successful payments can have payouts released.", "warning")
+        return redirect(request.referrer or url_for("admin.payout_list"))
+
+    if payment.payout_status == "released":
+        flash(f"Payout for Payment #{payment.id} was already released.", "info")
+        return redirect(request.referrer or url_for("admin.payout_list", filter="released"))
+
+    payment.payout_status = "released"
+    payment.payout_released_at = datetime.utcnow()
+    db.session.commit()
+
+    # Notify the teacher
+    teacher_user = payment.teacher_user
+    if teacher_user:
+        notify(
+            user_id=teacher_user.id,
+            title=f"💰 Payout Released: NPR {payment.teacher_payout_amount}",
+            body=(
+                f"Your earnings of NPR {payment.teacher_payout_amount} for '{payment.item_title}' "
+                f"have been marked as paid out by the admin team."
+            ),
+            notif_type="payment",
+            link=url_for("teacher.dashboard"),
+        )
+
+    flash(
+        f"✅ Payout of NPR {payment.teacher_payout_amount} for Payment #{payment.id} marked as released."
+        f" Teacher has been notified.",
+        "success"
+    )
+    return redirect(request.referrer or url_for("admin.payout_list", filter="released"))
+
+
+@admin_bp.route("/payouts/teacher/<int:teacher_profile_id>/release-all", methods=["POST"])
+@login_required
+@admin_required
+def release_all_payouts(teacher_profile_id: int):
+    """Bulk-release all pending payouts for a specific teacher."""
+    profile = TeacherProfile.query.get_or_404(teacher_profile_id)
+
+    # Collect all pending success payments for this teacher
+    # (both course payments and booking payments)
+    teacher_course_ids = [c.id for c in profile.courses]
+    teacher_booking_ids_q = db.session.query(Booking.id).filter(Booking.teacher_id == profile.user_id)
+
+    pending_payments = Payment.query.filter(
+        Payment.status == "success",
+        Payment.payout_status == "pending",
+        db.or_(
+            db.and_(Payment.payment_for == "course", Payment.course_id.in_(teacher_course_ids)),
+            db.and_(Payment.payment_for == "booking", Payment.booking_id_ref.in_(teacher_booking_ids_q)),
+        )
+    ).all()
+
+    if not pending_payments:
+        flash(f"No pending payouts found for teacher '{profile.user.full_name if profile.user else '(unknown)'}'", "info")
+        return redirect(request.referrer or url_for("admin.payout_list"))
+
+    total_released = sum(float(p.teacher_payout_amount or 0) for p in pending_payments)
+    now = datetime.utcnow()
+    for p in pending_payments:
+        p.payout_status = "released"
+        p.payout_released_at = now
+    db.session.commit()
+
+    # Notify teacher once
+    if profile.user:
+        notify(
+            user_id=profile.user.id,
+            title=f"💰 Bulk Payout Released: NPR {total_released:.2f}",
+            body=(
+                f"Your total pending earnings of NPR {total_released:.2f} "
+                f"across {len(pending_payments)} payment(s) have been marked as paid out."
+            ),
+            notif_type="payment",
+            link=url_for("teacher.dashboard"),
+        )
+
+    flash(
+        f"✅ Released {len(pending_payments)} payout(s) totalling NPR {total_released:.2f} for "
+        f"'{profile.user.full_name if profile.user else 'teacher'}'. Teacher has been notified.",
+        "success"
+    )
+    return redirect(request.referrer or url_for("admin.payout_list", filter="released"))

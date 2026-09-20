@@ -470,9 +470,58 @@ class Payment(db.Model):
     initiated_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, nullable=True)
 
+    # ── Platform Commission & Teacher Payout (added post-Phase-9) ─────────────
+    # Computed on eSewa success callback: 20% platform / 80% teacher.
+    # NULL on rows created before this feature was deployed (backfilled by db_init.py).
+    platform_fee_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    teacher_payout_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    payout_status = db.Column(
+        db.Enum("pending", "released", name="payout_status_enum"),
+        default="pending",
+        nullable=True,            # NULL only on pre-feature rows; new rows always get "pending"
+    )
+    payout_released_at = db.Column(db.DateTime, nullable=True)
+
     # ── Relationships ──────────────────────────────────────────────────────────
     learner = db.relationship("User", foreign_keys=[learner_id], back_populates="payments")
     course = db.relationship("Course")
+
+    # ── Helper properties ──────────────────────────────────────────────────────
+    @property
+    def teacher_user(self):
+        """Return the teacher User for this payment (works for both course and booking payments)."""
+        if self.payment_for == "course" and self.course and self.course.teacher:
+            return self.course.teacher.user
+        if self.payment_for == "booking" and self.booking_id_ref:
+            from app.models import Booking as _Booking
+            booking = _Booking.query.get(self.booking_id_ref)
+            if booking:
+                return booking.teacher
+        return None
+
+    @property
+    def teacher_profile(self):
+        """Return the TeacherProfile for this payment."""
+        if self.payment_for == "course" and self.course:
+            return self.course.teacher
+        if self.payment_for == "booking" and self.booking_id_ref:
+            from app.models import Booking as _Booking
+            booking = _Booking.query.get(self.booking_id_ref)
+            if booking:
+                return booking.teacher.teacher_profile if booking.teacher else None
+        return None
+
+    @property
+    def item_title(self):
+        """Return a human-readable title for the paid item."""
+        if self.payment_for == "course" and self.course:
+            return self.course.title
+        if self.payment_for == "booking" and self.booking_id_ref:
+            from app.models import Booking as _Booking
+            booking = _Booking.query.get(self.booking_id_ref)
+            if booking:
+                return f"1-on-1 Mentorship: {booking.topic}"
+        return "SkillBridge Order"
 
     def __repr__(self):
         return f"<Payment {self.id}: {self.gateway} {self.status} NPR {self.amount}>"

@@ -8,6 +8,7 @@ import base64
 import json
 import uuid
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 from flask import (
     Blueprint,
     render_template,
@@ -266,6 +267,14 @@ def esewa_success():
     payment.status = "success"
     payment.gateway_transaction_id = payload.get("transaction_code") or status_data.get("ref_id")
     payment.completed_at = datetime.utcnow()
+
+    # ── Platform Commission Split (20% platform / 80% teacher) ───────────────
+    commission_pct = Decimal(str(current_app.config.get("PLATFORM_COMMISSION_PERCENT", 20)))
+    gross = Decimal(str(payment.amount))
+    platform_fee = (gross * commission_pct / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    payment.platform_fee_amount = platform_fee
+    payment.teacher_payout_amount = gross - platform_fee
+    payment.payout_status = "pending"
 
     if payment.payment_for == "course":
         try:

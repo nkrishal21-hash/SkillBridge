@@ -54,11 +54,43 @@ def dashboard():
         ),
     )
 
-    total_earnings = (
+    # ── Earnings breakdown (gross / platform fee / net / paid out / pending) ──
+    # Gross: full amount paid by learners for this teacher's courses + bookings
+    gross_earnings = (
         db.session.query(func.coalesce(func.sum(Payment.amount), 0.0))
         .filter(earnings_condition)
         .scalar()
     ) or 0.0
+
+    # Platform fee (20%) — sum of platform_fee_amount for successful payments
+    platform_fee_total = (
+        db.session.query(func.coalesce(func.sum(Payment.platform_fee_amount), 0.0))
+        .filter(earnings_condition)
+        .scalar()
+    ) or 0.0
+
+    # Net earnings (80%) — sum of teacher_payout_amount for successful payments
+    net_earnings = (
+        db.session.query(func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0))
+        .filter(earnings_condition)
+        .scalar()
+    ) or 0.0
+
+    # If any rows have NULL teacher_payout_amount (pre-backfill edge case), fall back
+    if float(net_earnings) == 0.0 and float(gross_earnings) > 0:
+        net_earnings = float(gross_earnings) * 0.80
+        platform_fee_total = float(gross_earnings) * 0.20
+
+    # Already paid out (payout_status == 'released')
+    released_condition = and_(earnings_condition, Payment.payout_status == "released")
+    paid_out_total = (
+        db.session.query(func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0))
+        .filter(released_condition)
+        .scalar()
+    ) or 0.0
+
+    # Still pending payout (payout_status == 'pending')
+    pending_payout_total = float(net_earnings) - float(paid_out_total)
 
     recent_payments = (
         Payment.query.filter(earnings_condition)
@@ -79,7 +111,12 @@ def dashboard():
         profile=profile,
         profile_complete=profile_complete,
         pending_count=pending_count,
-        total_earnings=float(total_earnings),
+        gross_earnings=float(gross_earnings),
+        platform_fee_total=float(platform_fee_total),
+        net_earnings=float(net_earnings),
+        paid_out_total=float(paid_out_total),
+        pending_payout_total=float(pending_payout_total),
+        total_earnings=float(gross_earnings),   # kept for backward compat
         recent_payments=recent_payments,
         recent_reviews=recent_reviews,
     )

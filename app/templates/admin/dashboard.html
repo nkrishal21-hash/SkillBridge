@@ -82,6 +82,14 @@
       <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Pending Incident Reports</div>
       <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">Review Queue &rarr;</div>
     </a>
+
+    <!-- Pending Payouts Alert -->
+    <a href="{{ url_for('admin.payout_list') }}" style="text-decoration: none; background: white; border: {{ '2px solid #D97706' if pending_payout_count > 0 else '1px solid var(--border-subtle)' }}; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 8px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);" class="admin-queue-card">
+      <div style="font-size: 1.8rem;">💰</div>
+      <div style="font-weight: 800; font-size: 1.6rem; color: {{ '#D97706' if pending_payout_count > 0 else 'var(--text-primary)' }};">NPR {{ "%.0f"|format(total_pending_payouts) }}</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Pending Teacher Payouts</div>
+      <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">{{ pending_payout_count }} payment(s) &rarr;</div>
+    </a>
   </div>
 
   <!-- Quick Management Links -->
@@ -104,6 +112,12 @@
         🚨 Incident Reports
         {% if pending_reports > 0 %}
           <span style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{ pending_reports }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('admin.payout_list') }}" class="btn btn-outline btn-sm">
+        💰 Payout Management
+        {% if pending_payout_count > 0 %}
+          <span style="background: #D97706; color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{ pending_payout_count }}</span>
         {% endif %}
       </a>
       <a href="{{ url_for('admin.payment_list') }}" class="btn btn-outline btn-sm">
