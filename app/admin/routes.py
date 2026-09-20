@@ -5,6 +5,7 @@ course approval queue, payment audit, and user listing.
 """
 
 from datetime import datetime
+from decimal import Decimal
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -511,28 +512,72 @@ def refund_report(report_id: int):
 @login_required
 @admin_required
 def payout_list():
-    """Admin payout management queue — lists teacher payouts with filter tabs."""
+    """Admin payout management queue — lists teacher payouts with filter tabs and pagination."""
+    page = request.args.get("page", 1, type=int)
     filter_status = request.args.get("filter", "pending").strip().lower()
+    teacher_id = request.args.get("teacher_id", type=int)
 
     base_q = Payment.query.filter(Payment.status == "success")
 
     if filter_status == "pending":
-        payments = base_q.filter(Payment.payout_status == "pending").order_by(Payment.completed_at.desc()).all()
+        query = base_q.filter(Payment.payout_status == "pending")
     elif filter_status == "released":
-        payments = base_q.filter(Payment.payout_status == "released").order_by(Payment.payout_released_at.desc()).all()
+        query = base_q.filter(Payment.payout_status == "released")
     else:  # 'all'
-        payments = base_q.order_by(Payment.completed_at.desc()).all()
+        query = base_q
 
-    # Per-teacher subtotals for pending payouts
-    teacher_subtotals_raw = db.session.query(
-        Payment.teacher_payout_amount,
-        Payment.payment_for,
-        Payment.course_id,
-        Payment.booking_id_ref,
-    ).filter(
+    # Optional teacher profile filter
+    selected_teacher_profile = None
+    if teacher_id:
+        selected_teacher_profile = TeacherProfile.query.get(teacher_id)
+        if selected_teacher_profile:
+            t_course_ids = [c.id for c in selected_teacher_profile.courses]
+            t_booking_ids_q = db.session.query(Booking.id).filter(Booking.teacher_id == selected_teacher_profile.user_id)
+            conds = []
+            if t_course_ids:
+                conds.append(db.and_(Payment.payment_for == "course", Payment.course_id.in_(t_course_ids)))
+            conds.append(db.and_(Payment.payment_for == "booking", Payment.booking_id_ref.in_(t_booking_ids_q)))
+            query = query.filter(db.or_(*conds))
+
+    if filter_status == "released":
+        query = query.order_by(Payment.payout_released_at.desc(), Payment.id.desc())
+    else:
+        query = query.order_by(Payment.completed_at.desc(), Payment.id.desc())
+
+    pagination = query.paginate(page=page, per_page=20, error_out=False)
+    payments = pagination.items
+
+    # ── Per-teacher pending subtotals calculation ────────────────────────────
+    pending_payments_all = Payment.query.filter(
         Payment.status == "success",
         Payment.payout_status == "pending",
     ).all()
+
+    teacher_subtotals_map = {}
+    for p in pending_payments_all:
+        tu = p.teacher_user
+        tp = p.teacher_profile
+        if not tu:
+            continue
+        key = tp.id if tp else tu.id
+        if key not in teacher_subtotals_map:
+            teacher_subtotals_map[key] = {
+                "profile_id": tp.id if tp else None,
+                "user_id": tu.id,
+                "name": tu.full_name,
+                "email": tu.email,
+                "total_pending": Decimal("0.00"),
+                "count": 0,
+            }
+        payout_amt = Decimal(str(p.teacher_payout_amount or 0))
+        teacher_subtotals_map[key]["total_pending"] += payout_amt
+        teacher_subtotals_map[key]["count"] += 1
+
+    teacher_subtotals = sorted(
+        teacher_subtotals_map.values(),
+        key=lambda x: x["total_pending"],
+        reverse=True,
+    )
 
     # Overall summary stats
     total_pending_payout = db.session.query(
@@ -549,25 +594,17 @@ def payout_list():
         Payment.payout_status == "released",
     ).scalar() or 0.0
 
-    teachers_awaiting = db.session.query(
-        func.count(func.distinct(
-            func.coalesce(
-                func.nullif(Payment.course_id, None),
-                Payment.booking_id_ref
-            )
-        ))
-    ).filter(
-        Payment.status == "success",
-        Payment.payout_status == "pending",
-    ).scalar() or 0
-
     return render_template(
         "admin/payouts.html",
         payments=payments,
+        pagination=pagination,
         filter_status=filter_status,
+        teacher_filter_id=teacher_id,
+        selected_teacher=selected_teacher_profile,
+        teacher_subtotals=teacher_subtotals,
         total_pending_payout=float(total_pending_payout),
         total_released_payout=float(total_released_payout),
-        teachers_awaiting=teachers_awaiting,
+        teachers_awaiting=len(teacher_subtotals),
     )
 
 
@@ -620,17 +657,18 @@ def release_all_payouts(teacher_profile_id: int):
     profile = TeacherProfile.query.get_or_404(teacher_profile_id)
 
     # Collect all pending success payments for this teacher
-    # (both course payments and booking payments)
     teacher_course_ids = [c.id for c in profile.courses]
     teacher_booking_ids_q = db.session.query(Booking.id).filter(Booking.teacher_id == profile.user_id)
+
+    conds = []
+    if teacher_course_ids:
+        conds.append(db.and_(Payment.payment_for == "course", Payment.course_id.in_(teacher_course_ids)))
+    conds.append(db.and_(Payment.payment_for == "booking", Payment.booking_id_ref.in_(teacher_booking_ids_q)))
 
     pending_payments = Payment.query.filter(
         Payment.status == "success",
         Payment.payout_status == "pending",
-        db.or_(
-            db.and_(Payment.payment_for == "course", Payment.course_id.in_(teacher_course_ids)),
-            db.and_(Payment.payment_for == "booking", Payment.booking_id_ref.in_(teacher_booking_ids_q)),
-        )
+        db.or_(*conds)
     ).all()
 
     if not pending_payments:

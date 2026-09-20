@@ -59,51 +59,45 @@ def migrate_payout_columns(app_ctx):
 
     Safe to run multiple times — no-op on subsequent executions.
     """
+    from decimal import Decimal
+    from app.models import Payment
+
     inspector = inspect(db.engine)
-    existing_cols = {c["name"] for c in inspector.get_columns("payments")}
+    existing_columns = {col["name"] for col in inspector.get_columns("payments")}
+    statements = []
+    if "platform_fee_amount" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN platform_fee_amount NUMERIC(10,2) NULL")
+    if "teacher_payout_amount" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN teacher_payout_amount NUMERIC(10,2) NULL")
+    if "payout_status" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN payout_status ENUM('pending','released') NOT NULL DEFAULT 'pending'")
+    if "payout_released_at" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN payout_released_at DATETIME NULL")
 
-    commission_pct = app_ctx.config.get("PLATFORM_COMMISSION_PERCENT", 20)
-
-    new_columns = [
-        ("platform_fee_amount",  "NUMERIC(10,2) NULL"),
-        ("teacher_payout_amount","NUMERIC(10,2) NULL"),
-        ("payout_status",        "ENUM('pending','released') NULL DEFAULT 'pending'"),
-        ("payout_released_at",   "DATETIME NULL"),
-    ]
-
-    added = []
-    for col_name, col_def in new_columns:
-        if col_name not in existing_cols:
-            sql = f"ALTER TABLE payments ADD COLUMN {col_name} {col_def};"
-            db.session.execute(text(sql))
-            added.append(col_name)
-            print(f"[db_init]   + Added column: payments.{col_name}")
-        else:
-            print(f"[db_init]   ✓ Column already present: payments.{col_name}")
-
-    if added:
+    for stmt in statements:
+        db.session.execute(text(stmt))
+    if statements:
         db.session.commit()
-        print(f"[db_init] ✅ Migration complete — {len(added)} column(s) added.")
+        print(f"[db_init] Added {len(statements)} new column(s) to payments table.")
     else:
-        print("[db_init] ✅ Migration no-op — all payout columns already present.")
+        print("[db_init] payments table already has commission columns — skipping.")
 
-    # ── Backfill existing rows that have NULL platform_fee_amount ────────────
-    backfill_sql = text("""
-        UPDATE payments
-        SET
-            platform_fee_amount  = ROUND(amount * :pct / 100, 2),
-            teacher_payout_amount = amount - ROUND(amount * :pct / 100, 2),
-            payout_status         = 'pending'
-        WHERE status IN ('success', 'refunded')
-          AND platform_fee_amount IS NULL;
-    """)
-    result = db.session.execute(backfill_sql, {"pct": commission_pct})
-    db.session.commit()
-    rows_updated = result.rowcount
-    if rows_updated:
-        print(f"[db_init] ✅ Backfilled {rows_updated} existing payment row(s) with {commission_pct}%/{100-commission_pct}% split.")
+    # ── Backfill commission split onto existing successful or refunded payments ──
+    commission_percent = Decimal(str(app_ctx.config.get("PLATFORM_COMMISSION_PERCENT", 20)))
+    to_backfill = Payment.query.filter(
+        Payment.status.in_(["success", "refunded"]),
+        Payment.platform_fee_amount.is_(None)
+    ).all()
+    for p in to_backfill:
+        p.platform_fee_amount = (p.amount * commission_percent / 100).quantize(Decimal("0.01"))
+        p.teacher_payout_amount = p.amount - p.platform_fee_amount
+        if not p.payout_status:
+            p.payout_status = "pending"
+    if to_backfill:
+        db.session.commit()
+        print(f"[db_init] Backfilled commission split for {len(to_backfill)} existing payment(s).")
     else:
-        print("[db_init] ✅ Backfill no-op — no rows needed updating.")
+        print("[db_init] Backfill no-op — no payment rows needed updating.")
 
 
 def main():

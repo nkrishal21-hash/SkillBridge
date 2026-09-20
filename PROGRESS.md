@@ -452,6 +452,44 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 
 ---
 
+## Post-Phase-9 — Platform Commission & Payouts
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-20 / 2026-09-20
+
+**Checklist**
+- [x] Schema migration: added 4 new columns to `payments` table (`platform_fee_amount`, `teacher_payout_amount`, `payout_status`, `payout_released_at`) via safe idempotent `db_init.py` inspection
+- [x] Data backfill: retroactively computed 20/80 commission split on existing historical successful/refunded payment rows
+- [x] Config addition: `PLATFORM_COMMISSION_PERCENT` (default 20%) with environment variable override
+- [x] Gateway fulfillment split: automated 20% platform fee and 80% teacher payout calculation on successful eSewa payment callbacks for both courses and bookings
+- [x] Learner experience integrity: checkout and receipt templates remain completely unchanged with zero mention of commission
+- [x] Admin payout dashboard: `/admin/payouts` with tab filters (`pending`, `released`, `all`), teacher filter, and pagination
+- [x] Per-teacher pending subtotals: clear overview cards summarizing pending amounts owed per teacher with 1-click bulk release
+- [x] Payout release workflow: `POST /admin/payouts/<id>/release` and `POST /admin/payouts/teacher/<id>/release-all` with confirmation dialogs and teacher in-app notifications
+- [x] Admin dashboard integration: "Pending Teacher Payouts" statistic card and quick management navigation button
+- [x] Teacher dashboard transparency: honest earnings card breaking down gross earnings, SkillBridge fee (20%), net earnings (80%), already paid out, and awaiting payout
+- [x] Refund & payout conflict detection: clear warning alert and audit note when refunding a booking whose teacher payout was already marked as released
+
+**Files created/modified:**
+- `app/models.py` — added 4 payout columns and helper properties (`teacher_user`, `teacher_profile`, `item_title`) to `Payment` model
+- `config.py` — added `PLATFORM_COMMISSION_PERCENT` configuration
+- `db_init.py` — added idempotent column migration and backfill logic
+- `app/payments/routes.py` — compute commission split upon payment gateway success confirmation
+- `app/admin/routes.py` — added payout listing, pagination, single release, bulk release, and refund conflict detection
+- `app/teacher/routes.py` — computed gross, fee, net, paid out, and pending earnings for teacher dashboard
+- `app/templates/admin/payouts.html` — admin payouts management interface with per-teacher subtotals and pagination
+- `app/templates/admin/dashboard.html` — added pending payouts metric card and quick tool link
+- `app/templates/teacher/dashboard.html` — added honest earnings breakdown card and net earnings display
+- `app/static/css/style.css` — added `.payout-status-badge` and `.commission-breakdown-card` styles
+- `PROGRESS.md` — documented platform commission and payout release implementation
+
+**Scope Decisions & Architectural Notes:**
+- **Fixed Platform-Wide Commission**: Commission is set to a fixed 20% across all courses and 1-on-1 mentorship bookings via `PLATFORM_COMMISSION_PERCENT`. It is intentionally not tiered or negotiated per-teacher to maintain a consistent, transparent revenue model.
+- **Internal Accounting Confirmation vs Automatic Disbursal**: Marking a payout as "released" is an administrative record-keeping action confirming that funds were manually transferred to the teacher outside SkillBridge (e.g. via bank transfer or eSewa). It does not initiate an external payout API call, avoiding unauthorized automated balance disbursements.
+- **Historical Data Backfill**: Existing historical payments (including manual eSewa sandbox test transactions) were backfilled with the 20/80 split upon migration, ensuring platform metrics and teacher dashboard figures remain consistent.
+- **Refund Conflict Handling**: If an admin refunds a booking payment after the teacher payout has already been marked as released, the platform warns the admin prominently and notes the conflict in the audit trail without attempting an impossible automated claw-back.
+
+---
+
 ## Phase 10 — Deployment (Render + Aiven + Cloudinary)
 **Status:** ⬜
 **Date started / completed:** —

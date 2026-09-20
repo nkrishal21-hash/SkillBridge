@@ -476,9 +476,9 @@ class Payment(db.Model):
     platform_fee_amount = db.Column(db.Numeric(10, 2), nullable=True)
     teacher_payout_amount = db.Column(db.Numeric(10, 2), nullable=True)
     payout_status = db.Column(
-        db.Enum("pending", "released", name="payout_status_enum"),
+        db.Enum("pending", "released", name="payout_status"),
         default="pending",
-        nullable=True,            # NULL only on pre-feature rows; new rows always get "pending"
+        nullable=False,
     )
     payout_released_at = db.Column(db.DateTime, nullable=True)
 
