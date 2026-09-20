@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from '_icons.html' import icon %}
 {% block title %}Payout Management — SkillBridge Admin{% endblock %}
 
 {% block content %}
@@ -7,17 +8,17 @@
   <!-- Header -->
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px;">
     <div>
-      <h1 style="margin: 0; font-size: 1.75rem; font-weight: 800;">💰 Payout Management</h1>
+      <h1 style="margin: 0; font-size: 1.75rem; font-weight: 800;">Payout Management</h1>
       <p style="margin: 6px 0 0; color: var(--text-secondary); font-size: 0.9rem;">
         Track and release teacher earnings. Manual confirmation only — no automatic bank transfers.
       </p>
     </div>
-    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-sm">← Admin Dashboard</a>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-sm">&larr; Admin Dashboard</a>
   </div>
 
   <!-- Disclaimer -->
   <div style="background: #FEF3C7; border: 1px solid #D97706; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 24px; font-size: 0.86rem; color: #92400E;">
-    <strong>ℹ️ Important:</strong> Releasing a payout confirms that you have manually paid the teacher via bank transfer, eSewa, or another channel outside SkillBridge. This action does <em>not</em> trigger an automatic bank disbursement.
+    <strong>Important:</strong> Releasing a payout confirms that you have manually paid the teacher via bank transfer, eSewa, or another channel outside SkillBridge. This action does <em>not</em> trigger an automatic bank disbursement.
   </div>
 
   <!-- Summary Cards -->
@@ -41,7 +42,7 @@
 
   <!-- Filter Tabs -->
   <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0;">
-    {% for tab_key, tab_label in [('pending', '⏳ Pending'), ('released', '✅ Released'), ('all', '📋 All')] %}
+    {% for tab_key, tab_label in [('pending', 'Pending'), ('released', 'Released'), ('all', 'All')] %}
       <a href="{{ url_for('admin.payout_list', filter=tab_key) }}"
          style="padding: 8px 20px; text-decoration: none; font-size: 0.88rem; font-weight: 600; border-bottom: 3px solid {{ 'var(--primary)' if filter_status == tab_key else 'transparent' }}; color: {{ 'var(--primary)' if filter_status == tab_key else 'var(--text-muted)' }}; margin-bottom: -2px; transition: color var(--transition-fast);">
         {{ tab_label }}
@@ -53,7 +54,7 @@
   {% if teacher_filter_id and selected_teacher %}
     <div style="display: flex; justify-content: space-between; align-items: center; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 20px; font-size: 0.88rem; color: #3730A3;">
       <span>Filtering payouts for teacher: <strong>{{ selected_teacher.user.full_name if selected_teacher.user else 'Teacher #' ~ teacher_filter_id }}</strong></span>
-      <a href="{{ url_for('admin.payout_list', filter=filter_status) }}" style="color: #4F46E5; font-weight: 700; text-decoration: underline;">✕ Clear Filter (Show All)</a>
+      <a href="{{ url_for('admin.payout_list', filter=filter_status) }}" style="color: #4F46E5; font-weight: 700; text-decoration: underline;">Clear Filter (Show All)</a>
     </div>
   {% endif %}
 
@@ -62,7 +63,7 @@
     <div style="margin-bottom: 28px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px 24px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
         <div>
-          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">👨‍🏫 Pending Subtotals by Teacher</h3>
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">Pending Subtotals by Teacher</h3>
           <p style="margin: 4px 0 0; font-size: 0.82rem; color: var(--text-secondary);">
             Subtotals owed to each teacher across all pending transactions. You can inspect transactions or mark all as released in one step.
           </p>
@@ -95,8 +96,8 @@
               {% if t.profile_id %}
                 <a href="{{ url_for('admin.payout_list', filter='pending', teacher_id=t.profile_id) }}"
                    class="btn btn-outline btn-sm"
-                   style="font-size: 0.78rem; padding: 5px 10px; text-decoration: none;">
-                  🔍 View {{ t.count }}
+                   style="font-size: 0.78rem; padding: 5px 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                  {{ icon('search', 13) }} View {{ t.count }}
                 </a>
                 <form method="POST"
                       action="{{ url_for('admin.release_all_payouts', teacher_profile_id=t.profile_id) }}"
@@ -105,7 +106,7 @@
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-sm"
                           style="width: 100%; background: #059669; color: white; border: none; font-size: 0.78rem; padding: 6px 12px; font-weight: 700; border-radius: var(--radius-md); cursor: pointer;">
-                    💸 Release All
+                    Release All
                   </button>
                 </form>
               {% else %}
@@ -153,8 +154,8 @@
                 {% endif %}
               </td>
               <td style="padding: 12px 16px;">
-                <div style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ payment.item_title }}">
-                  {{ '📅' if payment.payment_for == 'booking' else '🎓' }} {{ payment.item_title }}
+                <div style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;" title="{{ payment.item_title }}">
+                  {{ icon('calendar' if payment.payment_for == 'booking' else 'graduation-cap', 14) }} {{ payment.item_title }}
                 </div>
               </td>
               <td style="padding: 12px 16px; text-align: right; font-weight: 600;">
@@ -168,14 +169,14 @@
               </td>
               <td style="padding: 12px 16px; text-align: center;">
                 {% if payment.payout_status == 'released' %}
-                  <span class="payout-status-badge payout-released">✅ Released</span>
+                  <span class="payout-status-badge payout-released">Released</span>
                   {% if payment.payout_released_at %}
                     <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
                       {{ payment.payout_released_at.strftime('%b %d, %Y') }}
                     </div>
                   {% endif %}
                 {% elif payment.payout_status == 'pending' %}
-                  <span class="payout-status-badge payout-pending">⏳ Pending</span>
+                  <span class="payout-status-badge payout-pending">Pending</span>
                 {% else %}
                   <span class="payout-status-badge payout-zero">—</span>
                 {% endif %}
@@ -191,7 +192,7 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm"
                             style="background: #059669; color: white; border: none; cursor: pointer; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-md);">
-                      💸 Release
+                      Release
                     </button>
                   </form>
                 {% elif payment.payout_status == 'released' %}
@@ -227,8 +228,12 @@
 
   {% else %}
     <div style="text-align: center; padding: 60px 20px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
-      <div style="font-size: 3rem; margin-bottom: 16px;">
-        {{ '🎉' if filter_status == 'pending' else '📋' }}
+      <div style="margin-bottom: 16px; color: var(--text-muted);">
+        {% if filter_status == 'pending' %}
+          {{ icon('check-circle', 48) }}
+        {% else %}
+          {{ icon('file-text', 48) }}
+        {% endif %}
       </div>
       <h3 style="color: var(--text-secondary); font-weight: 600; margin: 0 0 8px;">
         {% if filter_status == 'pending' %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Payment Receipt #REC-{{ payment.id }} — SkillBridge{% endblock %}
 
@@ -8,7 +9,7 @@
   <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
     <a href="{{ url_for('learner.dashboard') }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Dashboard</a>
     <button type="button" onclick="window.print();" class="btn btn-outline btn-sm" style="display: flex; align-items: center; gap: 6px;">
-      🖨️ Print Receipt
+      Print Receipt
     </button>
   </div>
 

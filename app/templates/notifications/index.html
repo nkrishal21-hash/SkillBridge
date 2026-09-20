@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Notifications — SkillBridge{% endblock %}
 
@@ -9,7 +10,7 @@
       <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
         Account Updates
       </div>
-      <h2>Notifications 🔔</h2>
+      <h2>Notifications</h2>
       <p style="color: var(--text-secondary); margin-top: 4px;">
         Stay updated on booking requests, payment receipts, course milestones, and student reviews.
       </p>
@@ -19,7 +20,7 @@
       <form method="POST" action="{{ url_for('notifications.mark_all_read') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-outline btn-sm">
-          ✓ Mark All as Read ({{ unread_count }})
+          Mark All as Read ({{ unread_count }})
         </button>
       </form>
     {% endif %}
@@ -44,17 +45,17 @@
           
           <div style="display: flex; gap: 16px; align-items: flex-start; flex: 1; min-width: 0;">
             <!-- Icon by type -->
-            <div style="width: 44px; height: 44px; border-radius: var(--radius-full); background: {{ 'var(--primary-light)' if not n.is_read else 'var(--bg-alt)' }}; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+            <div style="width: 44px; height: 44px; border-radius: var(--radius-full); background: {{ 'var(--primary-light)' if not n.is_read else 'var(--bg-alt)' }}; color: {{ 'var(--primary)' if not n.is_read else 'var(--text-muted)' }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
               {% if n.notif_type == 'booking' %}
-                📅
+                {{ icon('calendar', 20) }}
               {% elif n.notif_type == 'payment' %}
-                💳
+                {{ icon('credit-card', 20) }}
               {% elif n.notif_type == 'review' %}
-                ⭐
+                {{ icon('star', 20) }}
               {% elif n.notif_type == 'course' %}
-                🎓
+                {{ icon('graduation-cap', 20) }}
               {% else %}
-                🔔
+                {{ icon('bell', 20) }}
               {% endif %}
             </div>
 
@@ -122,7 +123,7 @@
 
   {% else %}
     <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 50px 20px; text-align: center;">
-      <div style="font-size: 3rem; margin-bottom: 12px;">🔔</div>
+      <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('bell', 48) }}</div>
       <h3 style="font-size: 1.25rem; margin-bottom: 6px;">All Caught Up!</h3>
       <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0;">
         {% if filter_status == 'unread' %}

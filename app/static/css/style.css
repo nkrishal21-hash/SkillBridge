@@ -363,6 +363,14 @@ a:hover {
   font-size: 0.82rem;
 }
 
+/* ── Shared SVG Icons ─────────────────────────────────────── */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 /* ── Badges ──────────────────────────────────────────────── */
 .badge {
   display: inline-flex;

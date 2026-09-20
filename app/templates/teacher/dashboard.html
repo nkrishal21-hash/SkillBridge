@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}Teacher Dashboard — SkillBridge{% endblock %}
 
@@ -9,18 +10,18 @@
       <div style="font-size: 0.85rem; font-weight: 600; color: var(--success); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
         Teacher &amp; Mentor Studio
       </div>
-      <h2>Instructor Hub &mdash; {{ user.full_name }} 👨‍🏫</h2>
+      <h2>Instructor Hub &mdash; {{ user.full_name }}</h2>
       <p style="color: var(--text-secondary); margin-top: 4px;">
         {{ profile.headline if profile and profile.headline else 'Share your expertise with learners worldwide.' }}
       </p>
     </div>
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-outline btn-sm">
-        ✏️ Edit Profile
+      <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 5px;">
+        {{ icon('edit', 14) }} Edit Profile
       </a>
       {% if profile and profile.id %}
-        <a href="{{ url_for('teacher.public_profile', teacher_id=profile.id) }}" class="btn btn-secondary btn-sm" target="_blank">
-          👁️ View Public Profile
+        <a href="{{ url_for('teacher.public_profile', teacher_id=profile.id) }}" class="btn btn-secondary btn-sm" target="_blank" style="display: inline-flex; align-items: center; gap: 5px;">
+          {{ icon('eye', 14) }} View Public Profile
         </a>
       {% endif %}
       <a href="{{ url_for('courses.create') }}" class="btn btn-primary btn-sm">+ Create New Course</a>
@@ -50,7 +51,7 @@
       <div class="stat-label">Verification Status</div>
       <div style="margin-top: 6px;">
         {% if profile and profile.is_verified %}
-          <span class="badge badge-verified">✓ Verified Instructor</span>
+          <span class="badge badge-verified" style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('check', 12) }} Verified Instructor</span>
         {% else %}
           <span class="badge badge-warning" style="background: #fef3c7; color: #b45309;">Pending Review</span>
         {% endif %}
@@ -62,7 +63,7 @@
     </a>
     <div class="stat-card">
       <div class="stat-label">Average Rating</div>
-      <div class="stat-value">⭐ {{ "%.1f"|format(profile.average_rating|float if profile and profile.average_rating else 0.0) }}</div>
+      <div class="stat-value" style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('star', 18, 'text-warning') }} {{ "%.1f"|format(profile.average_rating|float if profile and profile.average_rating else 0.0) }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Total Earnings</div>
@@ -91,7 +92,7 @@
                   {% if course.thumbnail_url %}
                     <img src="{{ course.thumbnail_url }}" alt="{{ course.title }}" style="width: 100%; height: 100%; object-fit: cover;">
                   {% else %}
-                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">📖</div>
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">{{ icon('book-open', 22) }}</div>
                   {% endif %}
                 </div>
                 <div style="min-width: 0;">
@@ -110,7 +111,7 @@
                     {% endif %}
                     {% if course.is_approved %}
                       <span>&bull;</span>
-                      <span style="color: var(--success); font-size: 0.75rem;">✓ Approved</span>
+                      <span style="color: var(--success); font-size: 0.75rem; display: inline-flex; align-items: center; gap: 3px;">{{ icon('check', 11) }} Approved</span>
                     {% endif %}
                     <span>&bull;</span>
                     <span>{{ course.enrollments.count() }} enrolled</span>
@@ -119,11 +120,11 @@
               </div>
 
               <div style="display: flex; gap: 8px;">
-                <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-outline btn-sm">
-                  📚 Lessons
+                <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                  {{ icon('book-open', 13) }} Lessons
                 </a>
-                <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-secondary btn-sm">
-                  ✏️ Edit
+                <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                  {{ icon('edit', 13) }} Edit
                 </a>
               </div>
             </div>
@@ -131,7 +132,7 @@
         </div>
       {% else %}
         <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-          <div style="font-size: 2.5rem; margin-bottom: 10px;">🎓</div>
+          <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('graduation-cap', 40) }}</div>
           <p style="font-size: 1rem; margin-bottom: 16px;">You haven't published any courses yet.</p>
           <a href="{{ url_for('courses.create') }}" class="btn btn-outline btn-sm">Create First Course</a>
         </div>
@@ -141,7 +142,7 @@
     <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
       <h3 style="margin-bottom: 16px; font-size: 1.25rem;">Booking Queue</h3>
       <div style="text-align: center; padding: 30px 20px; color: var(--text-muted);">
-        <div style="font-size: 2.5rem; margin-bottom: 10px;">📅</div>
+        <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('calendar', 40) }}</div>
         <p style="font-size: 0.95rem; margin-bottom: 14px;">
           {% if pending_count > 0 %}
             You have <strong>{{ pending_count }}</strong> pending 1-on-1 session request(s) awaiting your response.
@@ -168,7 +169,7 @@
     <!-- Earnings Panel -->
     <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="margin: 0; font-size: 1.25rem;">💰 Earnings Overview</h3>
+        <h3 style="margin: 0; font-size: 1.25rem;">Earnings Overview</h3>
         <span style="font-size: 0.82rem; color: var(--text-muted);">All confirmed payments</span>
       </div>
 
@@ -182,19 +183,19 @@
       <!-- Commission breakdown rows -->
       <div class="commission-breakdown-card">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);">
-          <span style="font-size: 0.88rem; color: var(--text-secondary);">📥 Gross Student Payments</span>
+          <span style="font-size: 0.88rem; color: var(--text-secondary);">Gross Student Payments</span>
           <span style="font-weight: 700; font-size: 0.92rem;">NPR {{ "%.2f"|format(gross_earnings) }}</span>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);">
-          <span style="font-size: 0.88rem; color: var(--text-secondary);">🏢 SkillBridge Platform Fee (20%)</span>
+          <span style="font-size: 0.88rem; color: var(--text-secondary);">SkillBridge Platform Fee (20%)</span>
           <span style="font-weight: 700; font-size: 0.92rem; color: var(--text-muted);">− NPR {{ "%.2f"|format(platform_fee_total) }}</span>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle);">
-          <span style="font-size: 0.88rem; color: var(--text-secondary);">✅ Already Paid Out</span>
+          <span style="font-size: 0.88rem; color: var(--text-secondary);">Already Paid Out</span>
           <span style="font-weight: 700; font-size: 0.92rem; color: #059669;">NPR {{ "%.2f"|format(paid_out_total) }}</span>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
-          <span style="font-size: 0.88rem; color: var(--text-secondary);">⏳ Awaiting Payout</span>
+          <span style="font-size: 0.88rem; color: var(--text-secondary);">Awaiting Payout</span>
           <span class="payout-status-badge {% if pending_payout_total > 0 %}payout-pending{% else %}payout-zero{% endif %}">
             NPR {{ "%.2f"|format(pending_payout_total) }}
           </span>
@@ -203,7 +204,7 @@
 
       {% if pending_payout_total > 0 %}
         <div style="background: #FEF3C7; border: 1px solid #D97706; border-radius: var(--radius-md); padding: 10px 14px; margin-top: 12px; font-size: 0.82rem; color: #92400E;">
-          ⏳ <strong>NPR {{ "%.2f"|format(pending_payout_total) }}</strong> in earnings is pending manual payout release by admin.
+          <strong>NPR {{ "%.2f"|format(pending_payout_total) }}</strong> in earnings is pending manual payout release by admin.
         </div>
       {% endif %}
 
@@ -214,7 +215,11 @@
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.88rem;">
               <div>
                 <div style="font-weight: 700; color: var(--text-primary);">
-                  {% if payment.payment_for == 'booking' %}📅 Mentorship Session{% else %}🎓 Course Enrollment{% endif %}
+                  {% if payment.payment_for == 'booking' %}
+                    <span style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('calendar', 14) }} Mentorship Session</span>
+                  {% else %}
+                    <span style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('graduation-cap', 14) }} Course Enrollment</span>
+                  {% endif %}
                 </div>
                 <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">
                   {{ payment.completed_at.strftime('%b %d, %Y') if payment.completed_at else payment.initiated_at.strftime('%b %d, %Y') }}
@@ -238,7 +243,7 @@
         </div>
       {% else %}
         <div style="text-align: center; padding: 24px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
-          <div style="font-size: 1.8rem; margin-bottom: 6px;">💳</div>
+          <div style="margin-bottom: 8px; color: var(--text-muted);">{{ icon('credit-card', 32) }}</div>
           <p style="font-size: 0.88rem; margin: 0;">No confirmed payments yet. Get started by publishing a course or accepting bookings!</p>
         </div>
       {% endif %}
@@ -247,7 +252,7 @@
     <!-- Recent Reviews Panel -->
     <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="margin: 0; font-size: 1.25rem;">⭐ Student Reviews</h3>
+        <h3 style="margin: 0; font-size: 1.25rem;">Student Reviews</h3>
         <div style="text-align: right;">
           <div style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); line-height: 1;">
             {{ "%.1f"|format(profile.average_rating|float if profile and profile.average_rating else 0.0) }}
@@ -264,7 +269,7 @@
           <div style="font-size: 1.4rem; font-weight: 700; color: #D97706;">
             {% set rating = profile.average_rating|float %}
             {% for i in range(5) %}
-              {% if i < rating|int %}⭐{% elif i < rating and (rating - i) >= 0.5 %}✨{% else %}☆{% endif %}
+              {% if i < rating|int %}★{% elif i < rating and (rating - i) >= 0.5 %}★{% else %}☆{% endif %}
             {% endfor %}
           </div>
           <div style="font-size: 0.8rem; color: var(--text-muted);">
@@ -287,7 +292,7 @@
                   </span>
                 </div>
                 <span style="color: #D97706; font-size: 0.9rem; font-weight: 700;">
-                  {% for i in range(review.rating_value) %}⭐{% endfor %}
+                  {% for i in range(review.rating_value) %}★{% endfor %}
                 </span>
               </div>
               {% if review.review_text %}
@@ -300,7 +305,7 @@
         </div>
       {% else %}
         <div style="text-align: center; padding: 32px 20px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
-          <div style="font-size: 2rem; margin-bottom: 8px;">⭐</div>
+          <div style="margin-bottom: 8px; color: var(--text-muted);">{{ icon('star', 32) }}</div>
           <p style="font-size: 0.9rem; margin-bottom: 0;">No reviews received yet. Complete sessions and course deliveries to earn your first student review.</p>
         </div>
       {% endif %}

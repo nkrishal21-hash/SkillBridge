@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}Admin Console — SkillBridge{% endblock %}
 
@@ -9,7 +10,7 @@
       <div style="font-size: 0.85rem; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
         Platform Administration
       </div>
-      <h2>System Overview &amp; Control Panel ⚙️</h2>
+      <h2>System Overview &amp; Control Panel</h2>
       <p style="color: var(--text-secondary); margin-top: 4px;">Manage users, verify instructors, approve courses, and oversee transactions.</p>
     </div>
   </div>
@@ -61,7 +62,7 @@
 
     <!-- Teacher Verification Queue Alert -->
     <a href="{{ url_for('admin.teacher_list') }}" style="text-decoration: none; background: white; border: {{ '2px solid var(--warning)' if pending_teachers > 0 else '1px solid var(--border-subtle)' }}; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 8px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);" class="admin-queue-card">
-      <div style="font-size: 1.8rem;">👩‍🏫</div>
+      <div style="color: var(--warning);">{{ icon('users', 30) }}</div>
       <div style="font-weight: 800; font-size: 1.6rem; color: {{ 'var(--warning)' if pending_teachers > 0 else 'var(--text-primary)' }};">{{ pending_teachers }}</div>
       <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Teachers Awaiting Verification</div>
       <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">Review Queue &rarr;</div>
@@ -69,7 +70,7 @@
 
     <!-- Course Approval Queue Alert -->
     <a href="{{ url_for('admin.course_list') }}" style="text-decoration: none; background: white; border: {{ '2px solid var(--danger)' if pending_courses > 0 else '1px solid var(--border-subtle)' }}; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 8px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);" class="admin-queue-card">
-      <div style="font-size: 1.8rem;">📚</div>
+      <div style="color: var(--danger);">{{ icon('book-open', 30) }}</div>
       <div style="font-weight: 800; font-size: 1.6rem; color: {{ 'var(--danger)' if pending_courses > 0 else 'var(--text-primary)' }};">{{ pending_courses }}</div>
       <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Courses Pending Approval</div>
       <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">Review Queue &rarr;</div>
@@ -77,7 +78,7 @@
 
     <!-- Incident Reports Queue Alert -->
     <a href="{{ url_for('admin.report_list') }}" style="text-decoration: none; background: white; border: {{ '2px solid var(--danger)' if pending_reports > 0 else '1px solid var(--border-subtle)' }}; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 8px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);" class="admin-queue-card">
-      <div style="font-size: 1.8rem;">🚨</div>
+      <div style="color: var(--danger);">{{ icon('alert-triangle', 30) }}</div>
       <div style="font-weight: 800; font-size: 1.6rem; color: {{ 'var(--danger)' if pending_reports > 0 else 'var(--text-primary)' }};">{{ pending_reports }}</div>
       <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Pending Incident Reports</div>
       <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">Review Queue &rarr;</div>
@@ -85,7 +86,7 @@
 
     <!-- Pending Payouts Alert -->
     <a href="{{ url_for('admin.payout_list') }}" style="text-decoration: none; background: white; border: {{ '2px solid #D97706' if pending_payout_count > 0 else '1px solid var(--border-subtle)' }}; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 8px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);" class="admin-queue-card">
-      <div style="font-size: 1.8rem;">💰</div>
+      <div style="color: #D97706;">{{ icon('dollar-sign', 30) }}</div>
       <div style="font-weight: 800; font-size: 1.6rem; color: {{ '#D97706' if pending_payout_count > 0 else 'var(--text-primary)' }};">NPR {{ "%.0f"|format(total_pending_payouts) }}</div>
       <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Pending Teacher Payouts</div>
       <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">{{ pending_payout_count }} payment(s) &rarr;</div>
@@ -97,34 +98,34 @@
     <h3 style="margin-bottom: 16px; font-size: 1.25rem;">Quick Management Tools</h3>
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
       <a href="{{ url_for('admin.teacher_list') }}" class="btn btn-outline btn-sm">
-        👩‍🏫 Teacher Verifications
+        Teacher Verifications
         {% if pending_teachers > 0 %}
           <span style="background: var(--warning); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{ pending_teachers }}</span>
         {% endif %}
       </a>
       <a href="{{ url_for('admin.course_list') }}" class="btn btn-outline btn-sm">
-        📚 Course Approvals
+        Course Approvals
         {% if pending_courses > 0 %}
           <span style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{ pending_courses }}</span>
         {% endif %}
       </a>
       <a href="{{ url_for('admin.report_list') }}" class="btn btn-outline btn-sm">
-        🚨 Incident Reports
+        Incident Reports
         {% if pending_reports > 0 %}
           <span style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{ pending_reports }}</span>
         {% endif %}
       </a>
       <a href="{{ url_for('admin.payout_list') }}" class="btn btn-outline btn-sm">
-        💰 Payout Management
+        Payout Management
         {% if pending_payout_count > 0 %}
           <span style="background: #D97706; color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{ pending_payout_count }}</span>
         {% endif %}
       </a>
       <a href="{{ url_for('admin.payment_list') }}" class="btn btn-outline btn-sm">
-        💳 Audit Payments
+        Audit Payments
       </a>
       <a href="{{ url_for('admin.user_list') }}" class="btn btn-outline btn-sm">
-        👥 All Users
+        All Users
       </a>
     </div>
   </div>
@@ -155,7 +156,7 @@
                 <td style="padding: 10px 12px; color: var(--text-muted);">#{{ p.id }}</td>
                 <td style="padding: 10px 12px; font-weight: 600;">{{ p.learner.full_name if p.learner else '—' }}</td>
                 <td style="padding: 10px 12px;">
-                  {% if p.payment_for == 'booking' %}📅 Booking{% else %}🎓 Course{% endif %}
+                  <span style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('calendar' if p.payment_for == 'booking' else 'book-open', 14) }} {{ 'Booking' if p.payment_for == 'booking' else 'Course' }}</span>
                 </td>
                 <td style="padding: 10px 12px;">
                   <span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--primary); font-size: 0.72rem;">{{ p.gateway | upper }}</span>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}Learner Dashboard — SkillBridge{% endblock %}
 
@@ -9,7 +10,7 @@
       <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
         Learner Portal
       </div>
-      <h2>Welcome back, {{ user.full_name }}! 👋</h2>
+      <h2>Welcome back, {{ user.full_name }}!</h2>
       <p style="color: var(--text-secondary); margin-top: 4px;">Track your course progress, upcoming mentorship sessions, verified certificates, and saved mentors.</p>
     </div>
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
@@ -66,7 +67,7 @@
                     {% if course.thumbnail_url %}
                       <img src="{{ course.thumbnail_url }}" alt="{{ course.title }}" style="width: 100%; height: 100%; object-fit: cover;">
                     {% else %}
-                      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">📖</div>
+                      <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">{{ icon('book-open', 24) }}</div>
                     {% endif %}
                   </div>
 
@@ -83,7 +84,7 @@
                       <span>{{ course.lessons.count() }} lesson{{ 's' if course.lessons.count() != 1 else '' }}</span>
                       {% if enrollment.completed_at %}
                         <span>&bull;</span>
-                        <span style="color: var(--success); font-weight: 700;">✓ Completed</span>
+                        <span style="color: var(--success); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('check', 13) }} Completed</span>
                       {% endif %}
                     </div>
 
@@ -99,8 +100,8 @@
 
                 <div style="display: flex; gap: 8px;">
                   {% if enrollment.completed_at or enrollment.progress_percent >= 100 %}
-                    <a href="{{ url_for('certificates.generate', course_id=course.id) }}" class="btn btn-secondary btn-sm" style="background: #059669; color: white; border-color: #059669;">
-                      🎓 Certificate
+                    <a href="{{ url_for('certificates.generate', course_id=course.id) }}" class="btn btn-secondary btn-sm" style="background: #059669; color: white; border-color: #059669; display: inline-flex; align-items: center; gap: 5px;">
+                      {{ icon('award', 14) }} Certificate
                     </a>
                   {% endif %}
                   <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="btn btn-primary btn-sm">
@@ -112,7 +113,7 @@
           </div>
         {% else %}
           <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-            <div style="font-size: 2.5rem; margin-bottom: 10px;">📚</div>
+            <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('book-open', 40) }}</div>
             <p style="font-size: 1rem; margin-bottom: 16px;">You haven't enrolled in any courses yet.</p>
             <a href="{{ url_for('courses.catalog') }}" class="btn btn-outline btn-sm">Browse Catalog</a>
           </div>
@@ -122,7 +123,7 @@
       <!-- Certificates Earned Section -->
       <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 style="margin: 0; font-size: 1.25rem;">Certificates Earned 🎓</h3>
+          <h3 style="margin: 0; font-size: 1.25rem;">Certificates Earned</h3>
           <span style="font-size: 0.88rem; color: var(--text-muted);">{{ certificates|length }} issued</span>
         </div>
 
@@ -132,8 +133,8 @@
               <div class="certificate-card" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; background: #fafafa; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
                 <div>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.72rem; font-weight: 700;">
-                      ✓ Verified Credential
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                      {{ icon('check', 12) }} Verified Credential
                     </span>
                     <span style="font-size: 0.75rem; color: var(--text-muted);">
                       {{ cert.issued_at.strftime('%b %d, %Y') }}
@@ -148,11 +149,11 @@
                 </div>
 
                 <div style="display: flex; gap: 8px; border-top: 1px dashed var(--border-subtle); padding-top: 10px;">
-                  <a href="{{ url_for('certificates.download', certificate_id=cert.id) }}" class="btn btn-primary btn-sm" style="flex: 1; text-align: center;">
-                    📥 Download PDF
+                  <a href="{{ url_for('certificates.download', certificate_id=cert.id) }}" class="btn btn-primary btn-sm" style="flex: 1; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 5px;">
+                    {{ icon('download', 14) }} Download PDF
                   </a>
-                  <a href="{{ url_for('certificates.verify', code=cert.certificate_code) }}" class="btn btn-outline btn-sm" target="_blank" title="Verify Online">
-                    🔍 Verify
+                  <a href="{{ url_for('certificates.verify', code=cert.certificate_code) }}" class="btn btn-outline btn-sm" target="_blank" title="Verify Online" style="display: inline-flex; align-items: center; gap: 5px;">
+                    {{ icon('search', 14) }} Verify
                   </a>
                 </div>
               </div>
@@ -160,7 +161,7 @@
           </div>
         {% else %}
           <div style="text-align: center; padding: 36px 20px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
-            <div style="font-size: 2.2rem; margin-bottom: 8px;">📜</div>
+            <div style="margin-bottom: 10px; color: var(--text-muted);">{{ icon('file-text', 36) }}</div>
             <p style="font-size: 0.95rem; margin-bottom: 8px; font-weight: 600; color: var(--text-secondary);">No Certificates Yet</p>
             <p style="font-size: 0.85rem; margin-bottom: 0;">Complete 100% of any enrolled course to automatically earn an official SkillBridge certificate.</p>
           </div>
@@ -170,7 +171,7 @@
       <!-- Favorited Mentors Section -->
       <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 style="margin: 0; font-size: 1.25rem;">Saved Mentors ❤️</h3>
+          <h3 style="margin: 0; font-size: 1.25rem;">Saved Mentors</h3>
           {% if favorites %}
             <a href="{{ url_for('teacher.search') }}" class="btn btn-outline btn-sm">Find More</a>
           {% endif %}
@@ -202,15 +203,15 @@
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-muted); border-top: 1px dashed var(--border-subtle); padding-top: 8px;">
-                  <span>⭐ {{ "%.1f"|format(prof.average_rating or 0.0) }} &bull; NPR {{ "%.0f"|format(prof.hourly_rate or 0) }}/hr</span>
+                  <span style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('star', 13, 'text-warning') }} {{ "%.1f"|format(prof.average_rating or 0.0) }} &bull; NPR {{ "%.0f"|format(prof.hourly_rate or 0) }}/hr</span>
                   <div style="display: flex; gap: 6px; align-items: center;">
                     <a href="{{ url_for('booking.new', teacher_id=t_user.id) }}" class="btn btn-primary btn-sm" style="padding: 2px 8px; font-size: 0.78rem;">
                       Book
                     </a>
                     <form method="POST" action="{{ url_for('learner.toggle_favorite', teacher_profile_id=prof.id) }}" style="display: inline;">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-ghost btn-sm" style="padding: 2px 6px; color: var(--danger);" title="Remove from favorites">
-                        ✖
+                      <button type="submit" class="btn btn-ghost btn-sm" style="padding: 2px 6px; color: var(--danger); line-height: 1;" title="Remove from favorites">
+                        &times;
                       </button>
                     </form>
                   </div>
@@ -220,7 +221,7 @@
           </div>
         {% else %}
           <div style="text-align: center; padding: 32px 20px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
-            <div style="font-size: 2rem; margin-bottom: 8px;">🤍</div>
+            <div style="margin-bottom: 10px; color: var(--text-muted);">{{ icon('heart', 36) }}</div>
             <p style="font-size: 0.92rem; margin-bottom: 10px;">You haven't saved any mentors yet.</p>
             <a href="{{ url_for('teacher.search') }}" class="btn btn-outline btn-sm">Explore Mentors</a>
           </div>
@@ -257,7 +258,7 @@
                   </span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); padding-top: 6px; border-top: 1px dashed var(--border-subtle);">
-                  <span>📅 {{ b.session_date.strftime('%b %d, %Y') }} &bull; {{ b.start_time.strftime('%I:%M %p') }}</span>
+                  <span style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('calendar', 13) }} {{ b.session_date.strftime('%b %d, %Y') }} &bull; {{ b.start_time.strftime('%I:%M %p') }}</span>
                   <a href="{{ url_for('booking.detail', booking_id=b.id) }}" class="btn btn-ghost btn-sm" style="padding: 2px 6px; font-size: 0.78rem;">
                     Details &rarr;
                   </a>
@@ -272,7 +273,7 @@
           </div>
         {% else %}
           <div style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
-            <div style="font-size: 2.5rem; margin-bottom: 10px;">🗓️</div>
+            <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('calendar', 40) }}</div>
             <p style="font-size: 0.95rem; margin-bottom: 14px;">No active session bookings.</p>
             <a href="{{ url_for('teacher.search') }}" class="btn btn-primary btn-sm">Find a Mentor</a>
           </div>
@@ -282,7 +283,7 @@
       <!-- Recent Notifications Preview -->
       <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 28px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 style="margin: 0; font-size: 1.25rem;">Recent Updates 🔔</h3>
+          <h3 style="margin: 0; font-size: 1.25rem;">Recent Updates</h3>
           <a href="{{ url_for('notifications.index') }}" class="btn btn-outline btn-sm">View All</a>
         </div>
 
@@ -290,8 +291,8 @@
           <div style="display: flex; flex-direction: column; gap: 10px;">
             {% for notif in recent_notifications %}
               <div style="border: 1px solid {{ 'var(--primary)' if not notif.is_read else 'var(--border-subtle)' }}; background: {{ 'rgba(79, 70, 229, 0.02)' if not notif.is_read else '#fff' }}; border-radius: var(--radius-md); padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start;">
-                <div style="font-size: 1.1rem; line-height: 1; flex-shrink: 0; margin-top: 2px;">
-                  {% if notif.notif_type == 'booking' %}📅{% elif notif.notif_type == 'payment' %}💳{% elif notif.notif_type == 'review' %}⭐{% elif notif.notif_type == 'course' %}🎓{% else %}🔔{% endif %}
+                <div style="font-size: 1.1rem; line-height: 1; flex-shrink: 0; margin-top: 2px; color: var(--primary);">
+                  {% if notif.notif_type == 'booking' %}{{ icon('calendar', 18) }}{% elif notif.notif_type == 'payment' %}{{ icon('credit-card', 18) }}{% elif notif.notif_type == 'review' %}{{ icon('star', 18) }}{% elif notif.notif_type == 'course' %}{{ icon('award', 18) }}{% else %}{{ icon('bell', 18) }}{% endif %}
                 </div>
                 <div style="flex: 1; min-width: 0;">
                   <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
@@ -316,7 +317,7 @@
           </div>
         {% else %}
           <div style="text-align: center; padding: 30px 16px; color: var(--text-muted);">
-            <div style="font-size: 2rem; margin-bottom: 6px;">🔔</div>
+            <div style="margin-bottom: 10px; color: var(--text-muted);">{{ icon('bell', 36) }}</div>
             <p style="font-size: 0.88rem; margin: 0;">No notifications yet.</p>
           </div>
         {% endif %}

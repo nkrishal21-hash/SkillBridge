@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Explore Courses — SkillBridge{% endblock %}
 
@@ -105,7 +106,7 @@
                     <img src="{{ course.thumbnail_url }}" alt="{{ course.title }}">
                   {% else %}
                     <div class="course-card-thumb-placeholder">
-                      <span>📖</span>
+                      <span style="color: var(--text-muted); display: flex; align-items: center; justify-content: center;">{{ icon('book-open', 36) }}</span>
                     </div>
                   {% endif %}
                   <span class="course-badge-level badge-{{ course.level }}">
@@ -117,7 +118,7 @@
               <div class="course-card-body">
                 <div class="course-card-meta">
                   <span class="course-category-tag">{{ course.category or 'General' }}</span>
-                  <span class="course-lessons-count">📚 {{ course.lessons.count() }} lesson{{ 's' if course.lessons.count() != 1 else '' }}</span>
+                  <span class="course-lessons-count">{{ course.lessons.count() }} lesson{{ 's' if course.lessons.count() != 1 else '' }}</span>
                 </div>
 
                 <h3 class="course-card-title">
@@ -198,7 +199,7 @@
       {% else %}
         <!-- Friendly Empty State -->
         <div class="empty-state-box">
-          <div style="font-size: 3rem; margin-bottom: 12px;">🎓</div>
+          <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('graduation-cap', 48) }}</div>
           <h3>No courses found matching your criteria</h3>
           <p style="color: var(--text-secondary); max-width: 440px; margin: 8px auto 20px;">
             Try adjusting your search terms, selecting "All Categories", or clearing specific filters.

@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Verify Certificate — SkillBridge{% endblock %}
 
 {% block content %}
 <div class="container" style="max-width: 760px; padding-top: 50px; padding-bottom: 80px;">
   <div style="text-align: center; margin-bottom: 32px;">
-    <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); font-size: 2rem; margin-bottom: 16px;">
-      🎓
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); margin-bottom: 16px;">
+      {{ icon('award', 32) }}
     </div>
     <h1 style="font-size: 2.1rem; margin-bottom: 8px;">Certificate Credential Verification</h1>
     <p style="color: var(--text-secondary); font-size: 1.05rem;">
@@ -20,7 +21,7 @@
       <div style="background: linear-gradient(135deg, #4f46e5 0%, #312e81 100%); color: white; padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
         <div>
           <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); padding: 4px 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
-            ✓ Officially Verified
+            Officially Verified
           </span>
           <h3 style="color: white; margin-top: 8px; margin-bottom: 0; font-size: 1.3rem;">Certificate of Completion</h3>
         </div>
@@ -79,7 +80,7 @@
 
         <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 16px; border: 1px dashed var(--border-subtle); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
           <div style="font-size: 0.88rem; color: var(--text-secondary);">
-            🔒 This cryptographic credential code corresponds to an authentic certificate stored in the SkillBridge registry.
+            This cryptographic credential code corresponds to an authentic certificate stored in the SkillBridge registry.
           </div>
           {% if cert.course %}
             <a href="{{ url_for('courses.course_detail', course_id=cert.course_id) }}" class="btn btn-outline btn-sm">
@@ -92,7 +93,7 @@
   {% else %}
     <!-- Invalid / Not Found Card -->
     <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 40px; text-align: center; box-shadow: var(--shadow-sm);">
-      <div style="font-size: 3rem; margin-bottom: 16px;">⚠️</div>
+      <div style="margin-bottom: 16px; color: var(--danger);">{{ icon('alert-triangle', 48) }}</div>
       <h2 style="font-size: 1.5rem; color: var(--danger); margin-bottom: 8px;">Invalid or Unrecognized Certificate Code</h2>
       <p style="color: var(--text-secondary); max-width: 520px; margin: 0 auto 20px auto; font-size: 0.98rem;">
         No active course completion certificate was found in the SkillBridge registry matching code:

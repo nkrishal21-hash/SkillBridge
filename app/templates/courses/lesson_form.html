@@ -21,7 +21,7 @@
         <label class="form-label" for="title">Lesson Title <span style="color: var(--danger);">*</span></label>
         {{ form.title(class="form-control", id="title") }}
         {% for error in form.title.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -31,7 +31,7 @@
           <label class="form-label" for="order">Sequence # <span style="color: var(--danger);">*</span></label>
           {{ form.order(class="form-control", id="order") }}
           {% for error in form.order.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -39,7 +39,7 @@
           <label class="form-label" for="content_type">Lesson Type <span style="color: var(--danger);">*</span></label>
           {{ form.content_type(class="form-control", id="content_type", onchange="switchContentType(this.value)") }}
           {% for error in form.content_type.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -47,7 +47,7 @@
           <label class="form-label" for="duration_minutes">Duration (Mins)</label>
           {{ form.duration_minutes(class="form-control", id="duration_minutes") }}
           {% for error in form.duration_minutes.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -68,7 +68,7 @@
         <label class="form-label" for="description">Lesson Overview / Summary</label>
         {{ form.description(class="form-control", id="description") }}
         {% for error in form.description.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -76,10 +76,10 @@
 
       <!-- 1. Video Section -->
       <div id="section-video" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
-        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">🎥 Video File Details</h3>
+        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">Video File Details</h3>
         {% if is_edit and lesson and lesson.video_url %}
           <div style="font-size: 0.88rem; color: var(--success); margin-bottom: 12px;">
-            ✓ Current video uploaded: <a href="{{ lesson.video_url }}" target="_blank">View Video File ↗</a>
+            Current video uploaded: <a href="{{ lesson.video_url }}" target="_blank">View Video File &rarr;</a>
           </div>
         {% endif %}
         <div class="form-group">
@@ -87,37 +87,37 @@
           {{ form.video_file(class="form-control", id="video_file", accept="video/mp4") }}
           <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Uploaded directly to Cloudinary with local storage fallback in development.</div>
           {% for error in form.video_file.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
 
       <!-- 2. PDF Document Section -->
       <div id="section-pdf" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
-        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">📄 PDF Notes / Reading Material</h3>
+        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">PDF Notes / Reading Material</h3>
         {% if is_edit and lesson and lesson.pdf_url %}
           <div style="font-size: 0.88rem; color: var(--success); margin-bottom: 12px;">
-            ✓ Current document uploaded: <a href="{{ lesson.pdf_url }}" target="_blank">View PDF ↗</a>
+            Current document uploaded: <a href="{{ lesson.pdf_url }}" target="_blank">View PDF &rarr;</a>
           </div>
         {% endif %}
         <div class="form-group">
           <label class="form-label" for="pdf_file">Upload PDF Document (up to 50MB)</label>
           {{ form.pdf_file(class="form-control", id="pdf_file", accept=".pdf,application/pdf") }}
           {% for error in form.pdf_file.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
 
       <!-- 3. Text Section -->
       <div id="section-text" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
-        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">📝 Article / Text Body</h3>
+        <h3 style="font-size: 1.15rem; margin-bottom: 12px;">Article / Text Body</h3>
         <div class="form-group">
           <label class="form-label" for="text_content">Lesson Content</label>
           {{ form.text_content(class="form-control", id="text_content") }}
           <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Supports paragraphs, code snippets, notes, and study guides.</div>
           {% for error in form.text_content.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -126,7 +126,7 @@
       <div id="section-quiz" class="content-type-panel" style="display: none; border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
           <div>
-            <h3 style="font-size: 1.2rem; margin: 0;">💡 Multiple-Choice Quiz Builder</h3>
+            <h3 style="font-size: 1.2rem; margin: 0;">Multiple-Choice Quiz Builder</h3>
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 2px 0 0;">Create questions with 4 options and mark the correct choice.</p>
           </div>
           <div style="width: 140px;">

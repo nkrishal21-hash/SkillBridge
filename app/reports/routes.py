@@ -71,7 +71,7 @@ def report_booking(booking_id: int):
         for admin in admins:
             notify(
                 user_id=admin.id,
-                title=f"🚨 New Incident Report: Booking #{booking.id}",
+                title=f"New Incident Report: Booking #{booking.id}",
                 body=f"{current_user.full_name} reported their {reported_label} for {form.reason.data}.",
                 notif_type="system",
                 link=url_for("admin.report_list"),

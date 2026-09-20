@@ -505,7 +505,7 @@ def enroll(course_id: int):
         )
         db.session.add(enrollment)
         db.session.commit()
-        flash(f"🎉 Enrolled successfully in '{course.title}'! Welcome to the course.", "success")
+        flash(f"Enrolled successfully in '{course.title}'! Welcome to the course.", "success")
     except IntegrityError:
         db.session.rollback()
         flash("You're already enrolled in this course! Keep up the good work.", "info")
@@ -666,12 +666,12 @@ def complete_lesson(course_id: int, lesson_id: int):
             enrollment.completed_at = datetime.utcnow()
             notify(
                 user_id=current_user.id,
-                title=f"Course Completed: {course.title} 🎓",
+                title=f"Course Completed: {course.title}",
                 body="Congratulations on finishing all lessons! Your official Certificate of Completion is ready to download.",
                 notif_type="course",
                 link=url_for("certificates.generate", course_id=course.id),
             )
-        flash("🎉 Course complete! Congratulations on finishing all lessons! Your Certificate of Completion is ready to download.", "success")
+        flash("Course complete! Congratulations on finishing all lessons! Your Certificate of Completion is ready to download.", "success")
     else:
         flash(f"Lesson '{lesson.title}' marked as completed! Progress: {enrollment.progress_percent}%.", "success")
 
@@ -740,21 +740,21 @@ def submit_quiz(course_id: int, lesson_id: int):
                     enrollment.completed_at = datetime.utcnow()
                     notify(
                         user_id=current_user.id,
-                        title=f"Course Completed: {course.title} 🎓",
+                        title=f"Course Completed: {course.title}",
                         body="Congratulations on completing the curriculum and quizzes! Your official Certificate of Completion is ready to download.",
                         notif_type="course",
                         link=url_for("certificates.generate", course_id=course.id),
                     )
-                flash(f"🎉 Excellent! You passed with {score_pct}% ({correct_count}/{total_questions} correct)! You have completed the entire course! Your certificate is ready.", "success")
+                flash(f"Excellent! You passed with {score_pct}% ({correct_count}/{total_questions} correct)! You have completed the entire course! Your certificate is ready.", "success")
             else:
-                flash(f"✅ Well done! You passed the quiz with {score_pct}% ({correct_count}/{total_questions} correct). Lesson marked complete!", "success")
+                flash(f"Well done! You passed the quiz with {score_pct}% ({correct_count}/{total_questions} correct). Lesson marked complete!", "success")
 
             db.session.commit()
         else:
-            flash(f"✅ Well done! You scored {score_pct}% on this preview quiz.", "success")
+            flash(f"Well done! You scored {score_pct}% on this preview quiz.", "success")
     else:
         flash(
-            f"❌ You scored {score_pct}% ({correct_count}/{total_questions} correct). "
+            f"You scored {score_pct}% ({correct_count}/{total_questions} correct). "
             f"Passing score is {passing_score}%. Review the material and try again!",
             "warning",
         )

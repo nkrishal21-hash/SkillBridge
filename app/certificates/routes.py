@@ -73,7 +73,7 @@ def generate(course_id: int):
     db.session.add(cert)
     db.session.commit()
 
-    flash("🎓 Congratulations! Your official Certificate of Completion has been generated.", "success")
+    flash("Congratulations! Your official Certificate of Completion has been generated.", "success")
     return redirect(url_for("certificates.download", certificate_id=cert.id))
 
 

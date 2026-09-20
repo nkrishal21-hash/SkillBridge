@@ -138,16 +138,16 @@ def verify_teacher(profile_id: int):
     # Notify the teacher
     notify(
         user_id=profile.user_id,
-        title="🎉 Your Instructor Profile Is Now Verified!",
+        title="Your Instructor Profile Is Now Verified!",
         body=(
             "Congratulations! SkillBridge has verified your instructor profile. "
-            "You now appear in learner search results with the ✓ Verified badge."
+            "You now appear in learner search results with the Verified badge."
         ),
         notif_type="admin",
         link=url_for("teacher.dashboard"),
     )
 
-    flash(f"✅ {profile.user.full_name}'s profile has been verified.", "success")
+    flash(f"{profile.user.full_name}'s profile has been verified.", "success")
     return redirect(url_for("admin.teacher_list"))
 
 
@@ -166,7 +166,7 @@ def unverify_teacher(profile_id: int):
     profile.verified_at = None
     db.session.commit()
 
-    flash(f"⚠️ Verification revoked for {profile.user.full_name}.", "warning")
+    flash(f"Verification revoked for {profile.user.full_name}.", "warning")
     return redirect(url_for("admin.teacher_list", filter="verified"))
 
 
@@ -221,13 +221,13 @@ def approve_course(course_id: int):
     if course.teacher and course.teacher.user_id:
         notify(
             user_id=course.teacher.user_id,
-            title=f"✅ Your course '{course.title}' has been approved!",
+            title=f"Your course '{course.title}' has been approved!",
             body="Your course passed admin review and is now officially listed in the SkillBridge catalog.",
             notif_type="course",
             link=url_for("courses.course_detail", course_id=course.id),
         )
 
-    flash(f"✅ Course '{course.title}' has been approved and is now listed.", "success")
+    flash(f"Course '{course.title}' has been approved and is now listed.", "success")
     return redirect(url_for("admin.course_list"))
 
 
@@ -246,7 +246,7 @@ def unapprove_course(course_id: int):
     course.approved_at = None
     db.session.commit()
 
-    flash(f"⚠️ Approval revoked for course '{course.title}'.", "warning")
+    flash(f"Approval revoked for course '{course.title}'.", "warning")
     return redirect(url_for("admin.course_list", filter="approved"))
 
 
@@ -332,7 +332,7 @@ def ban_user(user_id: int):
     user.is_active = False
     db.session.commit()
 
-    flash(f"🚫 User '{user.full_name}' has been banned and suspended.", "warning")
+    flash(f"User '{user.full_name}' has been banned and suspended.", "warning")
     return redirect(request.referrer or url_for("admin.user_list"))
 
 
@@ -350,7 +350,7 @@ def unban_user(user_id: int):
     user.is_active = True
     db.session.commit()
 
-    flash(f"✅ User '{user.full_name}' has been unbanned and restored.", "success")
+    flash(f"User '{user.full_name}' has been unbanned and restored.", "success")
     return redirect(request.referrer or url_for("admin.user_list"))
 
 
@@ -441,7 +441,7 @@ def resolve_report(report_id: int):
         report.admin_notes = f"{report.admin_notes}\n{admin_notes}" if report.admin_notes else admin_notes
 
     db.session.commit()
-    flash(f"✅ Report #{report.id} has been marked as resolved.", "success")
+    flash(f"Report #{report.id} has been marked as resolved.", "success")
     return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))
 
 
@@ -474,7 +474,7 @@ def refund_report(report_id: int):
     # ── Payout conflict guard ─────────────────────────────────────────────────
     if payment.payout_status == "released":
         flash(
-            f"⚠️ WARNING: Teacher payout for Payment #{payment.id} (NPR {payment.teacher_payout_amount}) "
+            f"WARNING: Teacher payout for Payment #{payment.id} (NPR {payment.teacher_payout_amount}) "
             f"was already released on {payment.payout_released_at.strftime('%Y-%m-%d') if payment.payout_released_at else 'unknown date'}. "
             f"The internal refund has been recorded, but the teacher's payout was already disbursed manually. "
             f"Offline reconciliation with the teacher is required.",
@@ -495,13 +495,13 @@ def refund_report(report_id: int):
     # Notify learner
     notify(
         user_id=payment.learner_id,
-        title=f"💳 Mentorship Booking Refund (NPR {payment.amount})",
+        title=f"Mentorship Booking Refund (NPR {payment.amount})",
         body=f"Your booking #{report.booking_id} session payment has been marked as refunded following administrative review.",
         notif_type="payment",
         link=url_for("booking.detail", booking_id=report.booking_id),
     )
 
-    flash(f"✅ Payment #{payment.id} (NPR {payment.amount}) marked as refunded. Report #{report.id} marked as resolved.", "success")
+    flash(f"Payment #{payment.id} (NPR {payment.amount}) marked as refunded. Report #{report.id} marked as resolved.", "success")
     return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))
 
 
@@ -632,7 +632,7 @@ def release_payout(payment_id: int):
     if teacher_user:
         notify(
             user_id=teacher_user.id,
-            title=f"💰 Payout Released: NPR {payment.teacher_payout_amount}",
+            title=f"Payout Released: NPR {payment.teacher_payout_amount}",
             body=(
                 f"Your earnings of NPR {payment.teacher_payout_amount} for '{payment.item_title}' "
                 f"have been marked as paid out by the admin team."
@@ -642,7 +642,7 @@ def release_payout(payment_id: int):
         )
 
     flash(
-        f"✅ Payout of NPR {payment.teacher_payout_amount} for Payment #{payment.id} marked as released."
+        f"Payout of NPR {payment.teacher_payout_amount} for Payment #{payment.id} marked as released."
         f" Teacher has been notified.",
         "success"
     )
@@ -686,7 +686,7 @@ def release_all_payouts(teacher_profile_id: int):
     if profile.user:
         notify(
             user_id=profile.user.id,
-            title=f"💰 Bulk Payout Released: NPR {total_released:.2f}",
+            title=f"Bulk Payout Released: NPR {total_released:.2f}",
             body=(
                 f"Your total pending earnings of NPR {total_released:.2f} "
                 f"across {len(pending_payments)} payment(s) have been marked as paid out."
@@ -696,7 +696,7 @@ def release_all_payouts(teacher_profile_id: int):
         )
 
     flash(
-        f"✅ Released {len(pending_payments)} payout(s) totalling NPR {total_released:.2f} for "
+        f"Released {len(pending_payments)} payout(s) totalling NPR {total_released:.2f} for "
         f"'{profile.user.full_name if profile.user else 'teacher'}'. Teacher has been notified.",
         "success"
     )

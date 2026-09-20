@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Payment Successful — SkillBridge{% endblock %}
 
@@ -6,8 +7,8 @@
 <div class="container" style="max-width: 640px; padding-top: 48px; padding-bottom: 70px;">
   <div class="content-box text-center" style="padding: 40px 32px; border-top: 5px solid var(--success);">
     <!-- Success Badge -->
-    <div style="width: 72px; height: 72px; border-radius: var(--radius-full); background: var(--success-light); color: var(--success); display: inline-flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 20px;">
-      ✓
+    <div style="width: 72px; height: 72px; border-radius: var(--radius-full); background: var(--success-light); color: var(--success); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+      {{ icon('check', 36) }}
     </div>
 
     <h1 style="font-size: 1.9rem; margin-bottom: 8px; color: var(--text-primary);">Payment Confirmed!</h1>
@@ -54,11 +55,11 @@
     <div style="display: flex; flex-direction: column; gap: 12px;">
       {% if payment.payment_for == 'course' and payment.course %}
         <a href="{{ url_for('courses.course_detail', course_id=payment.course_id) }}" class="btn btn-primary btn-lg btn-block">
-          🚀 Go to Course &amp; Start Learning
+          Go to Course &amp; Start Learning
         </a>
       {% elif payment.payment_for == 'booking' and payment.booking_id_ref %}
         <a href="{{ url_for('booking.detail', booking_id=payment.booking_id_ref) }}" class="btn btn-primary btn-lg btn-block">
-          🗓️ View Mentorship Session Details
+          View Mentorship Session Details
         </a>
       {% else %}
         <a href="{{ url_for('learner.dashboard') }}" class="btn btn-primary btn-lg btn-block">
@@ -68,7 +69,7 @@
 
       <div style="display: flex; gap: 10px; justify-content: center; margin-top: 6px;">
         <a href="{{ url_for('payments.receipt', payment_id=payment.id) }}" class="btn btn-outline btn-sm">
-          🧾 View Printable Receipt
+          View Printable Receipt
         </a>
         <a href="{{ url_for('learner.dashboard') }}" class="btn btn-outline btn-sm">
           My Dashboard

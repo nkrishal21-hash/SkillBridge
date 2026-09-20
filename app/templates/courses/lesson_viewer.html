@@ -1,23 +1,26 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
-{% block title %}{{ lesson.title }} — {{ course.title }} | SkillBridge{% endblock %}
+{% block title %}{{ lesson.title }} — {{ course.title }} — SkillBridge{% endblock %}
 
 {% block content %}
-<div class="lesson-viewer-header" style="background: white; border-bottom: 1px solid var(--border-subtle); padding: 16px 0;">
+<div class="lesson-viewer-topbar" style="background: var(--bg-alt); border-bottom: 1px solid var(--border-subtle); padding: 14px 0;">
   <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
     <div>
-      <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to {{ course.title }}</a>
-      <h1 style="font-size: 1.4rem; margin-top: 4px; margin-bottom: 0;">Lesson {{ lesson.order }}: {{ lesson.title }}</h1>
+      <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" style="font-size: 0.85rem; color: var(--text-muted);">&larr; Back to Course Overview</a>
+      <h2 style="font-size: 1.3rem; margin: 4px 0 0; color: var(--text-primary);">
+        {{ lesson.order }}. {{ lesson.title }}
+      </h2>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 10px;">
+    <div style="display: flex; gap: 10px; align-items: center;">
       {% if lesson.is_preview %}
         <span class="badge badge-preview">Free Preview</span>
       {% endif %}
 
       {% if is_owner %}
-        <a href="{{ url_for('courses.edit_lesson', course_id=course.id, lesson_id=lesson.id) }}" class="btn btn-outline btn-sm">
-          ✏️ Edit Lesson
+        <a href="{{ url_for('courses.edit_lesson', course_id=course.id, lesson_id=lesson.id) }}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+          {{ icon('edit', 13) }} Edit Lesson
         </a>
       {% endif %}
     </div>
@@ -40,7 +43,7 @@
             </div>
           {% else %}
             <div style="text-align: center; padding: 48px 20px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
-              <div style="font-size: 2.5rem; margin-bottom: 8px;">🎬</div>
+              <div style="margin-bottom: 8px; color: var(--text-muted);">{{ icon('video', 36) }}</div>
               <p>No video file has been uploaded for this lesson yet.</p>
             </div>
           {% endif %}
@@ -49,16 +52,16 @@
           {% if lesson.pdf_url %}
             <div style="border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-subtle);">
               <div style="padding: 14px 18px; background: var(--bg-alt); display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600; font-size: 0.95rem;">📄 Attached PDF Notes</span>
-                <a href="{{ lesson.pdf_url }}" target="_blank" download class="btn btn-outline btn-sm">
-                  ⬇️ Download PDF
+                <span style="font-weight: 600; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 6px;">{{ icon('file-text', 15) }} Attached PDF Notes</span>
+                <a href="{{ lesson.pdf_url }}" target="_blank" download class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 4px;">
+                  {{ icon('download', 13) }} Download PDF
                 </a>
               </div>
               <iframe src="{{ lesson.pdf_url }}" style="width: 100%; height: 600px; border: none;" title="Lesson PDF Document"></iframe>
             </div>
           {% else %}
             <div style="text-align: center; padding: 48px 20px; color: var(--text-muted); background: var(--bg-alt); border-radius: var(--radius-md);">
-              <div style="font-size: 2.5rem; margin-bottom: 8px;">📄</div>
+              <div style="margin-bottom: 8px; color: var(--text-muted);">{{ icon('file-text', 36) }}</div>
               <p>No PDF document has been attached to this lesson yet.</p>
             </div>
           {% endif %}
@@ -143,8 +146,8 @@
         <div>
           {% if enrollment and lesson.content_type != 'quiz' %}
             {% if is_completed %}
-              <button type="button" class="btn btn-secondary btn-sm" disabled style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; cursor: default;">
-                ✓ Completed
+              <button type="button" class="btn btn-secondary btn-sm" disabled style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0; cursor: default; display: inline-flex; align-items: center; gap: 4px;">
+                {{ icon('check', 13) }} Completed
               </button>
             {% else %}
               <form method="POST" action="{{ url_for('courses.complete_lesson', course_id=course.id, lesson_id=lesson.id) }}" style="display: inline;">
@@ -198,9 +201,9 @@
 
             <div style="border-radius: var(--radius-md); padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid {{ 'var(--primary)' if is_current else 'var(--border-subtle)' }}; background: {{ 'var(--primary-light)' if is_current else 'white' }};">
               <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-                <span style="font-size: 0.8rem; font-weight: 700; color: {{ 'var(--primary)' if is_current else 'var(--text-muted)' }};">
+                <span style="font-size: 0.8rem; font-weight: 700; color: {{ 'var(--primary)' if is_current else 'var(--text-muted)' }}; display: inline-flex; align-items: center;">
                   {% if l_is_done %}
-                    <span style="color: var(--success); font-size: 0.95rem;">✓</span>
+                    <span style="color: var(--success); display: inline-flex; align-items: center;">{{ icon('check', 13) }}</span>
                   {% else %}
                     {{ l.order }}
                   {% endif %}
@@ -228,7 +231,7 @@
 
               <div>
                 {% if not l_can_view %}
-                  <span title="Locked — enroll to view" style="font-size: 0.85rem;">🔒</span>
+                  <span title="Locked — enroll to view" style="color: var(--text-muted); display: inline-flex; align-items: center;">{{ icon('lock', 13) }}</span>
                 {% elif l.is_preview %}
                   <span class="badge badge-preview" style="font-size: 0.65rem; padding: 2px 6px;">Preview</span>
                 {% endif %}

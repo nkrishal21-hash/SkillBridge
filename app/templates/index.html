@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}SkillBridge — Peer-to-Peer Learning & Mentorship Platform{% endblock %}
 
@@ -7,7 +8,7 @@
 <section class="hero">
   <div class="container hero-content">
     <div class="hero-pill">
-      🚀 Empowering Peer Learning Across Nepal
+      Empowering Peer Learning Across Nepal
     </div>
     <h1>Master In-Demand Skills with Top Peer Mentors</h1>
     <p>
@@ -28,37 +29,37 @@
 <section class="container">
   <div class="features-grid">
     <div class="feature-card">
-      <div class="feature-icon">🎯</div>
+      <div class="feature-icon">{{ icon('users', 24) }}</div>
       <h3>Verified Mentors</h3>
       <p>Learn directly from vetted instructors and industry practitioners who provide real-world insights and feedback.</p>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon">📹</div>
+      <div class="feature-icon">{{ icon('video', 24) }}</div>
       <h3>Interactive Courses</h3>
       <p>Engage with video lessons, downloadable resources, and quizzes with real-time completion tracking.</p>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon">🗓️</div>
+      <div class="feature-icon">{{ icon('calendar', 24) }}</div>
       <h3>1-on-1 Live Sessions</h3>
       <p>Schedule personalized live video mentorship via seamless Jitsi integration with built-in whiteboard tools.</p>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon">💳</div>
+      <div class="feature-icon">{{ icon('credit-card', 24) }}</div>
       <h3>Local Digital Payments</h3>
       <p>Seamlessly enroll and book sessions using Nepal's top payment gateways: eSewa and Khalti.</p>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon">💬</div>
+      <div class="feature-icon">{{ icon('message-circle', 24) }}</div>
       <h3>Real-Time Chat</h3>
       <p>Direct peer messaging powered by WebSockets to ask questions and share resources anytime.</p>
     </div>
 
     <div class="feature-card">
-      <div class="feature-icon">📜</div>
+      <div class="feature-icon">{{ icon('award', 24) }}</div>
       <h3>Verified Certificates</h3>
       <p>Receive verifiable, downloadable PDF completion certificates upon successfully completing courses.</p>
     </div>

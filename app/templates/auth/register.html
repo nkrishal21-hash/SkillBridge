@@ -13,10 +13,10 @@
     <!-- Role Switcher Tabs -->
     <div class="role-tabs" role="tablist">
       <button type="button" class="role-tab active" id="tab-learner" onclick="selectRole('learner')">
-        🎓 Learner
+        Learner
       </button>
       <button type="button" class="role-tab" id="tab-teacher" onclick="selectRole('teacher')">
-        👨‍🏫 Teacher / Mentor
+        Teacher / Mentor
       </button>
     </div>
 
@@ -32,7 +32,7 @@
         <label class="form-label" for="full_name">Full Name</label>
         {{ form.full_name(class="form-control", id="full_name") }}
         {% for error in form.full_name.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -40,7 +40,7 @@
         <label class="form-label" for="email">Email Address</label>
         {{ form.email(class="form-control", id="email") }}
         {% for error in form.email.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -49,7 +49,7 @@
           <label class="form-label" for="password">Password</label>
           {{ form.password(class="form-control", id="password") }}
           {% for error in form.password.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -57,7 +57,7 @@
           <label class="form-label" for="confirm_password">Confirm Password</label>
           {{ form.confirm_password(class="form-control", id="confirm_password") }}
           {% for error in form.confirm_password.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -65,14 +65,14 @@
       <!-- Teacher-Specific Fields (Visible only when role='teacher') -->
       <div id="teacher-fields" style="display: none; padding-top: 10px; border-top: 1px dashed var(--border-subtle); margin-top: 10px;">
         <div style="font-size: 0.82rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
-          👨‍🏫 Initial Teacher Details (Optional)
+          Initial Teacher Details (Optional)
         </div>
 
         <div class="form-group">
           <label class="form-label" for="headline">Professional Headline</label>
           {{ form.headline(class="form-control", id="headline") }}
           {% for error in form.headline.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -80,7 +80,7 @@
           <label class="form-label" for="skills">Skills you teach</label>
           {{ form.skills(class="form-control", id="skills") }}
           {% for error in form.skills.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -88,7 +88,7 @@
           <label class="form-label" for="hourly_rate">Hourly Mentorship Rate (NPR)</label>
           {{ form.hourly_rate(class="form-control", id="hourly_rate") }}
           {% for error in form.hourly_rate.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>

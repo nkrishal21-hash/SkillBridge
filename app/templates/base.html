@@ -1,3 +1,4 @@
+{% from '_icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,7 +40,7 @@
             </li>
             <li>
               <a href="{{ url_for('notifications.index') }}" class="nav-link" title="Notifications">
-                🔔
+                {{ icon('bell', 20) }}
                 {% if unread_notifications_count and unread_notifications_count > 0 %}
                   <span class="unread-badge" style="background: var(--danger);">{{ unread_notifications_count }}</span>
                 {% endif %}
@@ -71,22 +72,22 @@
               </div>
 
               {% if current_user.role == 'learner' %}
-                <a href="{{ url_for('learner.dashboard') }}" class="dropdown-item">📊 My Dashboard</a>
-                <a href="{{ url_for('booking.history') }}" class="dropdown-item">📅 Mentorship Sessions</a>
+                <a href="{{ url_for('learner.dashboard') }}" class="dropdown-item">My Dashboard</a>
+                <a href="{{ url_for('booking.history') }}" class="dropdown-item">Mentorship Sessions</a>
               {% elif current_user.role == 'teacher' %}
-                <a href="{{ url_for('teacher.dashboard') }}" class="dropdown-item">👨‍🏫 Teacher Hub</a>
-                <a href="{{ url_for('booking.history') }}" class="dropdown-item">📅 Session Bookings</a>
+                <a href="{{ url_for('teacher.dashboard') }}" class="dropdown-item">Teacher Hub</a>
+                <a href="{{ url_for('booking.history') }}" class="dropdown-item">Session Bookings</a>
               {% elif current_user.role == 'admin' %}
-                <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">⚙️ Admin Console</a>
+                <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">Admin Console</a>
               {% endif %}
               <a href="{{ url_for('chat.inbox') }}" class="dropdown-item" style="display: flex; align-items: center; justify-content: space-between;">
-                <span>💬 Messages</span>
+                <span>Messages</span>
                 {% if unread_messages_count and unread_messages_count > 0 %}
                   <span class="unread-badge">{{ unread_messages_count }}</span>
                 {% endif %}
               </a>
               <a href="{{ url_for('notifications.index') }}" class="dropdown-item" style="display: flex; align-items: center; justify-content: space-between;">
-                <span>🔔 Notifications</span>
+                <span>Notifications</span>
                 {% if unread_notifications_count and unread_notifications_count > 0 %}
                   <span class="unread-badge" style="background: var(--danger);">{{ unread_notifications_count }}</span>
                 {% endif %}
@@ -94,7 +95,7 @@
 
               <div class="dropdown-divider"></div>
               <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color: var(--danger);">
-                🚪 Sign Out
+                Sign Out
               </a>
             </div>
           </div>

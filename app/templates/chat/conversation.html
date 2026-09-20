@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Chat with {{ partner.full_name }} — SkillBridge{% endblock %}
 
@@ -57,7 +58,7 @@
     <!-- Messages Scroll Area -->
     <div id="messages-container" class="chat-messages-container">
       <div id="empty-state-notice" style="text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 0.92rem; {{ 'display: none;' if messages|length > 0 else '' }}">
-        <div style="font-size: 2.2rem; margin-bottom: 8px;">👋</div>
+        <div style="margin-bottom: 8px; color: var(--text-muted);">{{ icon('message-circle', 36) }}</div>
         <p style="margin: 0;">This is the start of your direct conversation with <strong>{{ partner.full_name }}</strong>.</p>
         <p style="font-size: 0.82rem; margin-top: 4px;">Say hello or ask a question below.</p>
       </div>
@@ -94,7 +95,7 @@
         >
         <button type="submit" id="chat-send-btn" class="btn btn-primary chat-send-btn">
           <span>Send</span>
-          <span style="font-size: 1.1rem; line-height: 1;">➤</span>
+          {{ icon('send', 18) }}
         </button>
       </form>
     </div>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}{{ profile.user.full_name }} — Mentor Profile | SkillBridge{% endblock %}
 
@@ -20,7 +21,7 @@
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
             <h1 style="font-size: 2.2rem; margin-bottom: 0;">{{ profile.user.full_name }}</h1>
             {% if profile.is_verified %}
-              <span class="badge badge-verified">✓ Verified Instructor</span>
+              <span class="badge badge-verified" style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('check', 12) }} Verified Instructor</span>
             {% endif %}
           </div>
 
@@ -29,20 +30,20 @@
           </p>
 
           <div class="profile-meta-row">
-            <div class="meta-pill">
-              ⭐ <strong>{{ "%.1f"|format(profile.average_rating or 0.0) }}</strong>
+            <div class="meta-pill" style="display: inline-flex; align-items: center; gap: 4px;">
+              <span style="color: #f59e0b; display: inline-flex; align-items: center;">{{ icon('star', 13) }}</span> <strong>{{ "%.1f"|format(profile.average_rating or 0.0) }}</strong>
               <span style="color: var(--text-muted);">({{ profile.total_reviews }} reviews)</span>
             </div>
 
             {% if profile.experience_years %}
-              <div class="meta-pill">
-                💼 {{ profile.experience_years }} years exp.
+              <div class="meta-pill" style="display: inline-flex; align-items: center; gap: 5px;">
+                {{ icon('briefcase', 14) }} {{ profile.experience_years }} years exp.
               </div>
             {% endif %}
 
             {% if profile.teaching_languages %}
-              <div class="meta-pill">
-                🌐 {{ profile.teaching_languages }}
+              <div class="meta-pill" style="display: inline-flex; align-items: center; gap: 5px;">
+                {{ icon('globe', 14) }} {{ profile.teaching_languages }}
               </div>
             {% endif %}
 
@@ -54,25 +55,25 @@
 
         <div class="profile-hero-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           {% if is_owner %}
-            <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-primary">
-              ✏️ Edit Profile
+            <a href="{{ url_for('teacher.profile_edit') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+              {{ icon('edit', 16) }} Edit Profile
             </a>
           {% else %}
-            <a href="{{ url_for('booking.new', teacher_id=profile.user_id) }}" class="btn btn-primary btn-lg">
-              🗓️ Book a Session
+            <a href="{{ url_for('booking.new', teacher_id=profile.user_id) }}" class="btn btn-primary btn-lg" style="display: inline-flex; align-items: center; gap: 6px;">
+              {{ icon('calendar', 18) }} Book a Session
             </a>
             {% if current_user.is_authenticated and current_user.id != profile.user_id %}
-              <a href="{{ url_for('chat.conversation', user_id=profile.user_id) }}" class="btn btn-outline btn-lg" style="background: rgba(255,255,255,0.9);">
-                💬 Message
+              <a href="{{ url_for('chat.conversation', user_id=profile.user_id) }}" class="btn btn-outline btn-lg" style="background: rgba(255,255,255,0.9); display: inline-flex; align-items: center; gap: 6px;">
+                {{ icon('message-circle', 18) }} Message
               </a>
               {% if current_user.is_learner %}
                 <form method="POST" action="{{ url_for('learner.toggle_favorite', teacher_profile_id=profile.id) }}" style="display: inline;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-outline btn-lg favorite-heart-toggle {{ 'favorited' if is_favorited else '' }}" style="background: rgba(255,255,255,0.9); display: inline-flex; align-items: center; gap: 6px;" title="{{ 'Remove from favorites' if is_favorited else 'Save to favorites' }}">
                     {% if is_favorited %}
-                      <span style="color: #ef4444;">❤️</span> Saved
+                      <span style="color: #ef4444; display: inline-flex; align-items: center;">{{ icon('heart', 16) }}</span> Saved
                     {% else %}
-                      <span>🤍</span> Save Mentor
+                      <span style="display: inline-flex; align-items: center;">{{ icon('heart', 16) }}</span> Save Mentor
                     {% endif %}
                   </button>
                 </form>
@@ -151,7 +152,9 @@
 
           <div class="sidebar-stat-item">
             <span class="sidebar-stat-label">Rating</span>
-            <span class="sidebar-stat-val">⭐ {{ "%.1f"|format(profile.average_rating or 0.0) }} / 5.0</span>
+            <span class="sidebar-stat-val" style="display: inline-flex; align-items: center; gap: 4px;">
+              <span style="color: #f59e0b; display: inline-flex; align-items: center;">{{ icon('star', 13) }}</span> {{ "%.1f"|format(profile.average_rating or 0.0) }} / 5.0
+            </span>
           </div>
 
           <div class="sidebar-stat-item">
@@ -165,13 +168,13 @@
                 External Links
               </div>
               {% if profile.linkedin_url %}
-                <a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="social-link-btn">
-                  🔗 LinkedIn Profile
+                <a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer" class="social-link-btn" style="display: inline-flex; align-items: center; gap: 6px;">
+                  {{ icon('link', 14) }} LinkedIn Profile
                 </a>
               {% endif %}
               {% if profile.website_url %}
-                <a href="{{ profile.website_url }}" target="_blank" rel="noopener noreferrer" class="social-link-btn">
-                  🌐 Personal Website
+                <a href="{{ profile.website_url }}" target="_blank" rel="noopener noreferrer" class="social-link-btn" style="display: inline-flex; align-items: center; gap: 6px;">
+                  {{ icon('globe', 14) }} Personal Website
                 </a>
               {% endif %}
             </div>

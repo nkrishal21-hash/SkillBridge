@@ -98,7 +98,7 @@ def toggle_favorite(teacher_profile_id: int):
         try:
             db.session.add(new_fav)
             db.session.commit()
-            flash(f"Added {teacher_name} to your saved favorites! ❤️", "success")
+            flash(f"Added {teacher_name} to your saved favorites!", "success")
         except IntegrityError:
             db.session.rollback()
             flash(f"{teacher_name} is already in your saved favorites.", "info")

@@ -18,6 +18,8 @@
 | 8 | Certificates & Dashboards | ✅ Done | 2026-09-18 |
 | 9 | Security & UI Polish | ✅ Done | 2026-09-18 |
 | Post-9 | Trust & Safety: Moderation & Refunds | ✅ Done | 2026-09-20 |
+| Post-9 | Platform Commission & Payouts | ✅ Done | 2026-09-20 |
+| Post-9 | App-Wide UI Polish: Custom SVG Icon System | ✅ Done | 2026-09-20 |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
 
 Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
@@ -487,6 +489,75 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 - **Internal Accounting Confirmation vs Automatic Disbursal**: Marking a payout as "released" is an administrative record-keeping action confirming that funds were manually transferred to the teacher outside SkillBridge (e.g. via bank transfer or eSewa). It does not initiate an external payout API call, avoiding unauthorized automated balance disbursements.
 - **Historical Data Backfill**: Existing historical payments (including manual eSewa sandbox test transactions) were backfilled with the 20/80 split upon migration, ensuring platform metrics and teacher dashboard figures remain consistent.
 - **Refund Conflict Handling**: If an admin refunds a booking payment after the teacher payout has already been marked as released, the platform warns the admin prominently and notes the conflict in the audit trail without attempting an impossible automated claw-back.
+
+---
+
+## Post-Phase-9 — App-Wide UI Polish: Unified SVG Icon System & Emoji Removal
+**Status:** ✅ Done  
+**Date started / completed:** 2026-09-20 / 2026-09-20
+
+### 1. Architectural & Design System Decisions
+- **Shared Jinja Macro Library (`app/templates/_icons.html`)**: Rather than hand-rolling inlined raw SVGs across different templates, a single centralized Jinja macro library `{% macro icon(name, size=18, cls="") %}` was implemented. This supports 40+ clean outline SVG icons (Feather / Heroicons-outline aesthetic) with uniform `stroke="currentColor"`, `fill="none"`, and `stroke-width="2"`.
+- **CSS Theme & Color Inheritance**: Because `stroke="currentColor"` is used with no hardcoded color values, every icon natively inherits colors from surrounding typography or specific semantic CSS classes (`var(--primary)`, `var(--success)`, `var(--danger)`, `var(--warning)`, `var(--text-muted)`), maintaining total fidelity across light and dark theme contexts.
+- **CSS Utility Class (`.icon` in `app/static/css/style.css`)**: Added `.icon { display: inline-block; vertical-align: middle; flex-shrink: 0; line-height: 1; }` ensuring crisp vertical alignment and zero distortion across responsive viewports down to 375px mobile widths.
+- **Strict Contextual Classification (No Blind Find-Replace)**:
+  - **(A) DELETE**: Pure decorative flourishes in headings, buttons, and alert toasts that degraded product polish were cleanly excised while preserving grammatical sentence flow.
+  - **(B) REPLACE**: Standalone visual indicators carrying semantic meaning (stat cards, empty states, feature pills, action icons) were upgraded to the custom SVG macro.
+  - **(C) KEEP (Deliberate Functional Shorthand)**: Compact Unicode characters serving dense functional UI requirements were preserved deliberately:
+    - Form select dropdown options in `app/reports/forms.py` (`🚫 No Show`, `⚠️ Misbehavior`, `📝 Other Issue`)
+    - Unicode rating stars `★` / `☆` in reviews, feedback summaries, and search filter dropdowns
+    - Chat message read receipts `✓` and `✓✓` in `app/templates/chat/conversation.html`
+  - **(D) STATUS BADGES**: Replaced standalone emoji with existing CSS badge components (`.badge-verified`, `.badge-status-approved`, `.badge-status-rejected`, `.badge-preview`).
+
+### 2. File-by-File Audit & Transformation Log
+
+| File / Component | Deleted (A) | Replaced SVG (B) | Kept (C) | Notes / Functional Justification for Kept |
+|---|:---:|:---:|:---:|---|
+| `app/admin/routes.py` | 17 | 0 | 0 | Flash messages & notification titles cleanly stripped of decorative emoji |
+| `app/booking/routes.py` | 1 | 0 | 0 | Session completion flash message |
+| `app/certificates/routes.py` | 1 | 0 | 0 | Certificate generation celebration flash message |
+| `app/courses/routes.py` | 8 | 0 | 0 | Enrollment, quiz, completion flash messages and notification titles |
+| `app/learner/routes.py` | 1 | 0 | 0 | Favorite mentor toggle flash message |
+| `app/payments/routes.py` | 1 | 0 | 0 | Payment success flash message |
+| `app/reports/forms.py` | 0 | 0 | 3 | **Kept (Category C)**: select dropdown option labels (`🚫`, `⚠️`, `📝`) |
+| `app/reports/routes.py` | 1 | 0 | 0 | Incident report admin notification title |
+| `app/reviews/routes.py` | 0 | 0 | 2 | **Kept (Category C)**: compact star symbol `★` in review notification titles |
+| `app/templates/admin/courses.html` | 10 | 5 | 0 | Action buttons, status indicators, empty state |
+| `app/templates/admin/dashboard.html` | 15 | 5 | 0 | Stat cards, system indicators, quick links |
+| `app/templates/admin/payments.html` | 9 | 5 | 0 | Payment audit filters, gateway badges, empty state |
+| `app/templates/admin/payouts.html` | 14 | 4 | 0 | Payout metrics, release actions, tab filters |
+| `app/templates/admin/reports.html` | 14 | 6 | 0 | Incident severity tags, resolution buttons, empty state |
+| `app/templates/admin/teachers.html` | 12 | 4 | 0 | Verification toggles, filter pills, empty state |
+| `app/templates/admin/users.html` | 18 | 2 | 0 | User moderation actions, role pills, empty state |
+| `app/templates/auth/forgot_password.html` | 1 | 0 | 0 | Decorative header embellishment |
+| `app/templates/auth/login.html` | 2 | 0 | 0 | Welcome header embellishment |
+| `app/templates/auth/register.html` | 12 | 0 | 0 | Role selector tab icons and feature highlights |
+| `app/templates/auth/reset_password.html` | 2 | 0 | 0 | Header embellishments |
+| `app/templates/base.html` | 10 | 1 | 0 | Flash notification icons, user menu decorations |
+| `app/templates/booking/detail.html` | 19 | 13 | 1 | **Kept (Category C)**: `★` Unicode character in submitted review rating display |
+| `app/templates/booking/history.html` | 2 | 1 | 0 | Status badges and empty state |
+| `app/templates/booking/new.html` | 6 | 0 | 0 | Booking header flourishes and input labels |
+| `app/templates/certificates/verify.html` | 4 | 2 | 0 | Official seal decoration replaced with award SVG; verification badges |
+| `app/templates/chat/conversation.html` | 2 | 2 | 5 | **Kept (Category C)**: `✓` / `✓✓` read receipts in chat message bubbles and live JS updates |
+| `app/templates/chat/inbox.html` | 2 | 1 | 0 | Empty chat state icon |
+| `app/templates/courses/catalog.html` | 3 | 2 | 0 | Course placeholder, lesson counter, empty state |
+| `app/templates/courses/course_detail.html` | 21 | 15 | 3 | **Kept (Category C)**: `★` / `☆` Unicode characters in review star breakdown |
+| `app/templates/courses/course_form.html` | 8 | 0 | 0 | Form header flourishes and field error markers |
+| `app/templates/courses/lesson_form.html` | 14 | 0 | 0 | Content type dropdown markers and form validation prefixes |
+| `app/templates/courses/lesson_viewer.html` | 7 | 8 | 0 | Lesson navigation, resource links, completion buttons |
+| `app/templates/courses/manage_lessons.html` | 12 | 9 | 0 | Lesson content badges (video, pdf, text, quiz), action icons, empty state |
+| `app/templates/index.html` | 7 | 6 | 0 | Landing page hero badges, feature cards, CTA icons |
+| `app/templates/learner/dashboard.html` | 21 | 18 | 0 | Stat cards, notification preview icons, empty states, saved mentor cards |
+| `app/templates/notifications/index.html` | 7 | 6 | 0 | Notification type icons (booking, payment, review, course, system) |
+| `app/templates/payments/checkout.html` | 2 | 0 | 0 | Security badges and payment headings |
+| `app/templates/payments/failure.html` | 2 | 1 | 0 | Error indicator badge |
+| `app/templates/payments/receipt.html` | 1 | 0 | 0 | Receipt confirmation embellishment |
+| `app/templates/payments/success.html` | 4 | 1 | 0 | Transaction confirmation badge |
+| `app/templates/teacher/dashboard.html` | 20 | 14 | 4 | **Kept (Category C)**: `★` / `☆` Unicode characters in rating summary breakdown |
+| `app/templates/teacher/profile_edit.html` | 11 | 0 | 0 | Form field error prefixes |
+| `app/templates/teacher/public_profile.html` | 10 | 12 | 0 | Verified instructor badge, rating star, meta pills, action buttons, social links |
+| `app/templates/teacher/search.html` | 2 | 3 | 3 | **Kept (Category C)**: `★` in rating filter dropdown options (`★ 4.5 & above`, etc.) |
+| **Total** | **~344** | **150** | **21** | **All remaining instances are deliberate Category C functional UI** |
 
 ---
 

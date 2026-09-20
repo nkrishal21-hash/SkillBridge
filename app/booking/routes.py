@@ -358,7 +358,7 @@ def complete(booking_id: int):
     booking.status = "completed"
     db.session.commit()
 
-    flash("🎉 Session marked as completed! You can now submit your rating and review.", "success")
+    flash("Session marked as completed! You can now submit your rating and review.", "success")
     return redirect(url_for("booking.detail", booking_id=booking.id))
 
 

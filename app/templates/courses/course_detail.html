@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}{{ course.title }} — SkillBridge{% endblock %}
 
@@ -11,7 +12,7 @@
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
           <span class="course-category-tag">{{ course.category or 'General' }}</span>
           <span class="badge badge-verified">{{ course.level|capitalize }} Level</span>
-          <span style="font-size: 0.85rem; color: var(--text-secondary);">🌐 {{ course.language }}</span>
+          <span style="font-size: 0.85rem; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px;">{{ icon('globe', 14) }} {{ course.language }}</span>
           {% if not course.is_published %}
             <span class="badge badge-warning" style="background: #fef3c7; color: #b45309;">Draft (Unpublished)</span>
           {% endif %}
@@ -37,7 +38,7 @@
               {{ course.teacher.user.full_name if course.teacher and course.teacher.user else 'Instructor' }} ↗
             </a>
             {% if course.teacher and course.teacher.is_verified %}
-              <span class="badge badge-verified" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 4px;">✓ Verified</span>
+              <span class="badge badge-verified" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; display: inline-flex; align-items: center; gap: 3px;">{{ icon('check', 11) }} Verified</span>
             {% endif %}
           </div>
         </div>
@@ -48,7 +49,7 @@
         <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Enrollment Fee</div>
         <div style="font-family: var(--font-heading); font-size: 2rem; font-weight: 800; color: var(--primary);">
           {% if not course.price or course.price == 0 %}
-            <span style="color: var(--success);">Free</span>
+            FREE
           {% else %}
             NPR {{ "%.2f"|format(course.price) }}
           {% endif %}
@@ -88,8 +89,8 @@
             </div>
           </div>
           {% if is_owner %}
-            <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-outline btn-sm">
-              ⚙️ Manage Lessons
+            <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 5px;">
+              {{ icon('settings', 14) }} Manage Lessons
             </a>
           {% endif %}
         </div>
@@ -104,7 +105,7 @@
                 <div class="syllabus-item-left">
                   <div class="syllabus-num">
                     {% if is_done %}
-                      <span style="color: var(--success); font-size: 1.1rem;">✓</span>
+                      <span style="color: var(--success); display: inline-flex; align-items: center; justify-content: center;">{{ icon('check', 16) }}</span>
                     {% else %}
                       {{ lesson.order }}
                     {% endif %}
@@ -112,13 +113,13 @@
                   <div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                       {% if lesson.content_type == 'video' %}
-                        <span title="Video Lesson">🎥</span>
+                        <span title="Video Lesson" style="color: var(--text-secondary); display: inline-flex;">{{ icon('video', 16) }}</span>
                       {% elif lesson.content_type == 'pdf' %}
-                        <span title="PDF Handout">📄</span>
+                        <span title="PDF Handout" style="color: var(--text-secondary); display: inline-flex;">{{ icon('file-text', 16) }}</span>
                       {% elif lesson.content_type == 'text' %}
-                        <span title="Reading Material">📝</span>
+                        <span title="Reading Material" style="color: var(--text-secondary); display: inline-flex;">{{ icon('book-open', 16) }}</span>
                       {% elif lesson.content_type == 'quiz' %}
-                        <span title="Interactive Quiz">💡</span>
+                        <span title="Interactive Quiz" style="color: var(--text-secondary); display: inline-flex;">{{ icon('check-circle', 16) }}</span>
                       {% endif %}
 
                       {% if can_view %}
@@ -150,7 +151,7 @@
                       {% if is_done %}Review{% else %}Start{% endif %} &rarr;
                     </a>
                   {% else %}
-                    <span class="lesson-lock-badge" title="Enroll to unlock this lesson">🔒 Locked</span>
+                    <span class="lesson-lock-badge" title="Enroll to unlock this lesson" style="display: inline-flex; align-items: center; gap: 4px;">{{ icon('lock', 12) }} Locked</span>
                   {% endif %}
                 </div>
               </div>
@@ -158,7 +159,7 @@
           </div>
         {% else %}
           <div style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
-            <div style="font-size: 2.2rem; margin-bottom: 8px;">📝</div>
+            <div style="margin-bottom: 10px; color: var(--text-muted);">{{ icon('book-open', 36) }}</div>
             <p>No lessons have been published in this curriculum yet.</p>
             {% if is_owner %}
               <a href="{{ url_for('courses.create_lesson', course_id=course.id) }}" class="btn btn-primary btn-sm" style="margin-top: 10px;">
@@ -184,7 +185,7 @@
         {% if can_review and review_form %}
           <div class="review-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px; margin-bottom: 24px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="font-size: 1.3rem;">✍️</span>
+              <span style="display: inline-flex; color: var(--primary);">{{ icon('edit', 20) }}</span>
               <h3 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">Share Your Experience</h3>
             </div>
             <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
@@ -204,8 +205,8 @@
                 {{ review_form.review_text(class="form-control", rows=3, placeholder="What did you learn? What was great about the instructor's delivery?") }}
               </div>
 
-              <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;">
-                ⭐ Submit Course Review
+              <button type="submit" class="btn btn-primary btn-sm">
+                Submit Course Review
               </button>
             </form>
           </div>
@@ -219,7 +220,7 @@
               </div>
             </div>
             <div style="font-size: 1.15rem; margin-bottom: 6px;">
-              {% for i in range(user_review.rating_value) %}⭐{% endfor %}
+              {% for i in range(user_review.rating_value) %}★{% endfor %}
               <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-secondary); margin-left: 4px;">({{ user_review.rating_value }}/5)</span>
             </div>
             {% if user_review.review_text %}
@@ -228,31 +229,38 @@
           </div>
         {% endif %}
 
-        <!-- List of Course Reviews -->
+        <!-- Reviews List -->
         {% if reviews %}
-          <div class="reviews-list" style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="reviews-list">
             {% for rev in reviews %}
-              <div class="review-card" style="padding: 16px; border-bottom: 1px solid var(--border-subtle);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div class="review-item" style="border-bottom: 1px solid var(--border-subtle); padding: 18px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                   <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 38px; height: 38px; border-radius: var(--radius-full); background: var(--bg-alt); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary);">
-                      {{ rev.learner.full_name[:1].upper() if rev.learner else 'L' }}
+                    <div style="width: 34px; height: 34px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                      {{ rev.learner.full_name[:1].upper() if rev.learner else 'U' }}
                     </div>
                     <div>
-                      <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">
-                        {{ rev.learner.full_name if rev.learner else 'SkillBridge Learner' }}
-                      </div>
-                      <div style="font-size: 0.78rem; color: var(--text-muted);">
-                        {{ rev.created_at.strftime('%b %d, %Y') if rev.created_at else 'Recent' }}
-                      </div>
+                      <div style="font-weight: 600; font-size: 0.92rem;">{{ rev.learner.full_name if rev.learner else 'SkillBridge Learner' }}</div>
+                      <div style="font-size: 0.78rem; color: var(--text-muted);">{{ rev.created_at.strftime('%b %d, %Y') if rev.created_at else 'Recent' }}</div>
                     </div>
                   </div>
-                  <div style="font-size: 0.95rem;">
-                    {% for i in range(rev.rating_value) %}⭐{% endfor %}
+
+                  <!-- Star Display -->
+                  <div class="star-rating" style="color: #f59e0b; font-size: 1rem;">
+                    {% for star_i in range(1, 6) %}
+                      {% if star_i <= rev.rating_value %}
+                        ★
+                      {% else %}
+                        ☆
+                      {% endif %}
+                    {% endfor %}
                   </div>
                 </div>
+
                 {% if rev.review_text %}
-                  <p style="color: var(--text-secondary); font-size: 0.92rem; margin: 0; line-height: 1.5; white-space: pre-line;">{{ rev.review_text }}</p>
+                  <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0; line-height: 1.55;">
+                    {{ rev.review_text }}
+                  </p>
                 {% endif %}
               </div>
             {% endfor %}
@@ -273,26 +281,26 @@
         {% if is_owner %}
           <!-- Teacher Owner Controls -->
           <div class="alert alert-info" style="margin-bottom: 18px; font-size: 0.9rem;">
-            👨‍🏫 <strong>Instructor View:</strong> You created this course.
+            <strong>Instructor View:</strong> You created this course.
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 10px;">
-            <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-primary btn-block">
-              📚 Manage Curriculum ({{ lessons|length }})
+            <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-primary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+              {{ icon('book-open', 15) }} Manage Curriculum ({{ lessons|length }})
             </a>
-            <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-outline btn-block">
-              ✏️ Edit Course Details
+            <a href="{{ url_for('courses.edit', course_id=course.id) }}" class="btn btn-outline btn-block" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+              {{ icon('edit', 15) }} Edit Course Details
             </a>
 
             <form method="POST" action="{{ url_for('courses.toggle_publish', course_id=course.id) }}" {% if course.is_published %}onsubmit="return confirm('Move this course to unpublished drafts? It will no longer appear in the catalog.');"{% endif %}>
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               {% if course.is_published %}
                 <button type="submit" class="btn btn-secondary btn-block" style="margin-top: 6px;">
-                  🚫 Move to Drafts
+                  Move to Drafts
                 </button>
               {% else %}
                 <button type="submit" class="btn btn-secondary btn-block" style="background: #10b981; color: white; border-color: #10b981; margin-top: 6px;">
-                  🚀 Publish to Catalog
+                  Publish to Catalog
                 </button>
               {% endif %}
             </form>
@@ -315,10 +323,10 @@
 
           {% if enrollment.completed_at or enrollment.progress_percent >= 100 %}
             <div class="alert alert-success" style="font-size: 0.88rem; margin-bottom: 16px;">
-              🎉 <strong>Course Completed!</strong> Congratulations on finishing all lessons and assessments!
+              <strong>Course Completed!</strong> Congratulations on finishing all lessons and assessments!
             </div>
             <a href="{{ url_for('certificates.generate', course_id=course.id) }}" class="btn btn-primary btn-block btn-lg" style="background: #059669; border-color: #059669; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              🎓 Download Certificate
+              {{ icon('award', 18) }} Download Certificate
             </a>
           {% endif %}
 
@@ -367,12 +375,12 @@
                 <form method="POST" action="{{ url_for('courses.enroll', course_id=course.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-primary btn-block btn-lg">
-                    ⚡ Enroll in Course (Free)
+                    Enroll in Course (Free)
                   </button>
                 </form>
               {% else %}
-                <a href="{{ url_for('payments.checkout', payment_for='course', target_id=course.id) }}" class="btn btn-primary btn-block btn-lg" style="background: #41a124; border-color: #41a124;">
-                  💳 Enroll in Course (NPR {{ "%.2f"|format(course.price) }})
+                <a href="{{ url_for('payments.checkout', payment_for='course', target_id=course.id) }}" class="btn btn-primary btn-block btn-lg" style="background: #41a124; border-color: #41a124; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  {{ icon('credit-card', 18) }} Enroll in Course (NPR {{ "%.2f"|format(course.price) }})
                 </a>
                 <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 8px;">
                   Instant activation via eSewa Sandbox

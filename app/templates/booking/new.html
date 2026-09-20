@@ -26,7 +26,7 @@
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         <h2 style="font-size: 1.25rem; margin: 0;">{{ teacher_user.full_name }}</h2>
         {% if profile.is_verified %}
-          <span class="badge badge-verified" style="font-size: 0.65rem; padding: 2px 6px;">✓ Verified Instructor</span>
+          <span class="badge badge-verified" style="font-size: 0.65rem; padding: 2px 6px; display: inline-flex; align-items: center; gap: 3px;">Verified</span>
         {% endif %}
       </div>
 
@@ -76,7 +76,7 @@
           <label class="form-label" for="session_date">Session Date <span style="color: var(--danger);">*</span></label>
           {{ form.session_date(class="form-control", id="session_date") }}
           {% for error in form.session_date.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -85,7 +85,7 @@
           <label class="form-label" for="start_time">Start Time <span style="color: var(--danger);">*</span></label>
           {{ form.start_time(class="form-control", id="start_time") }}
           {% for error in form.start_time.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -94,7 +94,7 @@
           <label class="form-label" for="duration_minutes">Duration <span style="color: var(--danger);">*</span></label>
           {{ form.duration_minutes(class="form-control", id="duration_minutes", onchange="updateEstimatedFee()") }}
           {% for error in form.duration_minutes.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -116,7 +116,7 @@
         {{ form.topic(class="form-control", id="topic") }}
         <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Be specific so your mentor can prepare relevant code examples or slides.</div>
         {% for error in form.topic.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -125,7 +125,7 @@
         <label class="form-label" for="learner_notes">Notes / Specific Questions (Optional)</label>
         {{ form.learner_notes(class="form-control", id="learner_notes") }}
         {% for error in form.learner_notes.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 

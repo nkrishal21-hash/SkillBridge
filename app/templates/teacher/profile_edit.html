@@ -41,7 +41,7 @@
           </div>
           {{ form.photo(class="form-control", id="photo", accept="image/*", onchange="previewImage(this)") }}
           {% for error in form.photo.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -52,7 +52,7 @@
         {{ form.headline(class="form-control", id="headline") }}
         <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">A short summary that appears under your name on search cards.</div>
         {% for error in form.headline.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -62,7 +62,7 @@
         {{ form.skills(class="form-control", id="skills") }}
         <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Separate skills with commas (e.g. Python, SQL, Web Design, Data Structures).</div>
         {% for error in form.skills.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -72,7 +72,7 @@
           <label class="form-label" for="hourly_rate">Hourly Mentorship Rate (NPR) <span style="color: var(--danger);">*</span></label>
           {{ form.hourly_rate(class="form-control", id="hourly_rate") }}
           {% for error in form.hourly_rate.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -80,7 +80,7 @@
           <label class="form-label" for="experience_years">Years of Experience</label>
           {{ form.experience_years(class="form-control", id="experience_years") }}
           {% for error in form.experience_years.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -90,7 +90,7 @@
         <label class="form-label" for="teaching_languages">Teaching Languages</label>
         {{ form.teaching_languages(class="form-control", id="teaching_languages") }}
         {% for error in form.teaching_languages.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -99,7 +99,7 @@
         <label class="form-label" for="bio">About You & Teaching Approach</label>
         {{ form.bio(class="form-control", id="bio") }}
         {% for error in form.bio.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -108,7 +108,7 @@
         <label class="form-label" for="qualifications">Qualifications & Certifications</label>
         {{ form.qualifications(class="form-control", id="qualifications") }}
         {% for error in form.qualifications.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -127,7 +127,7 @@
           {% endfor %}
         </div>
         {% for error in form.availability.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -137,7 +137,7 @@
           <label class="form-label" for="linkedin_url">LinkedIn URL</label>
           {{ form.linkedin_url(class="form-control", id="linkedin_url") }}
           {% for error in form.linkedin_url.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -145,7 +145,7 @@
           <label class="form-label" for="website_url">Website / Portfolio URL</label>
           {{ form.website_url(class="form-control", id="website_url") }}
           {% for error in form.website_url.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>

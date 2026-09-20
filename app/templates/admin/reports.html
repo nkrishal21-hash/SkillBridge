@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}Incident Reports — Admin — SkillBridge{% endblock %}
 
@@ -7,10 +8,10 @@
   <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
     <div>
       <div style="font-size: 0.8rem; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
-        <a href="{{ url_for('admin.dashboard') }}" style="color: inherit; text-decoration: none;">⚙️ Admin</a> / Incident Reports
+        <a href="{{ url_for('admin.dashboard') }}" style="color: inherit; text-decoration: none;">Admin</a> / Incident Reports
       </div>
-      <h2>Trust &amp; Safety: Incident Reports 🚨</h2>
-      <p style="color: var(--text-secondary); margin-top: 4px;">Investigate session complaints, take moderation action, and manage learner refunds.</p>
+      <h2>Trust &amp; Safety: Incident Reports</h2>
+      <p style="color: var(--text-secondary); margin-top: 4px;">Review complaints regarding late attendance, no-shows, or unprofessional conduct during 1-on-1 mentorship calls.</p>
     </div>
   </div>
 </section>
@@ -18,19 +19,16 @@
 <div class="container" style="padding-top: 24px; padding-bottom: 60px;">
 
   <!-- Status Tabs -->
-  <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0; flex-wrap: wrap;">
-    {% for tab, label, count in [
-        ('pending', 'Pending Review', pending_count),
-        ('resolved', 'Resolved', resolved_count),
-        ('dismissed', 'Dismissed', dismissed_count),
-        ('all', 'All Reports', total_count)
-    ] %}
-      <a href="{{ url_for('admin.report_list', filter=tab) }}"
-         style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == tab else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == tab else 'transparent' }}; color: {{ 'white' if filter_status == tab else 'var(--text-muted)' }}; margin-bottom: -2px; display: inline-flex; align-items: center; gap: 6px;">
+  <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
+    {% for tab, label in [('pending', 'Pending Review'), ('resolved', 'Resolved'), ('dismissed', 'Dismissed'), ('all', 'All Reports')] %}
+      <a href="{{ url_for('admin.report_list', status=tab) }}"
+         class="btn btn-sm {{ 'btn-primary' if status_filter == tab else 'btn-outline' }}">
         {{ label }}
-        <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: var(--radius-full); background: {{ 'rgba(255,255,255,0.25)' if filter_status == tab else 'var(--bg-alt)' }}; color: {{ 'white' if filter_status == tab else 'var(--text-secondary)' }};">
-          {{ count }}
-        </span>
+        {% if tab == 'pending' and pending_count > 0 %}
+          <span style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 4px;">
+            {{ pending_count }}
+          </span>
+        {% endif %}
       </a>
     {% endfor %}
   </div>
@@ -38,31 +36,31 @@
   {% if reports %}
     <div style="display: flex; flex-direction: column; gap: 16px;">
       {% for report in reports %}
-        <div class="report-card" style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow-sm);">
+        <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);">
           
-          <!-- Header: Reason, Status, Date -->
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+          <!-- Report Header -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
               <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Report #{{ report.id }}</span>
               
               <!-- Reason Badge -->
               {% if report.reason == 'late' %}
-                <span class="badge report-reason-badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706; font-size: 0.76rem; font-weight: 700;">⏰ Late Arrival</span>
+                <span class="badge report-reason-badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706; font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('clock', 12) }} Late Arrival</span>
               {% elif report.reason == 'no_show' %}
-                <span class="badge report-reason-badge" style="background: rgba(239, 68, 68, 0.12); color: var(--danger); font-size: 0.76rem; font-weight: 700;">🚫 No Show / Absent</span>
+                <span class="badge report-reason-badge" style="background: rgba(239, 68, 68, 0.12); color: var(--danger); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('x-circle', 12) }} No Show / Absent</span>
               {% elif report.reason == 'misbehavior' %}
-                <span class="badge report-reason-badge" style="background: rgba(139, 92, 246, 0.12); color: var(--accent); font-size: 0.76rem; font-weight: 700;">⚠️ Misbehavior</span>
+                <span class="badge report-reason-badge" style="background: rgba(139, 92, 246, 0.12); color: var(--accent); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('alert-triangle', 12) }} Misbehavior</span>
               {% else %}
-                <span class="badge report-reason-badge" style="background: rgba(100, 116, 139, 0.12); color: var(--text-secondary); font-size: 0.76rem; font-weight: 700;">📝 Other Issue</span>
+                <span class="badge report-reason-badge" style="background: rgba(100, 116, 139, 0.12); color: var(--text-secondary); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('file-text', 12) }} Other Issue</span>
               {% endif %}
 
               <!-- Status Badge -->
               {% if report.status == 'pending' %}
-                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; font-size: 0.76rem; font-weight: 700;">⏳ Pending Review</span>
+                <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; font-size: 0.76rem; font-weight: 700;">Pending Review</span>
               {% elif report.status == 'resolved' %}
-                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.76rem; font-weight: 700;">✓ Resolved</span>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.76rem; font-weight: 700;">Resolved</span>
               {% elif report.status == 'dismissed' %}
-                <span class="badge" style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); font-size: 0.76rem; font-weight: 600;">✕ Dismissed</span>
+                <span class="badge" style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); font-size: 0.76rem; font-weight: 600;">Dismissed</span>
               {% else %}
                 <span class="badge" style="background: var(--bg-alt); color: var(--text-secondary); font-size: 0.76rem;">{{ report.status|capitalize }}</span>
               {% endif %}
@@ -76,21 +74,18 @@
             </div>
           </div>
 
-          <!-- Parties Involved & Booking Details -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; background: var(--bg-alt); padding: 16px; border-radius: var(--radius-md);">
+          <!-- Parties Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; background: var(--bg-alt); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 16px; font-size: 0.84rem;">
             <!-- Reporter -->
             <div>
-              <div style="font-size: 0.74rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 6px;">Filed By (Reporter)</div>
+              <div style="font-size: 0.74rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 6px;">Reported By</div>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem; color: var(--primary); border: 1px solid var(--border-subtle);">
                   {{ (report.reporter.full_name if report.reporter else 'U')[:1].upper() }}
                 </div>
                 <div>
-                  <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">
-                    {{ report.reporter.full_name if report.reporter else 'Unknown' }}
-                    <span class="badge" style="font-size: 0.68rem; margin-left: 4px; background: rgba(79,70,229,0.1); color: var(--primary);">{{ report.reporter.role|capitalize if report.reporter else '—' }}</span>
-                  </div>
-                  <div style="font-size: 0.78rem; color: var(--text-muted);">{{ report.reporter.email if report.reporter else '—' }}</div>
+                  <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">{{ report.reporter.full_name if report.reporter else 'Unknown' }}</div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted);">{{ report.reporter.email if report.reporter else '—' }} &bull; <span style="text-transform: capitalize;">{{ report.reporter.role if report.reporter else '' }}</span></div>
                 </div>
               </div>
             </div>
@@ -107,7 +102,7 @@
                     <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">{{ report.reported.full_name if report.reported else 'Unknown' }}</span>
                     <span class="badge" style="font-size: 0.68rem; background: rgba(239,68,68,0.1); color: var(--danger);">{{ report.reported.role|capitalize if report.reported else '—' }}</span>
                     {% if report.reported and not report.reported.is_active %}
-                      <span class="badge ban-badge" style="font-size: 0.68rem; background: var(--danger); color: white;">🚫 Suspended</span>
+                      <span class="badge ban-badge" style="font-size: 0.68rem; background: var(--danger); color: white;">Suspended</span>
                     {% endif %}
                   </div>
                   <div style="font-size: 0.78rem; color: var(--text-muted);">{{ report.reported.email if report.reported else '—' }}</div>
@@ -162,7 +157,7 @@
                       onsubmit="return confirm('Dismiss report #{{ report.id }} without further action?');">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-outline btn-sm" style="color: var(--text-secondary);">
-                    ✕ Dismiss
+                    Dismiss
                   </button>
                 </form>
 
@@ -171,7 +166,7 @@
                       onsubmit="return confirm('Mark report #{{ report.id }} as resolved?');">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn btn-primary btn-sm" style="background: var(--success); border-color: var(--success);">
-                    ✓ Resolve
+                    Resolve
                   </button>
                 </form>
 
@@ -182,8 +177,8 @@
                     <form method="POST" action="{{ url_for('admin.refund_report', report_id=report.id) }}"
                           onsubmit="return confirm('Issue internal refund of NPR {{ p.amount }} for Booking #{{ report.booking_id }}? This flips payment status to refunded and excludes it from teacher earnings.');">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-primary btn-sm" style="background: #0284c7; border-color: #0284c7;">
-                        💳 Refund NPR {{ "%.0f"|format(p.amount) }}
+                      <button type="submit" class="btn btn-primary btn-sm" style="background: #0284c7; border-color: #0284c7; display: inline-flex; align-items: center; gap: 6px;">
+                        {{ icon('credit-card', 14) }} Refund NPR {{ "%.0f"|format(p.amount) }}
                       </button>
                     </form>
                   </div>
@@ -199,14 +194,14 @@
                         onsubmit="return confirm('Suspend and ban {{ report.reported.full_name }}? They will be immediately logged out and blocked from logging in.');">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-size: 0.78rem;">
-                      🚫 Ban Reported User
+                      Ban Reported User
                     </button>
                   </form>
                 {% else %}
                   <form method="POST" action="{{ url_for('admin.unban_user', user_id=report.reported_id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline btn-sm" style="color: var(--success); border-color: #86efac; font-size: 0.78rem;">
-                      ✓ Unban User
+                      Unban User
                     </button>
                   </form>
                 {% endif %}
@@ -217,7 +212,7 @@
           <!-- Refund disclaimer text if refund button is shown -->
           {% if report.status in ['pending', 'reviewed'] and report.reason in ['late', 'no_show'] and report.booking_id and report.booking_id in eligible_payments %}
             <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: -6px;">
-              ℹ️ <em>Marks this payment as refunded internally — does not trigger an automatic eSewa money transfer.</em>
+              <em>Marks this payment as refunded internally — does not trigger an automatic eSewa money transfer.</em>
             </div>
           {% endif %}
 
@@ -246,7 +241,7 @@
 
   {% else %}
     <div style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
-      <div style="font-size: 2.5rem; margin-bottom: 12px;">🛡️</div>
+      <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('shield', 40) }}</div>
       <p style="font-size: 1rem; margin-bottom: 0; font-weight: 600; color: var(--text-secondary);">
         {% if filter_status == 'pending' %}
           No incident reports currently pending review.

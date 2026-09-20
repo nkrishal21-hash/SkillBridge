@@ -313,7 +313,7 @@ def esewa_success():
         link=url_for("payments.receipt", payment_id=payment.id),
     )
 
-    flash("🎉 Payment successful! Your order has been confirmed.", "success")
+    flash("Payment successful! Your order has been confirmed.", "success")
     return render_template("payments/success.html", payment=payment)
 
 

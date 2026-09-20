@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Payment Unsuccessful — SkillBridge{% endblock %}
 
@@ -6,8 +7,8 @@
 <div class="container" style="max-width: 620px; padding-top: 48px; padding-bottom: 70px;">
   <div class="content-box text-center" style="padding: 40px 32px; border-top: 5px solid var(--danger);">
     <!-- Warning Badge -->
-    <div style="width: 72px; height: 72px; border-radius: var(--radius-full); background: var(--danger-light); color: var(--danger); display: inline-flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 20px;">
-      ✕
+    <div style="width: 72px; height: 72px; border-radius: var(--radius-full); background: var(--danger-light); color: var(--danger); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+      {{ icon('x-circle', 36) }}
     </div>
 
     <h1 style="font-size: 1.85rem; margin-bottom: 8px; color: var(--text-primary);">Payment Not Completed</h1>
@@ -40,7 +41,7 @@
     <div style="display: flex; flex-direction: column; gap: 12px;">
       {% if payment %}
         <a href="{{ url_for('payments.checkout', payment_for=payment.payment_for, target_id=(payment.course_id if payment.payment_for == 'course' else payment.booking_id_ref)) }}" class="btn btn-primary btn-lg btn-block">
-          🔄 Try Payment Again
+          Try Again
         </a>
       {% endif %}
 

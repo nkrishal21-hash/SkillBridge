@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}Booking #{{ booking.id }}: {{ booking.topic }} — SkillBridge{% endblock %}
 
@@ -29,15 +30,15 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 24px;">
       <div>
         <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Date</div>
-        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px;">
-          📅 {{ booking.session_date.strftime('%a, %b %d, %Y') }}
+        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px; display: inline-flex; align-items: center; gap: 5px;">
+          {{ icon('calendar', 16) }} {{ booking.session_date.strftime('%a, %b %d, %Y') }}
         </div>
       </div>
 
       <div>
         <div style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Time Window</div>
-        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px;">
-          ⏰ {{ booking.start_time.strftime('%I:%M %p') }} &ndash; {{ booking.end_time.strftime('%I:%M %p') }}
+        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-top: 4px; display: inline-flex; align-items: center; gap: 5px;">
+          {{ icon('clock', 16) }} {{ booking.start_time.strftime('%I:%M %p') }} &ndash; {{ booking.end_time.strftime('%I:%M %p') }}
         </div>
         <div style="font-size: 0.78rem; color: var(--text-muted);">({{ booking.duration_minutes }} minutes)</div>
       </div>
@@ -49,14 +50,14 @@
         </div>
         {% if has_paid %}
           <div style="margin-top: 4px;">
-            <span class="badge badge-payment-success" style="font-size: 0.76rem; padding: 3px 8px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: var(--radius-full);">
-              ✓ Payment Confirmed
+            <span class="badge badge-payment-success" style="font-size: 0.76rem; padding: 3px 8px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 4px;">
+              {{ icon('check', 12) }} Payment Confirmed
             </span>
           </div>
         {% elif booking.status == 'approved' and booking.amount and booking.amount > 0 and is_learner %}
           <div style="margin-top: 6px;">
-            <a href="{{ url_for('payments.checkout', payment_for='booking', target_id=booking.id) }}" class="btn btn-primary btn-xs" style="background: #41a124; border-color: #41a124; padding: 4px 10px; font-size: 0.78rem;">
-              💳 Pay for Session &rarr;
+            <a href="{{ url_for('payments.checkout', payment_for='booking', target_id=booking.id) }}" class="btn btn-primary btn-xs" style="background: #41a124; border-color: #41a124; padding: 4px 10px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 4px;">
+              {{ icon('credit-card', 14) }} Pay for Session &rarr;
             </a>
           </div>
         {% endif %}
@@ -89,8 +90,8 @@
           <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ booking.teacher.email }}</div>
           {% if is_learner %}
             <div style="margin-top: 6px;">
-              <a href="{{ url_for('chat.conversation', user_id=booking.teacher_id) }}" class="btn btn-outline btn-xs" style="padding: 3px 9px; font-size: 0.76rem;">
-                💬 Message Teacher
+              <a href="{{ url_for('chat.conversation', user_id=booking.teacher_id) }}" class="btn btn-outline btn-xs" style="padding: 3px 9px; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                {{ icon('message-circle', 13) }} Message Teacher
               </a>
             </div>
           {% endif %}
@@ -114,8 +115,8 @@
           <div style="font-size: 0.8rem; color: var(--text-secondary);">{{ booking.learner.email }}</div>
           {% if is_teacher %}
             <div style="margin-top: 6px;">
-              <a href="{{ url_for('chat.conversation', user_id=booking.learner_id) }}" class="btn btn-outline btn-xs" style="padding: 3px 9px; font-size: 0.76rem;">
-                💬 Message Learner
+              <a href="{{ url_for('chat.conversation', user_id=booking.learner_id) }}" class="btn btn-outline btn-xs" style="padding: 3px 9px; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                {{ icon('message-circle', 13) }} Message Learner
               </a>
             </div>
           {% endif %}
@@ -150,7 +151,7 @@
       <div class="jitsi-embed-box" style="background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: var(--radius-lg); padding: 22px; margin-bottom: 24px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.4rem;">📹</span>
+            <span style="display: inline-flex; color: #065f46;">{{ icon('video', 24) }}</span>
             <div>
               <h3 style="font-size: 1.15rem; color: #065f46; margin: 0;">Live Mentorship Session</h3>
               <div style="font-size: 0.82rem; color: #047857; margin-top: 2px;">
@@ -159,8 +160,8 @@
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <button type="button" id="start-call-btn" class="btn btn-primary btn-sm" style="background: #059669; border-color: #059669;">
-              📹 Launch Video Call
+            <button type="button" id="start-call-btn" class="btn btn-primary btn-sm" style="background: #059669; border-color: #059669; display: inline-flex; align-items: center; gap: 6px;">
+              {{ icon('video', 15) }} Launch Video Call
             </button>
             <a href="https://meet.jit.si/{{ booking.jitsi_room }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="color: #065f46; border-color: #a7f3d0;" title="Open call in separate browser tab">
               External Tab ↗
@@ -183,11 +184,11 @@
       </div>
     {% elif booking.status == 'pending' %}
       <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-lg); padding: 18px; margin-bottom: 24px; color: #92400e; font-size: 0.92rem;">
-        ⏳ <strong>Awaiting Instructor Approval:</strong> The mentor will review your topic and proposed time slot. You will receive an email once approved or updated.
+        <strong>Awaiting Instructor Approval:</strong> The mentor will review your topic and proposed time slot. You will receive an email once approved or updated.
       </div>
     {% elif booking.status == 'completed' %}
       <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-lg); padding: 18px; margin-bottom: 24px; color: #166534; font-size: 0.92rem;">
-        🎓 <strong>Mentorship Session Concluded:</strong> This session has been marked as completed.
+        <strong>Mentorship Session Concluded:</strong> This session has been marked as completed.
       </div>
     {% endif %}
 
@@ -199,8 +200,8 @@
         {% if review %}
           <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <div style="font-size: 1.2rem;">
-                {% for i in range(review.rating_value) %}⭐{% endfor %}
+              <div style="font-size: 1.2rem; color: #f59e0b;">
+                {% for i in range(review.rating_value) %}★{% endfor %}
                 <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-left: 6px;">({{ review.rating_value }} / 5)</span>
               </div>
               <div style="font-size: 0.8rem; color: var(--text-muted);">
@@ -216,7 +217,7 @@
         {% elif can_review and review_form %}
           <div class="review-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="font-size: 1.3rem;">✍️</span>
+              <span style="display: inline-flex; color: var(--primary);">{{ icon('edit', 20) }}</span>
               <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">Rate &amp; Review Your Session</h4>
             </div>
             <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
@@ -237,7 +238,7 @@
               </div>
 
               <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;">
-                ⭐ Submit Session Review
+                Submit Session Review
               </button>
             </form>
           </div>
@@ -256,7 +257,7 @@
 
         {% if pending_report %}
           <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px;">
-            <span style="font-size: 1.3rem; line-height: 1;">⏳</span>
+            <span style="display: inline-flex; color: #b45309; margin-top: 2px;">{{ icon('clock', 20) }}</span>
             <div>
               <div style="font-weight: 700; color: #92400e; font-size: 0.92rem;">Incident Report Pending Review</div>
               <p style="color: #78350f; font-size: 0.85rem; margin-top: 2px; margin-bottom: 0;">
@@ -267,7 +268,7 @@
         {% elif can_report and report_form %}
           <div class="report-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="font-size: 1.3rem;">🚨</span>
+              <span style="display: inline-flex; color: var(--danger);">{{ icon('alert-triangle', 20) }}</span>
               <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">
                 {% if is_learner %}Report Teacher{% else %}Report Student{% endif %}
               </h4>
@@ -289,8 +290,8 @@
                 {{ report_form.description(class="form-control", rows=3, placeholder="Describe what happened, relevant times, and any details for administrators...") }}
               </div>
 
-              <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-weight: 600;">
-                🚨 Submit Report
+              <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                {{ icon('alert-triangle', 14) }} Submit Report
               </button>
             </form>
           </div>
@@ -311,14 +312,14 @@
                 <input type="text" name="teacher_response_note" class="form-control" placeholder="Optional approval note or meeting instructions...">
               </div>
               <button type="submit" class="btn btn-primary" style="background: #10b981; border-color: #10b981;">
-                ✓ Approve Session
+                Approve Session
               </button>
             </form>
 
             <form method="POST" action="{{ url_for('booking.reject', booking_id=booking.id) }}" onsubmit="return confirm('Are you sure you want to decline this session request?');">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);">
-                ✕ Decline Request
+                Decline Request
               </button>
             </form>
           </div>
@@ -332,14 +333,14 @@
           <form method="POST" action="{{ url_for('booking.complete', booking_id=booking.id) }}" onsubmit="return confirm('Mark this mentorship session as completed?');">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-primary btn-sm" style="background: #0d9488; border-color: #0d9488;">
-              ✓ Mark Session Complete
+              Mark Session Complete
             </button>
           </form>
         {% endif %}
 
         {% if has_paid and payment %}
-          <a href="{{ url_for('payments.receipt', payment_id=payment.id) }}" class="btn btn-outline btn-sm">
-            🧾 View Payment Receipt
+          <a href="{{ url_for('payments.receipt', payment_id=payment.id) }}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 5px;">
+            {{ icon('file-text', 14) }} View Payment Receipt
           </a>
         {% endif %}
       </div>
@@ -373,12 +374,12 @@
         if (jitsiApi) {
           const isCurrentlyHidden = (containerWrapper.style.display === "none");
           containerWrapper.style.display = isCurrentlyHidden ? "block" : "none";
-          startBtn.innerText = isCurrentlyHidden ? "✕ Hide Video Call" : "📹 Open Video Call";
+          startBtn.innerText = isCurrentlyHidden ? "Hide Video Call" : "Open Video Call";
           return;
         }
 
         containerWrapper.style.display = "block";
-        startBtn.innerText = "✕ Hide Video Call";
+        startBtn.innerText = "Hide Video Call";
 
         const domain = "meet.jit.si";
         const options = {
@@ -404,7 +405,7 @@
           jitsiApi = new JitsiMeetExternalAPI(domain, options);
           jitsiApi.addEventListener("videoConferenceLeft", function() {
             containerWrapper.style.display = "none";
-            startBtn.innerText = "📹 Rejoin Call";
+            startBtn.innerText = "Rejoin Call";
           });
         } catch (e) {
           console.error("Jitsi Meet external API error:", e);

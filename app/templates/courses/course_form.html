@@ -16,10 +16,10 @@
     {% if is_edit and course %}
       <div style="display: flex; gap: 10px;">
         <a href="{{ url_for('courses.manage_lessons', course_id=course.id) }}" class="btn btn-primary btn-sm">
-          📚 Manage Lessons ({{ course.lessons.count() }})
+          Manage Lessons ({{ course.lessons.count() }})
         </a>
         <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="btn btn-outline btn-sm" target="_blank">
-          View Detail ↗
+          View Detail &rarr;
         </a>
       </div>
     {% endif %}
@@ -35,7 +35,7 @@
         {{ form.title(class="form-control", id="title") }}
         <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">A descriptive, catchy title that clearly states what learners will master.</div>
         {% for error in form.title.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
@@ -45,7 +45,7 @@
           <label class="form-label" for="category">Category <span style="color: var(--danger);">*</span></label>
           {{ form.category(class="form-control", id="category") }}
           {% for error in form.category.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -53,7 +53,7 @@
           <label class="form-label" for="level">Skill Level <span style="color: var(--danger);">*</span></label>
           {{ form.level(class="form-control", id="level") }}
           {% for error in form.level.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -65,7 +65,7 @@
           {{ form.price(class="form-control", id="price") }}
           <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Set to 0 for a free course.</div>
           {% for error in form.price.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
 
@@ -73,7 +73,7 @@
           <label class="form-label" for="language">Teaching Language <span style="color: var(--danger);">*</span></label>
           {{ form.language(class="form-control", id="language") }}
           {% for error in form.language.errors %}
-            <div class="form-error">⚠ {{ error }}</div>
+            <div class="form-error">{{ error }}</div>
           {% endfor %}
         </div>
       </div>
@@ -98,7 +98,7 @@
           <div style="flex: 1; min-width: 240px;">
             {{ form.thumbnail(class="form-control", id="thumbnail", accept="image/*", onchange="previewThumbnail(this)") }}
             {% for error in form.thumbnail.errors %}
-              <div class="form-error">⚠ {{ error }}</div>
+              <div class="form-error">{{ error }}</div>
             {% endfor %}
           </div>
         </div>
@@ -109,7 +109,7 @@
         <label class="form-label" for="description">Course Overview / Description</label>
         {{ form.description(class="form-control", id="description") }}
         {% for error in form.description.errors %}
-          <div class="form-error">⚠ {{ error }}</div>
+          <div class="form-error">{{ error }}</div>
         {% endfor %}
       </div>
 
