@@ -68,6 +68,22 @@ def main():
         for table in inspector.get_table_names():
             print(f"          • {table}")
 
+        # ── Seed default admin account (idempotent) ──────────────────────────
+        from app.models import User
+        admin_email = "admin@skillbridge.com"
+        existing_admin = User.query.filter_by(email=admin_email).first()
+        if not existing_admin:
+            admin = User(full_name="Admin", email=admin_email, role="admin")
+            admin.set_password("Admin@123")
+            db.session.add(admin)
+            db.session.commit()
+            print(f"\n[db_init] ✅ Default admin account created.")
+            print(f"          email:    {admin_email}")
+            print(f"          password: Admin@123")
+            print("[db_init] ⚠️  Change this password immediately after first login.")
+        else:
+            print("\n[db_init] Admin account already exists — skipping seed.")
+
 
 if __name__ == "__main__":
     main()
