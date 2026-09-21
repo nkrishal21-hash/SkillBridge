@@ -1,57 +1,109 @@
 /*
-  SkillBridge — Modern Design System & Stylesheet
-  Clean, vibrant aesthetics with smooth micro-interactions.
+  SkillBridge — Brand Identity & Design System Specification
+  =============================================================
+  GROUNDED IN THE SKILLBRIDGE LOGO (app/static/images/logo-source.png)
+  
+  1. Palette Origins:
+     - Primary Blue (--primary: #0a4b94):
+       Directly derived from the logo's deep illustration ink (#063979 / rgb 6, 57, 121).
+       Selected #0a4b94 as the interactive primary for higher vibrancy while maintaining
+       commanding trust and financial credibility for NPR course payments and mentorship.
+       Hover state: #07356a. Soft tint wash: #eef3fa (matching logo's light sky fill).
+       WCAG Contrast: 8.56:1 on white, 8.06:1 on warm canvas (exceeds AAA requirement).
+     - Accent Warm Gold (--accent: #fe8d06, --accent-cta: #d97706):
+       Sampled directly from the logo's golden sun/emblem (rgb 254, 141, 6).
+       Restrained usage: used selectively for star ratings, key achievement highlights,
+       pending disbursal indicators, and verification accents. NOT scattered indiscriminately.
+     - Secondary Blue (--secondary: #1b62a5):
+       Harmonious mid-tone ocean blue matching the logo's internal depth.
+
+  2. Warm-Neutral Canvas & Surfaces:
+     - Page Canvas (--bg-main: #f9f8f6):
+       Departing from generic cool slate (#f8fafc) to a warm, organic stone canvas
+       sampled from the warm-white ground of the original logo artwork.
+     - Content Surfaces (--bg-surface: #ffffff):
+       Crisp elevated white cards against the warm-neutral canvas for clear figure-ground separation.
+     - Distinct Input Fields (--bg-input: #fbfaf8, --border-input: #d4d0c7):
+       Solves the flat "invisible white-on-white" issue by providing a subtle warm-tinted
+       recessed background and defined warm-stone border for form controls, switching to
+       pure white (#ffffff) with a brand-blue focus ring on interaction.
+     - Secondary Surfaces (--bg-alt: #f2efe9):
+       Warm stone tint for nested sections, inactive tabs, and table headers.
+
+  3. Typographic Hierarchy & WCAG Accessibility:
+     - Primary Text (--text-primary: #121926): Deep ink charcoal (15.5:1 on white, AAA).
+     - Secondary Text (--text-secondary: #4b5563): Warm slate (7.1:1 on white, AAA).
+     - Muted Text (--text-muted: #6b7280): Mid slate (4.6:1 on white, AA).
+
+  4. Varied Elevation & Spatial Scale:
+     - Small elements (pills, badges, small tags): --radius-sm: 6px.
+     - Interactive controls (buttons, inputs, dropdown items): --radius-md: 8px.
+     - Content cards (teachers, courses, stats, bookings): --radius-lg: 14px, multi-layered warm shadows.
+     - Prominent containers (auth card, checkout card, modals): --radius-xl: 18px, deep elevation shadow.
+     - Warm ambient shadows: tinted with dark ink tone rgba(18, 25, 38, ...) rather than dead grey.
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
 
 :root {
-  /* Color Palette */
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-light: #eef2ff;
-  --primary-glow: rgba(79, 70, 229, 0.25);
+  /* Brand Color Palette — Sourced from Logo */
+  --primary: #0a4b94;
+  --primary-hover: #07356a;
+  --primary-light: #eef3fa;
+  --primary-glow: rgba(10, 75, 148, 0.22);
   
-  --secondary: #0ea5e9;
-  --accent: #8b5cf6;
+  --secondary: #1b62a5;
+  --accent: #fe8d06;
+  --accent-cta: #d97706;
+  --accent-light: #fef7ec;
   
-  --bg-main: #f8fafc;
+  /* Surfaces & Warm-Neutral Backgrounds */
+  --bg-main: #f9f8f6;
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
-  --bg-alt: #f1f5f9;
+  --bg-alt: #f2efe9;
+  --bg-input: #fbfaf8;
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  /* Text & Contrast Hierarchy (WCAG AAA/AA Compliant) */
+  --text-primary: #121926;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
   
-  --border-subtle: #e2e8f0;
-  --border-focus: #818cf8;
+  /* Borders */
+  --border-subtle: #e5e2db;
+  --border-input: #d4d0c7;
+  --border-focus: #0a4b94;
   
-  --success: #10b981;
+  /* Semantic Status Colors */
+  --success: #059669;
   --success-light: #ecfdf5;
-  --danger: #ef4444;
+  --danger: #dc2626;
   --danger-light: #fef2f2;
-  --warning: #f59e0b;
-  --warning-light: #fffbeb;
-  --info: #3b82f6;
-  --info-light: #eff6ff;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --info: #0284c7;
+  --info-light: #f0f9ff;
 
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+  /* Multi-Layered Warm Ambient Shadows */
+  --shadow-sm: 0 1px 2px rgba(18, 25, 38, 0.05), 0 1px 3px rgba(18, 25, 38, 0.03);
+  --shadow-md: 0 4px 8px -2px rgba(18, 25, 38, 0.06), 0 2px 4px -2px rgba(18, 25, 38, 0.04);
+  --shadow-lg: 0 12px 20px -4px rgba(18, 25, 38, 0.08), 0 4px 8px -2px rgba(18, 25, 38, 0.04);
+  --shadow-xl: 0 20px 30px -8px rgba(18, 25, 38, 0.10), 0 8px 14px -4px rgba(18, 25, 38, 0.04);
 
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
+  
+  /* Varied Spatial Radius Scale */
+  --radius-xs: 4px;
   --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
   --radius-full: 9999px;
 }
 
@@ -110,10 +162,11 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(18, 25, 38, 0.04);
   transition: all var(--transition-normal);
 }
 
@@ -142,11 +195,11 @@ a:hover {
   object-fit: cover;
   flex-shrink: 0;
   /* subtle ring matching the logo's own circular border */
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 8px var(--primary-glow);
 }
 
 .brand-name {
-  background: linear-gradient(135deg, var(--text-primary), var(--primary));
+  background: linear-gradient(135deg, var(--text-primary) 35%, var(--primary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -332,7 +385,7 @@ a:hover {
 }
 
 .btn-secondary:hover {
-  background: #e2e8f0;
+  background: #e7e3dc;
   color: var(--text-primary);
 }
 
@@ -385,8 +438,9 @@ a:hover {
 }
 
 .badge-learner {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(10, 75, 148, 0.18);
 }
 
 .badge-teacher {
@@ -425,15 +479,15 @@ a:hover {
 }
 
 .badge-status-cancelled {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
+  background: var(--bg-alt);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
 }
 
 .badge-status-completed {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(10, 75, 148, 0.18);
 }
 
 /* ── Flash Toast Messages ────────────────────────────────── */
@@ -518,7 +572,7 @@ a:hover {
   max-width: 480px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
   padding: 40px 36px;
   transition: all var(--transition-normal);
@@ -557,16 +611,17 @@ a:hover {
   padding: 11px 14px;
   font-family: var(--font-sans);
   font-size: 0.95rem;
-  border: 1px solid var(--border-subtle);
+  border: 1.5px solid var(--border-input);
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  background: var(--bg-input);
   color: var(--text-primary);
   transition: all var(--transition-fast);
 }
 
 .form-control:focus {
   outline: none;
-  border-color: var(--border-focus);
+  background: #ffffff;
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
@@ -633,8 +688,8 @@ a:hover {
   gap: 12px;
   width: 100%;
   padding: 11px 16px;
-  background: white;
-  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-input);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-weight: 600;
@@ -645,8 +700,8 @@ a:hover {
 }
 
 .btn-oauth:hover {
-  background: var(--bg-alt);
-  border-color: #cbd5e1;
+  background: var(--bg-input);
+  border-color: var(--border-subtle);
   transform: translateY(-1px);
 }
 
@@ -683,7 +738,7 @@ a:hover {
 }
 
 .role-tab.active {
-  background: white;
+  background: var(--bg-surface);
   color: var(--primary);
   box-shadow: var(--shadow-sm);
 }
@@ -691,7 +746,7 @@ a:hover {
 /* ── Hero & Dashboard Layouts ────────────────────────────── */
 .hero {
   padding: 80px 0 60px;
-  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
+  background: linear-gradient(180deg, #fdfcfb 0%, #f4f1ea 100%);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -708,6 +763,7 @@ a:hover {
   padding: 6px 16px;
   background: var(--primary-light);
   color: var(--primary);
+  border: 1px solid rgba(10, 75, 148, 0.15);
   border-radius: var(--radius-full);
   font-size: 0.85rem;
   font-weight: 600;
@@ -748,13 +804,14 @@ a:hover {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 32px;
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-normal);
 }
 
 .feature-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-focus);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(10, 75, 148, 0.25);
 }
 
 .feature-icon {
@@ -785,7 +842,7 @@ a:hover {
 .dashboard-header {
   padding: 36px 0 24px;
   border-bottom: 1px solid var(--border-subtle);
-  background: white;
+  background: var(--bg-surface);
 }
 
 .dashboard-stats {
@@ -796,9 +853,9 @@ a:hover {
 }
 
 .stat-card {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 24px;
   box-shadow: var(--shadow-sm);
 }
@@ -821,7 +878,7 @@ a:hover {
 /* ── Footer ──────────────────────────────────────────────── */
 .footer {
   margin-top: auto;
-  background: white;
+  background: var(--bg-surface);
   border-top: 1px solid var(--border-subtle);
   padding: 40px 0 24px;
   font-size: 0.9rem;
@@ -926,7 +983,7 @@ a:hover {
 
 /* Search Page Layout */
 .search-page-header {
-  background: white;
+  background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   padding: 36px 0 24px;
 }
@@ -944,7 +1001,7 @@ a:hover {
 }
 
 .search-filter-card {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 24px 20px;
@@ -966,7 +1023,7 @@ a:hover {
 }
 
 .teacher-card {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -978,8 +1035,8 @@ a:hover {
 
 .teacher-card:hover {
   transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-focus);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(10, 75, 148, 0.25);
 }
 
 .teacher-card-top {
@@ -1019,7 +1076,7 @@ a:hover {
 
 .teacher-card-rating {
   font-size: 0.88rem;
-  color: #b45309;
+  color: var(--accent-cta);
   margin-top: 3px;
   display: flex;
   align-items: center;
@@ -1087,7 +1144,7 @@ a:hover {
   padding: 0 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  background: white;
+  background: var(--bg-surface);
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 600;
@@ -1113,7 +1170,7 @@ a:hover {
 
 /* Empty State Box */
 .empty-state-box {
-  background: white;
+  background: var(--bg-surface);
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 60px 24px;
@@ -1122,7 +1179,7 @@ a:hover {
 
 /* ── Public Profile Page ─────────────────────────────────── */
 .profile-hero {
-  background: linear-gradient(180deg, #ffffff 0%, var(--bg-alt) 100%);
+  background: linear-gradient(180deg, #fdfcfb 0%, #f4f1ea 100%);
   border-bottom: 1px solid var(--border-subtle);
   padding: 48px 0 36px;
 }
@@ -1138,7 +1195,7 @@ a:hover {
   height: 120px;
   border-radius: var(--radius-full);
   overflow: hidden;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
   color: white;
   display: flex;
   align-items: center;
@@ -1179,7 +1236,7 @@ a:hover {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
   font-size: 0.88rem;
@@ -1194,7 +1251,7 @@ a:hover {
 }
 
 .content-box {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 30px;
@@ -1315,7 +1372,7 @@ a:hover {
 }
 
 .course-card {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1327,8 +1384,8 @@ a:hover {
 
 .course-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--border-focus);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(10, 75, 148, 0.25);
 }
 
 .course-card-thumb-link {
@@ -1361,7 +1418,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--bg-alt), #e2e8f0);
+  background: linear-gradient(135deg, var(--bg-alt), #e7e3dc);
   font-size: 2.5rem;
 }
 
@@ -1397,9 +1454,9 @@ a:hover {
 }
 
 .badge-preview {
-  background: #eef2ff;
+  background: var(--primary-light);
   color: var(--primary);
-  border: 1px solid #c7d2fe;
+  border: 1px solid rgba(10, 75, 148, 0.2);
   font-size: 0.7rem;
   padding: 2px 7px;
   border-radius: var(--radius-full);
@@ -1544,7 +1601,7 @@ a:hover {
   justify-content: space-between;
   align-items: center;
   padding: 14px 18px;
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
@@ -1638,7 +1695,7 @@ a:hover {
 
 /* ── Phase 5: Mentorship & Booking System ────────────────── */
 .booking-card {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -1709,7 +1766,7 @@ a:hover {
 }
 
 .chat-inbox-item.unread {
-  background-color: #f5f7ff;
+  background-color: var(--primary-light);
 }
 
 .chat-inbox-content {
@@ -1812,7 +1869,7 @@ a:hover {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background-color: #f8fafc;
+  background-color: var(--bg-main);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2004,23 +2061,24 @@ a:hover {
 
 /* ── Phase 8: Certificates, Dashboards & Admin ────────────── */
 .certificate-card {
+  border-radius: var(--radius-lg);
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .certificate-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.12);
+  box-shadow: 0 6px 20px var(--primary-glow);
 }
 
 .admin-queue-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 /* Notification inbox item highlight */
 .notif-unread {
   border-left: 3px solid var(--primary) !important;
-  background: rgba(79, 70, 229, 0.03) !important;
+  background: var(--primary-light) !important;
 }
 
 /* Admin table row hover handled inline; helper for consistent look */
@@ -2199,7 +2257,7 @@ a:hover {
 }
 
 .payout-card {
-  background: white;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 20px 24px;

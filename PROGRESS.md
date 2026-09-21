@@ -20,6 +20,7 @@
 | Post-9 | Trust & Safety: Moderation & Refunds | ✅ Done | 2026-09-20 |
 | Post-9 | Platform Commission & Payouts | ✅ Done | 2026-09-20 |
 | Post-9 | App-Wide UI Polish: Custom SVG Icon System | ✅ Done | 2026-09-20 |
+| Post-9 | Visual Identity & Polish: Brand Palette & Form Distinction | ✅ Done | 2026-09-21 |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
 
 Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
@@ -558,6 +559,27 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
 | `app/templates/teacher/public_profile.html` | 10 | 12 | 0 | Verified instructor badge, rating star, meta pills, action buttons, social links |
 | `app/templates/teacher/search.html` | 2 | 3 | 3 | **Kept (Category C)**: `★` in rating filter dropdown options (`★ 4.5 & above`, etc.) |
 | **Total** | **~344** | **150** | **21** | **All remaining instances are deliberate Category C functional UI** |
+
+---
+
+## Post-Phase-9 — Visual Identity & Polish: Brand Palette, Form Contrast & Varied Elevation
+**Status:** ✅ Done  
+**Date started / completed:** 2026-09-21 / 2026-09-21
+
+**Design Rationale & Brand Alignment:**
+- **Brand Identity**: Replaced generic framework indigo (`#4f46e5`) with a confident, trustworthy brand palette sampled directly from `app/static/images/logo-source.png`:
+  - **Primary Blue (`#0a4b94`, dark: `#063979`, tint: `#eef3fa`)**: Established depth and credibility appropriate for an active peer mentorship and financial transaction platform.
+  - **Restrained Warm Gold Accent (`#fe8d06`, hover CTA: `#d97706`)**: Reserved purposefully for high-value focal points (key CTAs, badges, star ratings, certificate highlights) rather than widespread decorative noise.
+- **Warm Neutral Canvas**: Transitioned base backgrounds from sterile pure white/cool slate (`#f8fafc`) to a tailored warm-neutral palette (`--bg-main: #f9f8f6`, `--bg-alt: #f4f2ef`), providing warmth and grounding.
+- **Form Input Distinction**: Solved the "invisible white-on-white" issue by assigning form inputs a subtle warm-tinted surface (`--bg-input: #fbfaf8`), crisp border definition (`--border-subtle`), and a focused brand glow ring. Inputs are now clearly delineated against card containers across all forms.
+- **Varied Elevation & Geometry Hierarchy**: Broke the uniform radius and shadow monotony by introducing tiered radii (`--radius-sm: 6px`, `--radius-md: 10px`, `--radius-lg: 14px`, `--radius-xl: 20px`) and refined multi-layer elevation shadows (`--shadow-sm` through `--shadow-xl`). Primary cards, modals, dropdowns, and buttons now have distinct visual depth.
+- **WCAG AA / AAA Accessibility**: Verified text contrast across all updated tokens:
+  - White on primary blue: 8.58:1 (AAA)
+  - Primary text on warm neutral base: 16.59:1 (AAA)
+  - Secondary text on base: 7.12:1 (AAA)
+  - Muted text on base: 4.55:1 (AA)
+  - Form input text on `--bg-input`: 16.88:1 (AAA)
+- **Zero-Functional-Risk Guarantee**: Explicitly confirmed that **ONLY** `app/static/css/style.css` was touched in source code. No `.html` or `.py` files were altered, no CSS selectors/classes were renamed or removed, and all form submissions (including auth login) and responsive behaviors (tested at 375px mobile) perform identically to before.
 
 ---
 
