@@ -18,7 +18,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from app import db
-from app.models import Course, Lesson, Enrollment, TeacherProfile, Review, Certificate
+from app.models import Course, Lesson, Enrollment, TeacherProfile, Review, Certificate, Payment
 from app.auth.utils import teacher_required, learner_required
 from app.courses.forms import CourseForm, LessonForm
 from app.reviews.forms import ReviewForm
@@ -583,11 +583,26 @@ def lesson_view(course_id: int, lesson_id: int):
             learner_id=current_user.id, course_id=course.id
         ).first()
 
-    # Permission check
-    can_access = is_owner or lesson.is_preview or (enrollment is not None)
-    if not can_access:
-        flash("Please enroll in this course to access this lesson.", "warning")
-        return redirect(url_for("courses.course_detail", course_id=course.id))
+    # Permission check:
+    # 1. Owner can always access
+    # 2. Preview lessons are always accessible
+    # 3. For paid courses (price > 0), learner must be enrolled AND have confirmed payment (status='success')
+    # 4. For free courses (price == 0), enrollment is sufficient
+    if not is_owner and not lesson.is_preview:
+        if not enrollment:
+            flash("Please enroll in this course to access this lesson.", "warning")
+            return redirect(url_for("courses.course_detail", course_id=course.id))
+
+        if course.price and course.price > 0:
+            confirmed_payment = Payment.query.filter_by(
+                learner_id=current_user.id,
+                course_id=course.id,
+                payment_for="course",
+                status="success",
+            ).first()
+            if not confirmed_payment:
+                flash("Access to this paid course requires a confirmed payment.", "warning")
+                return redirect(url_for("courses.course_detail", course_id=course.id))
 
     # All lessons for the curriculum sidebar
     all_lessons = course.lessons.order_by(Lesson.order.asc()).all()
@@ -644,6 +659,17 @@ def complete_lesson(course_id: int, lesson_id: int):
     if not enrollment:
         flash("You must be enrolled to record lesson progress.", "warning")
         return redirect(url_for("courses.course_detail", course_id=course.id))
+
+    if course.price and course.price > 0:
+        confirmed_payment = Payment.query.filter_by(
+            learner_id=current_user.id,
+            course_id=course.id,
+            payment_for="course",
+            status="success",
+        ).first()
+        if not confirmed_payment:
+            flash("Access to this paid course requires a confirmed payment.", "warning")
+            return redirect(url_for("courses.course_detail", course_id=course.id))
 
     # Append lesson ID avoiding duplicates
     completed_set = {
@@ -721,6 +747,17 @@ def submit_quiz(course_id: int, lesson_id: int):
     enrollment = Enrollment.query.filter_by(
         learner_id=current_user.id, course_id=course.id
     ).first()
+
+    if not lesson.is_preview and course.price and course.price > 0:
+        confirmed_payment = Payment.query.filter_by(
+            learner_id=current_user.id,
+            course_id=course.id,
+            payment_for="course",
+            status="success",
+        ).first()
+        if not confirmed_payment:
+            flash("Access to this paid course requires a confirmed payment.", "warning")
+            return redirect(url_for("courses.course_detail", course_id=course.id))
 
     if score_pct >= passing_score:
         if enrollment:

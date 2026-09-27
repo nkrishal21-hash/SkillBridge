@@ -17,7 +17,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from app import db
-from app.models import Course, Enrollment, Certificate
+from app.models import Course, Enrollment, Certificate, Payment
 from app.auth.utils import learner_required
 from app.certificates.utils import (
     generate_certificate_code,
@@ -38,7 +38,7 @@ def generate(course_id: int):
     """
     Generate and persist a certificate for a completed course.
     If a certificate already exists, redirects to download immediately.
-    Guards: Learner must have Enrollment with completed_at NOT NULL.
+    Guards: Learner must have Enrollment with completed_at NOT NULL and confirmed payment for paid courses.
     """
     course = Course.query.get_or_404(course_id)
     enrollment = Enrollment.query.filter_by(
@@ -49,6 +49,17 @@ def generate(course_id: int):
     if not enrollment or not enrollment.completed_at:
         flash("You must complete all lessons and pass required quizzes before claiming your certificate.", "warning")
         return redirect(url_for("courses.course_detail", course_id=course.id))
+
+    if course.price and course.price > 0:
+        confirmed_payment = Payment.query.filter_by(
+            learner_id=current_user.id,
+            course_id=course.id,
+            payment_for="course",
+            status="success",
+        ).first()
+        if not confirmed_payment:
+            flash("Access to this paid course certificate requires a confirmed payment.", "warning")
+            return redirect(url_for("courses.course_detail", course_id=course.id))
 
     # Check if certificate already exists (enforces unique constraint uq_certificate)
     existing_cert = Certificate.query.filter_by(
