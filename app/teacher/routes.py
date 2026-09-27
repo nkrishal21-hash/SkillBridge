@@ -196,9 +196,10 @@ def search():
     sort_by = request.args.get("sort", "rating").strip()
     page = request.args.get("page", 1, type=int)
 
-    # Base query: Join TeacherProfile with User
+    # Base query: Join TeacherProfile with User (verified mentors only)
     query = TeacherProfile.query.join(User).filter(
         User.is_active.is_(True),
+        TeacherProfile.is_verified.is_(True),
         TeacherProfile.headline.isnot(None),
         TeacherProfile.headline != "",
         TeacherProfile.skills.isnot(None),

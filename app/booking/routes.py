@@ -52,6 +52,10 @@ def new(teacher_id: int):
         flash("This instructor has not set up their mentor profile yet.", "warning")
         return redirect(url_for("teacher.search"))
 
+    if not profile.is_verified:
+        flash("This mentor is pending verification and cannot be booked yet.", "warning")
+        return redirect(url_for("teacher.public_profile", teacher_id=profile.id))
+
     # Cannot book with oneself
     if teacher_user.id == current_user.id:
         flash("You cannot book a mentorship session with yourself.", "warning")
