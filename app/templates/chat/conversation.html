@@ -69,7 +69,7 @@
           <div class="message-bubble {{ 'bubble-sent' if is_me else 'bubble-received' }}">
             <div class="message-text">{{ msg.body|nl2br }}</div>
             <div class="message-meta">
-              <span>{{ msg.sent_at.strftime('%I:%M %p') if msg.sent_at else '' }}</span>
+              <span class="msg-time" data-utc="{{ msg.sent_at.isoformat() }}Z">{{ msg.sent_at.strftime('%I:%M %p') if msg.sent_at else '' }}</span>
               {% if is_me %}
                 <span class="read-indicator" title="{{ 'Read' if msg.is_read else 'Delivered' }}">
                   {{ '✓✓' if msg.is_read else '✓' }}
@@ -116,6 +116,27 @@
     const sendBtn = document.getElementById("chat-send-btn");
     const statusDot = document.getElementById("connection-status-dot");
     const statusText = document.getElementById("connection-status-text");
+
+    // Format local time from ISO string
+    function formatLocalTime(isoStr) {
+      if (!isoStr) return "";
+      try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return "";
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } catch (e) {
+        return "";
+      }
+    }
+
+    // Format all server-rendered message timestamps to client local timezone
+    document.querySelectorAll(".msg-time[data-utc]").forEach(function(el) {
+      const utc = el.getAttribute("data-utc");
+      const formatted = formatLocalTime(utc);
+      if (formatted) {
+        el.textContent = formatted;
+      }
+    });
 
     // Auto-scroll messages to bottom
     function scrollToBottom() {
@@ -185,7 +206,13 @@
       metaDiv.className = "message-meta";
       
       const timeSpan = document.createElement("span");
-      timeSpan.textContent = data.sent_at_time || "";
+      timeSpan.className = "msg-time";
+      const isoStr = data.sent_at_iso || data.sent_at;
+      const formattedTime = formatLocalTime(isoStr);
+      timeSpan.textContent = formattedTime || data.sent_at_time || "";
+      if (isoStr) {
+        timeSpan.setAttribute("data-utc", isoStr);
+      }
       metaDiv.appendChild(timeSpan);
 
       if (isMe) {

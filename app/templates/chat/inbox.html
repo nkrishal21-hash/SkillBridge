@@ -44,7 +44,7 @@
                     {{ conv.partner.role }}
                   </span>
                 </div>
-                <span class="chat-inbox-time">
+                <span class="chat-inbox-time" {% if conv.last_message and conv.last_message.sent_at %}data-utc="{{ conv.last_message.sent_at.isoformat() }}Z"{% endif %}>
                   {{ conv.last_message.sent_at.strftime('%b %d, %I:%M %p') if conv.last_message and conv.last_message.sent_at else '' }}
                 </span>
               </div>
@@ -85,4 +85,19 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.querySelectorAll(".chat-inbox-time[data-utc]").forEach(function(el) {
+    const utc = el.getAttribute("data-utc");
+    if (!utc) return;
+    try {
+      const d = new Date(utc);
+      if (!isNaN(d.getTime())) {
+        el.textContent = d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      }
+    } catch(e) {}
+  });
+</script>
 {% endblock %}

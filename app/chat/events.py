@@ -111,7 +111,8 @@ def handle_send_message(data):
         "sender_name": current_user.full_name,
         "receiver_id": receiver_id,
         "body": msg.body,
-        "sent_at": msg.sent_at.strftime("%b %d, %Y %I:%M %p"),
+        "sent_at": msg.sent_at.isoformat() + "Z",
+        "sent_at_iso": msg.sent_at.isoformat() + "Z",
         "sent_at_time": msg.sent_at.strftime("%I:%M %p"),
         "is_read": msg.is_read,
     }
