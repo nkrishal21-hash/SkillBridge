@@ -329,9 +329,61 @@ def cancel(booking_id: int):
         return redirect(url_for("booking.detail", booking_id=booking.id))
 
     booking.status = "cancelled"
+
+    # Check if a successful payment exists for this booking
+    payment = Payment.query.filter_by(
+        payment_for="booking",
+        booking_id_ref=booking.id,
+        status="success",
+    ).first()
+
+    refunded = False
+    if payment:
+        payment.status = "refunded"
+        refunded = True
+
+        # Send in-app notification to learner about the refund
+        notify(
+            user_id=booking.learner_id,
+            title=f"Session Payment Refunded (NPR {payment.amount})",
+            body=(
+                f"Your booking #{booking.id} ('{booking.topic or 'Mentorship Session'}') was cancelled by "
+                f"{current_user.full_name}. Your payment of NPR {payment.amount} has been marked as refunded."
+            ),
+            notif_type="payment",
+            link=url_for("booking.detail", booking_id=booking.id),
+        )
+
+        # If cancelled by learner, notify the teacher about the cancellation
+        if current_user.id == booking.learner_id:
+            notify(
+                user_id=booking.teacher_id,
+                title=f"Session Cancelled: {booking.topic or 'Mentorship Session'}",
+                body=f"{current_user.full_name} has cancelled their booked mentorship session scheduled for {booking.session_date.strftime('%b %d, %Y')}.",
+                notif_type="booking",
+                link=url_for("booking.detail", booking_id=booking.id),
+            )
+    else:
+        # Notify the other party about cancellation of unpaid/pending booking
+        other_user_id = booking.teacher_id if current_user.id == booking.learner_id else booking.learner_id
+        notify(
+            user_id=other_user_id,
+            title=f"Session Cancelled: {booking.topic or 'Mentorship Session'}",
+            body=f"{current_user.full_name} has cancelled the booking request for {booking.session_date.strftime('%b %d, %Y')}.",
+            notif_type="booking",
+            link=url_for("booking.detail", booking_id=booking.id),
+        )
+
     db.session.commit()
 
-    flash("The session booking has been cancelled.", "info")
+    if refunded:
+        flash(
+            f"The session booking has been cancelled and the payment of NPR {payment.amount} has been recorded as refunded.",
+            "info",
+        )
+    else:
+        flash("The session booking has been cancelled.", "info")
+
     return redirect(url_for("booking.detail", booking_id=booking.id))
 
 
