@@ -21,11 +21,11 @@
   <!-- Tabs -->
   <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0;">
     <a href="{{ url_for('admin.teacher_list', filter='pending') }}"
-       style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; color: {{ 'white' if filter_status == 'pending' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+       class="admin-tab-btn {% if filter_status == 'pending' %}active{% endif %}">
       Pending Review
     </a>
     <a href="{{ url_for('admin.teacher_list', filter='verified') }}"
-       style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'verified' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'verified' else 'transparent' }}; color: {{ 'white' if filter_status == 'verified' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+       class="admin-tab-btn {% if filter_status == 'verified' %}active{% endif %}">
       Verified
     </a>
   </div>
@@ -84,7 +84,8 @@
             </a>
             {% if not profile.is_verified %}
               <form method="POST" action="{{ url_for('admin.verify_teacher', profile_id=profile.id) }}"
-                    onsubmit="return confirm('Grant verified instructor status to {{ profile.user.full_name if profile.user else 'this teacher' }}?');">
+                    data-confirm="Grant verified instructor status to {{ profile.user.full_name if profile.user else 'this teacher' }}?"
+                    onsubmit="return confirm(this.dataset.confirm);">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-primary btn-sm" style="background: var(--success); border-color: var(--success);">
                   Verify
@@ -92,7 +93,8 @@
               </form>
             {% else %}
               <form method="POST" action="{{ url_for('admin.unverify_teacher', profile_id=profile.id) }}"
-                    onsubmit="return confirm('Revoke verification for {{ profile.user.full_name if profile.user else 'this teacher' }}?');">
+                    data-confirm="Revoke verification for {{ profile.user.full_name if profile.user else 'this teacher' }}?"
+                    onsubmit="return confirm(this.dataset.confirm);">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);">
                   Revoke

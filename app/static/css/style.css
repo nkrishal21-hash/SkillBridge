@@ -201,6 +201,7 @@ a:hover {
 .brand-name {
   background: linear-gradient(135deg, var(--text-primary) 35%, var(--primary) 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -1090,6 +1091,7 @@ a:hover {
   margin-bottom: 16px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1513,6 +1515,7 @@ a:hover {
   margin-bottom: 16px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2268,4 +2271,143 @@ a:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Status & Admin UI Utility Classes
+   ───────────────────────────────────────────────────────────────────────────── */
+.text-danger { color: var(--danger) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-success { color: var(--success) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-primary { color: var(--primary) !important; }
+.text-amber { color: #D97706 !important; }
+
+.admin-tab-btn {
+  padding: 8px 18px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  margin-bottom: -2px;
+  transition: all var(--transition-fast);
+}
+.admin-tab-btn.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.admin-payout-tab {
+  padding: 8px 20px;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+  color: var(--text-muted);
+  margin-bottom: -2px;
+  transition: color var(--transition-fast);
+}
+.admin-payout-tab.active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+
+.admin-queue-card {
+  border: 1px solid var(--border-subtle);
+}
+.admin-queue-card.border-warning {
+  border: 2px solid var(--warning) !important;
+}
+.admin-queue-card.border-danger {
+  border: 2px solid var(--danger) !important;
+}
+.admin-queue-card.border-amber {
+  border: 2px solid #D97706 !important;
+}
+
+.syllabus-nav-item {
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border-subtle);
+  background: white;
+}
+.syllabus-nav-item.current {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.syllabus-nav-item .nav-order {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+}
+.syllabus-nav-item.current .nav-order {
+  color: var(--primary);
+}
+.syllabus-nav-item .nav-title-link {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.syllabus-nav-item.current .nav-title-link {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.recent-update-item {
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.recent-update-item.unread {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.02);
+}
+
+.notification-item-card {
+  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.notification-item-card.notification-unread {
+  border-color: var(--primary);
+}
+.notification-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--bg-alt);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.notification-item-card.notification-unread .notification-icon-wrap {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
 

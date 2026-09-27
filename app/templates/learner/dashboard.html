@@ -91,9 +91,12 @@
                     <!-- Mini progress bar -->
                     <div style="display: flex; align-items: center; gap: 10px;">
                       <div class="progress-track" style="flex: 1; height: 6px; background: var(--bg-alt); border-radius: var(--radius-full); overflow: hidden;">
-                        <div class="progress-fill" style="width: {{ enrollment.progress_percent }}%; height: 100%; background: {{ 'var(--success)' if enrollment.progress_percent >= 100 else 'var(--primary)' }};"></div>
+                        <div class="progress-fill {% if enrollment.progress_percent >= 100 %}bg-success{% endif %}"
+                             style="height: 100%; background: var(--primary);"
+                             data-width="{{ enrollment.progress_percent }}"></div>
                       </div>
-                      <span style="font-size: 0.8rem; font-weight: 700; color: {{ 'var(--success)' if enrollment.progress_percent >= 100 else 'var(--primary)' }};">{{ enrollment.progress_percent }}%</span>
+                      <span class="{% if enrollment.progress_percent >= 100 %}text-success{% else %}text-primary{% endif %}"
+                            style="font-size: 0.8rem; font-weight: 700;">{{ enrollment.progress_percent }}%</span>
                     </div>
                   </div>
                 </div>
@@ -290,7 +293,7 @@
         {% if recent_notifications %}
           <div style="display: flex; flex-direction: column; gap: 10px;">
             {% for notif in recent_notifications %}
-              <div style="border: 1px solid {{ 'var(--primary)' if not notif.is_read else 'var(--border-subtle)' }}; background: {{ 'rgba(79, 70, 229, 0.02)' if not notif.is_read else '#fff' }}; border-radius: var(--radius-md); padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start;">
+              <div class="recent-update-item {% if not notif.is_read %}unread{% endif %}">
                 <div style="font-size: 1.1rem; line-height: 1; flex-shrink: 0; margin-top: 2px; color: var(--primary);">
                   {% if notif.notif_type == 'booking' %}{{ icon('calendar', 18) }}{% elif notif.notif_type == 'payment' %}{{ icon('credit-card', 18) }}{% elif notif.notif_type == 'review' %}{{ icon('star', 18) }}{% elif notif.notif_type == 'course' %}{{ icon('award', 18) }}{% else %}{{ icon('bell', 18) }}{% endif %}
                 </div>
@@ -325,4 +328,14 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.querySelectorAll('.progress-fill[data-width]').forEach(function(el) {
+    var pct = parseFloat(el.dataset.width);
+    el.style.width = pct + '%';
+    if (pct >= 100) { el.style.background = 'var(--success)'; }
+  });
+</script>
 {% endblock %}

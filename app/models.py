@@ -15,9 +15,23 @@ from app import db, bcrypt
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# BASE MODEL
+# ─────────────────────────────────────────────────────────────────────────────
+class BaseModel(db.Model):
+    """
+    Abstract base model providing an explicit keyword-argument constructor
+    for static type checkers (Pyright/Pylance) and IDE diagnostics.
+    """
+    __abstract__ = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 1. USERS
 # ─────────────────────────────────────────────────────────────────────────────
-class User(db.Model, UserMixin):
+class User(BaseModel, UserMixin):
     """
     Central user table for all three roles: learner, teacher, admin.
     A single user record exists per account; role determines capabilities.
@@ -121,7 +135,7 @@ class User(db.Model, UserMixin):
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. TEACHER PROFILES
 # ─────────────────────────────────────────────────────────────────────────────
-class TeacherProfile(db.Model):
+class TeacherProfile(BaseModel):
     """
     Extended profile for users with role='teacher'.
     Created when a teacher completes their profile setup.
@@ -170,7 +184,7 @@ class TeacherProfile(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. COURSES
 # ─────────────────────────────────────────────────────────────────────────────
-class Course(db.Model):
+class Course(BaseModel):
     """
     A course created by a teacher. Contains multiple lessons and optional quizzes.
     """
@@ -211,7 +225,7 @@ class Course(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. LESSONS
 # ─────────────────────────────────────────────────────────────────────────────
-class Lesson(db.Model):
+class Lesson(BaseModel):
     """
     A single lesson within a course. Supports video, PDF notes, and quiz.
     """
@@ -249,7 +263,7 @@ class Lesson(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. ENROLLMENTS
 # ─────────────────────────────────────────────────────────────────────────────
-class Enrollment(db.Model):
+class Enrollment(BaseModel):
     """
     Tracks a learner's enrollment in a course, including lesson progress.
     """
@@ -286,7 +300,7 @@ class Enrollment(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. BOOKINGS
 # ─────────────────────────────────────────────────────────────────────────────
-class Booking(db.Model):
+class Booking(BaseModel):
     """
     1-on-1 mentorship session booking between a learner and a teacher.
     Teacher must approve before the Jitsi room is activated.
@@ -340,7 +354,7 @@ class Booking(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 7. MESSAGES
 # ─────────────────────────────────────────────────────────────────────────────
-class Message(db.Model):
+class Message(BaseModel):
     """
     Persisted chat messages sent via Flask-SocketIO.
     Indexed on sender+receiver and timestamp for fast inbox queries.
@@ -369,7 +383,7 @@ class Message(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. REVIEWS
 # ─────────────────────────────────────────────────────────────────────────────
-class Review(db.Model):
+class Review(BaseModel):
     """
     Written review + star rating left by a learner after a booking or course.
     One review per learner per booking.
@@ -404,7 +418,7 @@ class Review(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 9. RATINGS  (aggregate snapshot — updated after each review)
 # ─────────────────────────────────────────────────────────────────────────────
-class Rating(db.Model):
+class Rating(BaseModel):
     """
     Stores individual numeric ratings separate from review text,
     allowing fast aggregation queries on the search page.
@@ -429,7 +443,7 @@ class Rating(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 10. PAYMENTS
 # ─────────────────────────────────────────────────────────────────────────────
-class Payment(db.Model):
+class Payment(BaseModel):
     """
     Payment record for course enrollments or session bookings.
     Supports eSewa and Khalti sandbox gateways.
@@ -530,7 +544,7 @@ class Payment(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 11. NOTIFICATIONS
 # ─────────────────────────────────────────────────────────────────────────────
-class Notification(db.Model):
+class Notification(BaseModel):
     """
     In-app notification bell entries.  Created by system events
     (booking approved, new message, course completed, etc.).
@@ -557,7 +571,7 @@ class Notification(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 12. CERTIFICATES
 # ─────────────────────────────────────────────────────────────────────────────
-class Certificate(db.Model):
+class Certificate(BaseModel):
     """
     PDF certificate issued when a learner completes a course.
     PDF is generated with ReportLab and stored on Cloudinary.
@@ -591,7 +605,7 @@ class Certificate(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 13. FAVORITES
 # ─────────────────────────────────────────────────────────────────────────────
-class Favorite(db.Model):
+class Favorite(BaseModel):
     """
     Learner's saved/favorited teachers for quick access from dashboard.
     """
@@ -617,7 +631,7 @@ class Favorite(db.Model):
 # ─────────────────────────────────────────────────────────────────────────────
 # 14. REPORTS
 # ─────────────────────────────────────────────────────────────────────────────
-class Report(db.Model):
+class Report(BaseModel):
     """
     Incident reports filed by learners or teachers for sessions/behavior.
     Reviewed by administrators for disciplinary action or refunds.

@@ -69,7 +69,7 @@
                     <span class="badge" style="background: rgba(245, 158, 11, 0.1); color: #B45309; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 4px;">{{ icon('clock', 11) }} Initiated</span>
                   {% endif %}
                 </td>
-                <td style="padding: 11px 16px; text-align: right; font-weight: 800; color: {{ 'var(--success)' if p.status == 'success' else 'var(--text-muted)' }};">
+                <td class="{% if p.status == 'success' %}text-success{% else %}text-muted{% endif %}" style="padding: 11px 16px; text-align: right; font-weight: 800;">
                   NPR {{ "%.0f"|format(p.amount) }}
                 </td>
                 <td style="padding: 11px 16px; color: var(--text-muted); font-size: 0.8rem;">

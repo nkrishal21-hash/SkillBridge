@@ -26,15 +26,15 @@
   <div
     style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0;">
     <a href="{{ url_for('admin.course_list', filter='pending') }}"
-      style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'pending' else 'transparent' }}; color: {{ 'white' if filter_status == 'pending' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      class="admin-tab-btn {% if filter_status == 'pending' %}active{% endif %}">
       Pending Approval
     </a>
     <a href="{{ url_for('admin.course_list', filter='approved') }}"
-      style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'approved' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'approved' else 'transparent' }}; color: {{ 'white' if filter_status == 'approved' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      class="admin-tab-btn {% if filter_status == 'approved' %}active{% endif %}">
       Approved
     </a>
     <a href="{{ url_for('admin.course_list', filter='all') }}"
-      style="padding: 8px 18px; border-radius: var(--radius-md) var(--radius-md) 0 0; font-weight: 600; font-size: 0.88rem; text-decoration: none; border: 1px solid {{ 'var(--primary)' if filter_status == 'all' else 'transparent' }}; background: {{ 'var(--primary)' if filter_status == 'all' else 'transparent' }}; color: {{ 'white' if filter_status == 'all' else 'var(--text-muted)' }}; margin-bottom: -2px;">
+      class="admin-tab-btn {% if filter_status == 'all' %}active{% endif %}">
       All Courses
     </a>
   </div>
@@ -126,7 +126,8 @@
   <div
     style="text-align: center; padding: 60px 20px; color: var(--text-muted); background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
     <div style="margin-bottom: 12px; color: var(--text-muted);">
-      {% if filter_status == 'approved' %}{{ icon('check-circle', 40) }}{% elif filter_status == 'all' %}{{ icon('book-open', 40) }}{% else %}{{ icon('file-text', 40) }}{% endif %}
+      {% if filter_status == 'approved' %}{{ icon('check-circle', 40) }}{% elif filter_status == 'all' %}{{
+      icon('book-open', 40) }}{% else %}{{ icon('file-text', 40) }}{% endif %}
     </div>
     <p style="font-size: 1rem; margin-bottom: 0; font-weight: 600; color: var(--text-secondary);">
       {% if filter_status == 'approved' %}No approved courses yet.

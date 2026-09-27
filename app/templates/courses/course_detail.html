@@ -314,7 +314,7 @@
               <span style="font-size: 0.95rem; font-weight: 700; color: var(--primary);">{{ enrollment.progress_percent }}%</span>
             </div>
             <div class="progress-track" style="height: 10px; border-radius: var(--radius-full); background: var(--bg-alt); overflow: hidden;">
-              <div class="progress-fill" style="width: {{ enrollment.progress_percent }}%; height: 100%; background: var(--primary); transition: width 0.4s ease;"></div>
+              <div class="progress-fill" style="height: 100%; background: var(--primary); transition: width 0.4s ease;" data-width="{{ enrollment.progress_percent }}"></div>
             </div>
             <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">
               {{ completed_ids|length }} of {{ lessons|length }} lessons completed
@@ -406,4 +406,13 @@
     </aside>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Initialise progress bars whose width is stored in data-width (avoids CSS linter errors)
+  document.querySelectorAll('.progress-fill[data-width]').forEach(function(el) {
+    el.style.width = el.dataset.width + '%';
+  });
+</script>
 {% endblock %}
