@@ -21,6 +21,7 @@
 | Post-9 | Platform Commission & Payouts | ✅ Done | 2026-09-20 |
 | Post-9 | App-Wide UI Polish: Custom SVG Icon System | ✅ Done | 2026-09-20 |
 | Post-9 | Visual Identity & Polish: Brand Palette & Form Distinction | ✅ Done | 2026-09-21 |
+| Post-9 | **Critical Fixes: Payment Integrity, Teacher Verification, Refund-on-Cancel, Credential Uploads** | ✅ Done | 2026-09-27 |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
 
 Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
@@ -580,6 +581,75 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
   - Muted text on base: 4.55:1 (AA)
   - Form input text on `--bg-input`: 16.88:1 (AAA)
 - **Zero-Functional-Risk Guarantee**: Explicitly confirmed that **ONLY** `app/static/css/style.css` was touched in source code. No `.html` or `.py` files were altered, no CSS selectors/classes were renamed or removed, and all form submissions (including auth login) and responsive behaviors (tested at 375px mobile) perform identically to before.
+
+---
+
+## Post-Phase-9 — Critical Fixes: Payment Integrity, Teacher Verification Enforcement, Refund-on-Cancel, Credential Uploads
+**Status:** Done
+**Date started / completed:** 2026-09-27 / 2026-09-27
+
+### Overview
+Seven confirmed bugs and feature gaps were fixed in separate commits (Parts A through G).
+
+### Part A — Chat message timestamps (UTC to local timezone)
+**Fix:** app/chat/events.py now emits ISO 8601 timestamps instead of server-formatted strings.
+conversation.html JavaScript (formatLocalTime) converts these to the viewer's local browser timezone.
+Applied to both live socket event stream and initial message history load.
+**Commit:** ff17f97
+
+### Part B — Paid course access without confirmed Payment (investigation + hardening)
+**Investigation finding:** Existing enrollments on paid courses were leftover from development testing
+before the payment system was implemented — no genuine bypass was found.
+**Hardening:** lesson_view() and complete_lesson() in app/courses/routes.py now verify a successful
+Payment exists for courses where price > 0, in addition to the enrollment check. Free courses only
+need the Enrollment check.
+**Judgment call:** Existing test-data enrollments were NOT deleted, per instruction.
+**Commit:** 8106bfb
+
+### Part C — Unverified teachers blocked from search and booking
+**Fix 1:** search() in teacher/routes.py already filtered on is_verified — confirmed working.
+**Fix 2:** booking/routes.py new() checks teacher_profile.is_verified before creating a booking.
+**Fix 3:** public_profile.html shows a disabled notice instead of Book button for unverified teachers.
+**Commit:** 6218333
+
+### Part D — Refund on booking cancellation
+**Fix:** cancel() in app/booking/routes.py now checks for a successful Payment after setting
+status="cancelled". If found, flips Payment.status to "refunded" and notifies the learner.
+**Judgment call on learner cancellation:** Full auto-refund applies regardless of who cancels.
+Rationale: no cancellation-fee/policy system exists in this app.
+**Note:** Internal record-only refund — no real eSewa money-movement API is called.
+**Commit:** 9e8f5cf
+
+### Part E — Password show/hide toggle on auth forms
+**Fix:** Added eye/eye-off icon toggle button to password fields on:
+- auth/login.html
+- auth/register.html (password + confirm password)
+- auth/reset_password.html (new password + confirm)
+Each form includes an inline togglePasswordVisibility() JS function (no library dependency).
+**Commit:** 7b75a86
+
+### Part F — Teacher credential document upload + admin review
+**New model:** TeacherDocument table (teacher_documents) added to app/models.py:
+- Fields: id, teacher_profile_id (FK, CASCADE), document_type ENUM, file_url, uploaded_at
+- Created with db.create_all() — zero impact on existing tables or data.
+**Upload helper:** upload_teacher_document() in teacher/utils.py:
+- Validates extension (PDF/JPG/JPEG/PNG/WEBP), 16 MB limit
+- Cloudinary upload with local-disk fallback, mirroring upload_profile_photo pattern
+**Teacher routes:** GET/POST /teacher/documents (list + upload) and POST /teacher/documents/<id>/delete
+**Teacher dashboard:** Amber prompt banner when unverified with no documents uploaded
+**New template:** teacher/documents.html with upload form, list, View/Delete actions
+**Admin queue:** admin/teachers.html shows clickable document links per teacher; "No documents"
+warning for unverified teachers with zero docs
+**Judgment call:** Teachers are not hard-blocked from the admin queue without documents.
+Instead, the admin queue prominently shows "No documents uploaded yet" so the admin can
+choose not to verify until docs are present.
+**Commit:** 7b75a86
+
+### Part G — Landing page CTA for logged-in users
+**Fix:** app/templates/index.html hero CTA is now conditional on current_user.is_authenticated:
+- Authenticated: single "Go to Dashboard" button linking to their role dashboard
+- Anonymous: original two-button CTA ("Start Learning Free" + "Become a Teacher")
+**Commit:** 7b75a86
 
 ---
 
