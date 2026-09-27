@@ -45,7 +45,25 @@
     </div>
   {% endif %}
 
-  <!-- Stats Summary -->
+  <!-- Document Upload Prompt — shown to unverified teachers with no documents -->
+  {% if profile and not profile.is_verified and not profile.documents %}
+    <div style="background: linear-gradient(135deg, #fff8ed 0%, #fff3db 100%); border: 1px solid #f6c860; border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="color: #d97706; flex-shrink: 0;">{{ icon('alert-circle', 20) }}</span>
+        <div>
+          <strong style="color: #92400e;">Upload your credential documents to be eligible for verification</strong>
+          <div style="font-size: 0.85rem; margin-top: 2px; color: #78350f;">
+            Admin needs to review your citizenship, passport, or educational certificates before granting verified instructor status.
+          </div>
+        </div>
+      </div>
+      <a href="{{ url_for('teacher.documents') }}" class="btn btn-sm" style="background: #d97706; border-color: #d97706; color: white; flex-shrink: 0;">
+        Upload Documents &rarr;
+      </a>
+    </div>
+  {% endif %}
+
+
   <div class="dashboard-stats">
     <div class="stat-card">
       <div class="stat-label">Verification Status</div>

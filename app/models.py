@@ -182,7 +182,40 @@ class TeacherProfile(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3. COURSES
+# 3. TEACHER DOCUMENTS
+# ─────────────────────────────────────────────────────────────────────────────
+class TeacherDocument(BaseModel):
+    """
+    Uploaded credential / identity documents for a teacher.
+    A teacher may upload multiple documents (citizenship, certificates, etc.).
+    Admin reviews these before granting is_verified = True.
+    """
+    __tablename__ = "teacher_documents"
+
+    id = db.Column(db.Integer, primary_key=True)
+    teacher_profile_id = db.Column(
+        db.Integer,
+        db.ForeignKey("teacher_profiles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    document_type = db.Column(
+        db.Enum(
+            "citizenship", "passport", "educational_certificate", "other",
+            name="teacher_document_type",
+        ),
+        nullable=False,
+    )
+    file_url = db.Column(db.String(500), nullable=False)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # ── Relationship ──────────────────────────────────────────────────────────
+    teacher_profile = db.relationship("TeacherProfile", backref="documents")
+
+    def __repr__(self):
+        return f"<TeacherDocument profile_id={self.teacher_profile_id} type={self.document_type}>"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 class Course(BaseModel):
     """

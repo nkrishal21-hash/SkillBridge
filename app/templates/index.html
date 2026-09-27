@@ -15,12 +15,22 @@
       Connect 1-on-1 with verified teachers, enroll in interactive video courses, and accelerate your career through collaborative live learning.
     </p>
     <div class="hero-actions">
-      <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
-        Start Learning Free
-      </a>
-      <a href="{{ url_for('auth.register', role='teacher') }}" class="btn btn-secondary btn-lg">
-        Become a Teacher
-      </a>
+      {% if current_user.is_authenticated %}
+        {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        {% elif current_user.role == 'teacher' %}
+          <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        {% else %}
+          <a href="{{ url_for('learner.dashboard') }}" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        {% endif %}
+      {% else %}
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">
+          Start Learning Free
+        </a>
+        <a href="{{ url_for('auth.register', role='teacher') }}" class="btn btn-secondary btn-lg">
+          Become a Teacher
+        </a>
+      {% endif %}
     </div>
   </div>
 </section>

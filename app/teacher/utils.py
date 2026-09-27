@@ -138,3 +138,83 @@ def upload_profile_photo(file_storage, user_id: int) -> str:
     if has_request_context():
         return url_for("static", filename=f"uploads/profile_photos/{safe_name}")
     return f"/static/uploads/profile_photos/{safe_name}"
+
+
+# Document types allowed for credential uploads
+ALLOWED_DOC_EXTENSIONS = {"pdf", "jpg", "jpeg", "png", "webp"}
+MAX_DOC_SIZE = 16 * 1024 * 1024  # 16 MB
+
+
+def upload_teacher_document(file_storage, profile_id: int) -> str:
+    """
+    Upload a credential / identity document to Cloudinary (raw for PDFs,
+    image for photo scans) with a local-disk fallback when Cloudinary is
+    not configured.
+
+    Validates extension (PDF or image) and file size.
+    Returns the URL/path to the stored file.
+    Raises ValueError with a user-facing message on invalid input.
+    """
+    if not file_storage or not file_storage.filename:
+        raise ValueError("No file was selected for upload.")
+
+    filename = file_storage.filename
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ALLOWED_DOC_EXTENSIONS:
+        raise ValueError(
+            f"Unsupported format '.{ext}'. Allowed: PDF, JPG, JPEG, PNG, WEBP."
+        )
+
+    # Check file size
+    file_storage.seek(0, os.SEEK_END)
+    file_size = file_storage.tell()
+    file_storage.seek(0)
+    if file_size > MAX_DOC_SIZE:
+        raise ValueError("File size exceeds the 16 MB limit.")
+
+    cloud_name = current_app.config.get("CLOUDINARY_CLOUD_NAME")
+    api_key = current_app.config.get("CLOUDINARY_API_KEY")
+    api_secret = current_app.config.get("CLOUDINARY_API_SECRET")
+
+    is_cloudinary_configured = bool(
+        cloud_name
+        and api_key
+        and api_secret
+        and "your-" not in str(cloud_name).lower()
+    )
+
+    if is_cloudinary_configured:
+        try:
+            resource_type = "raw" if ext == "pdf" else "image"
+            result = cloudinary.uploader.upload(
+                file_storage,
+                folder="skillbridge/teacher_documents",
+                public_id=f"profile_{profile_id}_{int(time.time())}",
+                overwrite=False,
+                resource_type=resource_type,
+            )
+            secure_url = result.get("secure_url")
+            if secure_url:
+                return secure_url
+        except Exception as exc:
+            current_app.logger.warning(
+                f"[Cloudinary] Document upload failed for profile {profile_id}: {exc}. "
+                "Falling back to local disk."
+            )
+
+    # Local fallback
+    upload_dir = os.path.join(
+        current_app.root_path, "static", "uploads", "teacher_documents"
+    )
+    os.makedirs(upload_dir, exist_ok=True)
+
+    safe_name = secure_filename(
+        f"profile_{profile_id}_{int(time.time())}.{ext}"
+    )
+    destination = os.path.join(upload_dir, safe_name)
+    file_storage.seek(0)
+    file_storage.save(destination)
+
+    if has_request_context():
+        return url_for("static", filename=f"uploads/teacher_documents/{safe_name}")
+    return f"/static/uploads/teacher_documents/{safe_name}"

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 
 {% block title %}Create Account — SkillBridge{% endblock %}
 
@@ -47,7 +48,13 @@
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
-          {{ form.password(class="form-control", id="password") }}
+          <div style="position: relative; display: flex; align-items: center;">
+            {{ form.password(class="form-control", id="password", style="padding-right: 42px;") }}
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" style="position: absolute; right: 10px; background: none; border: none; padding: 4px; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;" aria-label="Toggle password visibility" tabindex="-1">
+              <span class="eye-show">{{ icon('eye', 18) }}</span>
+              <span class="eye-hide" style="display: none;">{{ icon('eye-off', 18) }}</span>
+            </button>
+          </div>
           {% for error in form.password.errors %}
             <div class="form-error">{{ error }}</div>
           {% endfor %}
@@ -55,7 +62,13 @@
 
         <div class="form-group">
           <label class="form-label" for="confirm_password">Confirm Password</label>
-          {{ form.confirm_password(class="form-control", id="confirm_password") }}
+          <div style="position: relative; display: flex; align-items: center;">
+            {{ form.confirm_password(class="form-control", id="confirm_password", style="padding-right: 42px;") }}
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('confirm_password', this)" style="position: absolute; right: 10px; background: none; border: none; padding: 4px; cursor: pointer; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center;" aria-label="Toggle password visibility" tabindex="-1">
+              <span class="eye-show">{{ icon('eye', 18) }}</span>
+              <span class="eye-hide" style="display: none;">{{ icon('eye-off', 18) }}</span>
+            </button>
+          </div>
           {% for error in form.confirm_password.errors %}
             <div class="form-error">{{ error }}</div>
           {% endfor %}
@@ -149,5 +162,18 @@
       selectRole('teacher');
     }
   });
+
+  function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+    const eyeShow = btn.querySelector(".eye-show");
+    const eyeHide = btn.querySelector(".eye-hide");
+    if (eyeShow && eyeHide) {
+      eyeShow.style.display = isPassword ? "none" : "inline-flex";
+      eyeHide.style.display = isPassword ? "inline-flex" : "none";
+    }
+  }
 </script>
 {% endblock %}

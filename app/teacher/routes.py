@@ -7,11 +7,12 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 from sqlalchemy import or_, and_, func
 from app import db
-from app.models import TeacherProfile, User, Payment, Booking, Course, Review
+from app.models import TeacherProfile, TeacherDocument, User, Payment, Booking, Course, Review
 from app.auth.utils import teacher_required
 from app.teacher.forms import TeacherProfileForm
 from app.teacher.utils import (
     upload_profile_photo,
+    upload_teacher_document,
     parse_skills,
     availability_to_json,
     available_days_list,
@@ -181,7 +182,89 @@ def profile_edit():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 3b. Teacher Document Upload / Management
+# ─────────────────────────────────────────────────────────────────────────────
+DOCUMENT_TYPE_LABELS = {
+    "citizenship": "Citizenship Card",
+    "passport": "Passport",
+    "educational_certificate": "Educational Certificate",
+    "other": "Other Document",
+}
+
+
+@teacher_bp.route("/documents", methods=["GET", "POST"])
+@login_required
+@teacher_required
+def documents():
+    """Upload and manage credential documents for admin verification review."""
+    profile = current_user.teacher_profile
+    if not profile:
+        profile = TeacherProfile(user=current_user)
+        db.session.add(profile)
+        db.session.commit()
+
+    if request.method == "POST":
+        doc_type = request.form.get("document_type", "").strip()
+        file_storage = request.files.get("document_file")
+
+        allowed_types = ["citizenship", "passport", "educational_certificate", "other"]
+        if doc_type not in allowed_types:
+            flash("Please select a valid document type.", "danger")
+            return redirect(url_for("teacher.documents"))
+
+        try:
+            file_url = upload_teacher_document(file_storage, profile.id)
+        except ValueError as err:
+            flash(str(err), "danger")
+            return redirect(url_for("teacher.documents"))
+
+        doc = TeacherDocument(
+            teacher_profile_id=profile.id,
+            document_type=doc_type,
+            file_url=file_url,
+        )
+        db.session.add(doc)
+        db.session.commit()
+        flash(
+            "Document uploaded successfully. The admin will review it before granting verification.",
+            "success",
+        )
+        return redirect(url_for("teacher.documents"))
+
+    existing_docs = (
+        TeacherDocument.query
+        .filter_by(teacher_profile_id=profile.id)
+        .order_by(TeacherDocument.uploaded_at.desc())
+        .all()
+    )
+    return render_template(
+        "teacher/documents.html",
+        profile=profile,
+        documents=existing_docs,
+        document_type_labels=DOCUMENT_TYPE_LABELS,
+    )
+
+
+@teacher_bp.route("/documents/<int:doc_id>/delete", methods=["POST"])
+@login_required
+@teacher_required
+def delete_document(doc_id: int):
+    """Delete a previously uploaded credential document."""
+    profile = current_user.teacher_profile
+    doc = TeacherDocument.query.get_or_404(doc_id)
+    # Ownership check — must belong to the current teacher's profile
+    if not profile or doc.teacher_profile_id != profile.id:
+        flash("You do not have permission to delete that document.", "danger")
+        return redirect(url_for("teacher.documents"))
+    db.session.delete(doc)
+    db.session.commit()
+    flash("Document deleted.", "success")
+    return redirect(url_for("teacher.documents"))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # 3. Public Mentor Search (Must be registered before /<int:teacher_id>)
+
 # ─────────────────────────────────────────────────────────────────────────────
 @teacher_bp.route("/search")
 def search():

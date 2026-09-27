@@ -74,8 +74,31 @@
                   Verified on {{ profile.verified_at.strftime('%b %d, %Y') }}
                 </div>
               {% endif %}
+
+              <!-- Credential Documents -->
+              {% if profile.documents %}
+                <div style="margin-top: 10px;">
+                  <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">Uploaded Documents</div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                    {% for doc in profile.documents %}
+                      {% set doc_labels = {'citizenship': 'Citizenship', 'passport': 'Passport', 'educational_certificate': 'Edu. Cert.', 'other': 'Other'} %}
+                      <a href="{{ doc.file_url }}" target="_blank" rel="noopener noreferrer"
+                         style="display: inline-flex; align-items: center; gap: 5px; background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight: 600;"
+                         title="Uploaded {{ doc.uploaded_at.strftime('%b %d, %Y') }}">
+                        {{ icon('file-text', 12) }}
+                        {{ doc_labels.get(doc.document_type, doc.document_type) }}
+                      </a>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% elif not profile.is_verified %}
+                <div style="margin-top: 8px; font-size: 0.78rem; color: var(--danger); display: flex; align-items: center; gap: 5px;">
+                  {{ icon('alert-circle', 13) }} No documents uploaded yet
+                </div>
+              {% endif %}
             </div>
           </div>
+
 
           <!-- Actions -->
           <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
