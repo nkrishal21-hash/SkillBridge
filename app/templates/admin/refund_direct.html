@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% from '_icons.html' import icon %}
+{% block title %}Issue Refund for Payment #{{ payment.id }} — SkillBridge Admin{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 0 auto; padding: 32px 24px;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div>
+      <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800;">Issue Direct Refund</h1>
+      <p style="margin: 4px 0 0; color: var(--text-secondary); font-size: 0.88rem;">
+        Process an administrative refund for Payment #{{ payment.id }}.
+      </p>
+    </div>
+    {% if report %}
+      <a href="{{ url_for('admin.report_list') }}" class="btn btn-outline btn-sm">&larr; Reports</a>
+    {% else %}
+      <a href="{{ url_for('admin.payment_list') }}" class="btn btn-outline btn-sm">&larr; All Payments</a>
+    {% endif %}
+  </div>
+
+  <!-- Misconduct Warning / Blocker -->
+  {% if misconduct_blocked %}
+    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: flex-start; gap: 10px;">
+        <span style="color: var(--danger); font-size: 1.2rem;">🚫</span>
+        <div>
+          <div style="font-weight: 800; color: #991b1b; font-size: 1rem;">Refund Blocked: Upheld Misconduct</div>
+          <p style="color: #7f1d1d; font-size: 0.88rem; margin: 4px 0 0; line-height: 1.5;">
+            The learner has an upheld misconduct report on file for this booking. Per platform trust &amp; safety policies, students with resolved misconduct violations are ineligible for refunds.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Details Card -->
+  <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size: 1.05rem; margin: 0 0 16px; color: var(--text-primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+      Payment &amp; Session Information
+    </h3>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">
+      <div>
+        <strong>Payment ID:</strong> #{{ payment.id }}<br>
+        <strong>Gateway:</strong> {{ payment.gateway|upper }}<br>
+        <strong>Status:</strong> <span style="font-weight: 700; color: #047857;">{{ payment.status }}</span>
+      </div>
+      <div>
+        <strong>Learner:</strong> {{ payment.learner.full_name if payment.learner else '—' }}<br>
+        <strong>Email:</strong> {{ payment.learner.email if payment.learner else '—' }}<br>
+        <strong>Gross Amount:</strong> <span style="font-weight: 800; color: var(--text-primary);">NPR {{ "%.2f"|format(payment.amount) }}</span>
+      </div>
+    </div>
+
+    {% if booking %}
+      <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border-subtle); font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5;">
+        <strong>Session:</strong> {{ booking.topic or 'Mentorship Session' }} (Booking #{{ booking.id }})<br>
+        <strong>Teacher:</strong> {{ booking.teacher.full_name if booking.teacher else '—' }}<br>
+        <strong>Date:</strong> {{ booking.session_date.strftime('%b %d, %Y') }} · {{ booking.start_time.strftime('%I:%M %p') }} – {{ booking.end_time.strftime('%I:%M %p') }}<br>
+        <strong>Booking Status:</strong> <span style="text-transform: capitalize; font-weight: 600;">{{ booking.status }}</span>
+      </div>
+    {% endif %}
+
+    {% if report %}
+      <div style="margin-top: 14px; padding: 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); font-size: 0.85rem; color: #92400e;">
+        <strong>Resolving Report #{{ report.id }}:</strong> {{ report.reason|replace('_', ' ')|capitalize }}<br>
+        {{ report.description or 'No description' }}
+      </div>
+    {% endif %}
+
+    {% if payment.payout_status == 'released' %}
+      <div style="margin-top: 14px; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); font-size: 0.85rem; color: #991b1b;">
+        ⚠️ <strong>Notice:</strong> Teacher payout (NPR {{ "%.2f"|format(payment.teacher_payout_amount or 0) }}) was already released. Refunding will record an internal adjustment requiring offline reconciliation with the teacher.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Refund Entry Form -->
+  {% if not misconduct_blocked and payment.status == 'success' %}
+    <div style="background: white; border: 2px solid #86efac; border-radius: var(--radius-lg); padding: 24px;">
+      <h3 style="font-size: 1.1rem; color: #15803d; margin: 0 0 12px; display: flex; align-items: center; gap: 8px;">
+        {{ icon('refresh-cw', 18) }} Enter Refund Amount &amp; Note
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4;">
+        Refund amount must be between <strong>0.01</strong> and <strong>{{ "%.2f"|format(payment.amount) }}</strong>. Any retained remainder stays with the platform as earnings.
+      </p>
+
+      <form method="POST"
+            action="{% if report %}{{ url_for('admin.refund_report', report_id=report.id) }}{% else %}{{ url_for('admin.payment_refund_direct', payment_id=payment.id) }}{% endif %}"
+            onsubmit="return confirm('Confirm processing refund of entered amount for Payment #{{ payment.id }}?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: block; font-weight: 700; font-size: 0.88rem; margin-bottom: 6px;">
+            Refund Amount (NPR)
+          </label>
+          <input type="number" name="refund_amount" step="0.01" min="0.01" max="{{ payment.amount }}"
+                 value="{{ payment.amount }}" class="form-control" required
+                 style="font-size: 1.15rem; font-weight: 800; color: #15803d; max-width: 320px;">
+          <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+            Default is full payment (NPR {{ "%.2f"|format(payment.amount) }}).
+          </small>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+            Admin Reason / Internal Note
+          </label>
+          <textarea name="admin_notes" class="form-control" rows="3" placeholder="Reason for refund, agreement notes, or reconciliation details..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-sm"
+                style="background: #16a34a; color: white; border: none; font-weight: 700; padding: 10px 20px; font-size: 0.9rem; border-radius: var(--radius-md);">
+          Confirm &amp; Process Refund
+        </button>
+      </form>
+    </div>
+  {% elif payment.status != 'success' %}
+    <div style="background: var(--bg-alt); border-radius: var(--radius-lg); padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+      This payment cannot be refunded because its current status is <strong>{{ payment.status }}</strong>.
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

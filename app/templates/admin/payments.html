@@ -13,6 +13,14 @@
       <h2>Payment Audit Log</h2>
       <p style="color: var(--text-secondary); margin-top: 4px;">Full transaction history across all platform payments. Total revenue: <strong>NPR {{ "%.2f"|format(revenue_total) }}</strong></p>
     </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{{ url_for('admin.refund_list') }}" class="btn btn-outline btn-sm">
+        {{ icon('refresh-cw', 14) }} Refunds Queue
+      </a>
+      <a href="{{ url_for('admin.payout_list') }}" class="btn btn-outline btn-sm">
+        {{ icon('dollar-sign', 14) }} Teacher Payouts
+      </a>
+    </div>
   </div>
 </section>
 
@@ -42,6 +50,7 @@
               <th style="text-align: right; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Amount</th>
               <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Date</th>
               <th style="text-align: left; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Tx ID</th>
+              <th style="text-align: center; padding: 12px 16px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -80,6 +89,21 @@
                     <code style="background: var(--bg-alt); padding: 1px 4px; border-radius: 3px; font-size: 0.72rem;">{{ p.gateway_transaction_id[:16] }}…</code>
                   {% else %}
                     —
+                  {% endif %}
+                </td>
+                <td style="padding: 11px 16px; text-align: center;">
+                  {% if p.status == 'success' %}
+                    <a href="{{ url_for('admin.payment_refund_direct', payment_id=p.id) }}"
+                       class="btn btn-outline btn-xs"
+                       style="color: var(--danger); border-color: #fca5a5; font-size: 0.75rem; padding: 2px 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                      {{ icon('refresh-cw', 12) }} Refund
+                    </a>
+                  {% elif p.status == 'refunded' %}
+                    <span style="font-size: 0.75rem; color: #7C3AED; font-weight: 600;">
+                      Refunded (NPR {{ "%.2f"|format(p.refund_amount or 0) }})
+                    </span>
+                  {% else %}
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
                   {% endif %}
                 </td>
               </tr>

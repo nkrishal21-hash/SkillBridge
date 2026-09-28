@@ -117,6 +117,17 @@
       <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">{{ pending_payout_count
         }} payment(s) &rarr;</div>
     </a>
+
+    <!-- Pending Refund Requests Alert -->
+    <a href="{{ url_for('admin.refund_list') }}"
+      style="text-decoration: none; background: white; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 8px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);"
+      class="admin-queue-card {% if pending_refunds > 0 %}border-amber{% endif %}">
+      <div style="color: #4f46e5;">{{ icon('refresh-cw', 30) }}</div>
+      <div style="font-weight: 800; font-size: 1.6rem;" class="{% if pending_refunds > 0 %}text-amber{% endif %}">
+        {{ pending_refunds }}</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Pending Refund Requests</div>
+      <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">Review Queue &rarr;</div>
+    </a>
   </div>
 
   <!-- Quick Management Links -->
@@ -146,6 +157,14 @@
         <span
           style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{
           pending_reports }}</span>
+        {% endif %}
+      </a>
+      <a href="{{ url_for('admin.refund_list') }}" class="btn btn-outline btn-sm">
+        Refund Requests
+        {% if pending_refunds > 0 %}
+        <span
+          style="background: #4f46e5; color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{
+          pending_refunds }}</span>
         {% endif %}
       </a>
       <a href="{{ url_for('admin.payout_list') }}" class="btn btn-outline btn-sm">

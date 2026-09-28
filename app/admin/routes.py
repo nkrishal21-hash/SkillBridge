@@ -14,9 +14,14 @@ from app import db
 from app.auth.utils import admin_required
 from app.models import (
     User, TeacherProfile, Course, Booking, Payment,
-    Certificate, Notification, Report,
+    Certificate, Notification, Report, RefundRequest,
 )
 from app.notifications.utils import notify
+from app.refunds.service import (
+    process_refund,
+    get_payment_hold_reason,
+    _get_booking_for_payment,
+)
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -49,6 +54,7 @@ def dashboard():
 
     pending_courses = Course.query.filter_by(is_published=True, is_approved=False).count()
     pending_reports = Report.query.filter_by(status="pending").count()
+    pending_refunds = RefundRequest.query.filter_by(status="pending").count()
 
     # Revenue snapshot
     total_revenue = db.session.query(
@@ -83,6 +89,7 @@ def dashboard():
         pending_teachers=pending_teachers,
         pending_courses=pending_courses,
         pending_reports=pending_reports,
+        pending_refunds=pending_refunds,
         total_revenue=float(total_revenue),
         total_pending_payouts=float(total_pending_payouts),
         pending_payout_count=pending_payout_count,
@@ -285,6 +292,73 @@ def payment_list():
     )
 
 
+@admin_bp.route("/payments/<int:payment_id>/refund", methods=["GET", "POST"])
+@login_required
+@admin_required
+def payment_refund_direct(payment_id: int):
+    """
+    Direct refund action for a payment record without a prior student request.
+    GET: displays payment/booking context and amount-entry form.
+    POST: processes refund via central process_refund() service.
+    """
+    payment = Payment.query.get_or_404(payment_id)
+    booking = _get_booking_for_payment(payment)
+
+    misconduct_blocked = False
+    if booking:
+        upheld = Report.query.filter_by(
+            reported_id=payment.learner_id,
+            booking_id=booking.id,
+            status="resolved",
+        ).first()
+        if upheld:
+            misconduct_blocked = True
+
+    if request.method == "POST":
+        if payment.status != "success":
+            flash(f"Payment #{payment.id} cannot be refunded (status is '{payment.status}').", "danger")
+            return redirect(url_for("admin.payment_list"))
+
+        raw_amount = request.form.get("refund_amount", "").strip()
+        admin_notes = request.form.get("admin_notes", "").strip()
+
+        try:
+            amount = Decimal(raw_amount)
+        except Exception:
+            flash("Please enter a valid numeric refund amount.", "danger")
+            return redirect(url_for("admin.payment_refund_direct", payment_id=payment.id))
+
+        result = process_refund(payment, amount, current_user, admin_notes)
+        if not result["success"]:
+            flash(result["error"], "danger")
+            return redirect(url_for("admin.payment_refund_direct", payment_id=payment.id))
+
+        # If there was an open refund request for this booking, mark it decided
+        if booking:
+            open_rr = RefundRequest.query.filter_by(booking_id=booking.id, status="pending").first()
+            if open_rr:
+                open_rr.status = "approved" if amount == Decimal(str(payment.amount)) else "partially_approved"
+                open_rr.approved_amount = amount
+                open_rr.admin_notes = admin_notes or None
+                open_rr.decided_by = current_user.id
+                open_rr.decided_at = datetime.utcnow()
+                db.session.commit()
+
+        if result.get("warning"):
+            flash(result["warning"], "warning")
+
+        flash(f"Refund of NPR {amount:.2f} processed for Payment #{payment.id}. Both parties have been notified.", "success")
+        return redirect(url_for("admin.payment_list"))
+
+    return render_template(
+        "admin/refund_direct.html",
+        payment=payment,
+        booking=booking,
+        report=None,
+        misconduct_blocked=misconduct_blocked,
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. User Listing
 # ─────────────────────────────────────────────────────────────────────────────
@@ -445,15 +519,15 @@ def resolve_report(report_id: int):
     return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))
 
 
-@admin_bp.route("/reports/<int:report_id>/refund", methods=["POST"])
+@admin_bp.route("/reports/<int:report_id>/refund", methods=["GET", "POST"])
 @login_required
 @admin_required
 def refund_report(report_id: int):
     """
-    Issue an internal booking refund for a report.
-    Flips Payment status to 'refunded', updates Report to 'resolved', and notifies learner.
-    If the teacher payout was already released, a prominent warning is shown requiring
-    offline reconciliation.
+    Issue a booking refund for an incident report using process_refund().
+    GET: renders the amount-entry form.
+    POST: executes the refund with entered amount, updates Report to 'resolved',
+          and redirects to the resolved reports queue.
     """
     report = Report.query.get_or_404(report_id)
 
@@ -471,38 +545,43 @@ def refund_report(report_id: int):
         flash("Nothing to refund for this booking. No successful payment found.", "warning")
         return redirect(request.referrer or url_for("admin.report_list"))
 
-    # ── Payout conflict guard ─────────────────────────────────────────────────
-    if payment.payout_status == "released":
-        flash(
-            f"WARNING: Teacher payout for Payment #{payment.id} (NPR {payment.teacher_payout_amount}) "
-            f"was already released on {payment.payout_released_at.strftime('%Y-%m-%d') if payment.payout_released_at else 'unknown date'}. "
-            f"The internal refund has been recorded, but the teacher's payout was already disbursed manually. "
-            f"Offline reconciliation with the teacher is required.",
-            "warning"
-        )
+    booking = report.booking
 
-    payment.status = "refunded"
-    report.status = "resolved"
-    report.resolved_at = datetime.utcnow()
-    payout_note = (
-        f" (Payout already released — offline reconciliation required.)"
-        if payment.payout_status == "released" else ""
+    if request.method == "POST":
+        raw_amount = request.form.get("refund_amount", "").strip()
+        admin_notes = request.form.get("admin_notes", "").strip()
+
+        try:
+            amount = Decimal(raw_amount) if raw_amount else Decimal(str(payment.amount))
+        except Exception:
+            amount = Decimal(str(payment.amount))
+
+        note_text = f"Report #{report.id} ({report.reason}): {admin_notes}".strip()
+        result = process_refund(payment, amount, current_user, note_text)
+
+        if not result["success"]:
+            flash(result["error"], "danger")
+            return redirect(url_for("admin.refund_report", report_id=report.id))
+
+        report.status = "resolved"
+        report.resolved_at = datetime.utcnow()
+        report_note = f"Refunded NPR {amount:.2f} via Payment #{payment.id}. Note: {admin_notes}"
+        report.admin_notes = f"{report.admin_notes}\n{report_note}" if report.admin_notes else report_note
+        db.session.commit()
+
+        if result.get("warning"):
+            flash(result["warning"], "warning")
+
+        flash(f"Payment #{payment.id} refunded (NPR {amount:.2f}). Report #{report.id} marked as resolved.", "success")
+        return redirect(url_for("admin.report_list", filter="resolved"))
+
+    return render_template(
+        "admin/refund_direct.html",
+        payment=payment,
+        booking=booking,
+        report=report,
+        misconduct_blocked=False,
     )
-    refund_note = f"Refund issued internally for Payment #{payment.id} (NPR {payment.amount}).{payout_note}"
-    report.admin_notes = f"{report.admin_notes}\n{refund_note}" if report.admin_notes else refund_note
-    db.session.commit()
-
-    # Notify learner
-    notify(
-        user_id=payment.learner_id,
-        title=f"Mentorship Booking Refund (NPR {payment.amount})",
-        body=f"Your booking #{report.booking_id} session payment has been marked as refunded following administrative review.",
-        notif_type="payment",
-        link=url_for("booking.detail", booking_id=report.booking_id),
-    )
-
-    flash(f"Payment #{payment.id} (NPR {payment.amount}) marked as refunded. Report #{report.id} marked as resolved.", "success")
-    return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -722,3 +801,164 @@ def release_all_payouts(teacher_profile_id: int):
         flash_msg += f" Note: {held_count} payment(s) are on hold and were not released."
     flash(flash_msg, "success")
     return redirect(request.referrer or url_for("admin.payout_list", filter="released"))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 11. Refund Management Console
+# ─────────────────────────────────────────────────────────────────────────────
+@admin_bp.route("/refunds")
+@login_required
+@admin_required
+def refund_list():
+    """Admin refund request queue with status filters and pagination."""
+    page = request.args.get("page", 1, type=int)
+    filter_status = request.args.get("filter", "pending").strip().lower()
+
+    base_q = RefundRequest.query
+
+    if filter_status == "pending":
+        query = base_q.filter(RefundRequest.status == "pending")
+    elif filter_status == "approved":
+        query = base_q.filter(RefundRequest.status == "approved")
+    elif filter_status == "partially_approved":
+        query = base_q.filter(RefundRequest.status == "partially_approved")
+    elif filter_status == "rejected":
+        query = base_q.filter(RefundRequest.status == "rejected")
+    else:  # 'all'
+        query = base_q
+
+    query = query.order_by(RefundRequest.created_at.desc(), RefundRequest.id.desc())
+    pagination = query.paginate(page=page, per_page=20, error_out=False)
+    refund_requests = pagination.items
+
+    pending_count = RefundRequest.query.filter_by(status="pending").count()
+    approved_count = RefundRequest.query.filter(RefundRequest.status.in_(["approved", "partially_approved"])).count()
+    rejected_count = RefundRequest.query.filter_by(status="rejected").count()
+
+    return render_template(
+        "admin/refunds.html",
+        refund_requests=refund_requests,
+        pagination=pagination,
+        filter_status=filter_status,
+        pending_count=pending_count,
+        approved_count=approved_count,
+        rejected_count=rejected_count,
+    )
+
+
+@admin_bp.route("/refunds/<int:request_id>")
+@login_required
+@admin_required
+def refund_review(request_id: int):
+    """
+    Case review page for a student refund request.
+    Displays booking, payment, both parties' reports, and user strike history.
+    Provides full or partial approval and rejection forms.
+    """
+    refund_req = RefundRequest.query.get_or_404(request_id)
+    booking = refund_req.booking
+    learner = refund_req.learner
+    teacher = booking.teacher if booking else None
+    payment = booking.payment or (Payment.query.filter_by(booking_id_ref=booking.id).order_by(Payment.id.desc()).first() if booking else None)
+
+    learner_report = Report.query.filter_by(booking_id=booking.id, reporter_id=learner.id).first() if booking and learner else None
+    teacher_report = Report.query.filter_by(booking_id=booking.id, reporter_id=teacher.id).first() if booking and teacher else None
+
+    learner_reports_against = Report.query.filter_by(reported_id=learner.id).count() if learner else 0
+    learner_upheld_reports = Report.query.filter_by(reported_id=learner.id, status="resolved").count() if learner else 0
+    teacher_reports_against = Report.query.filter_by(reported_id=teacher.id).count() if teacher else 0
+    teacher_upheld_reports = Report.query.filter_by(reported_id=teacher.id, status="resolved").count() if teacher else 0
+
+    from app.booking.forms import REFUND_REASON_CHOICES
+    reason_label = dict(REFUND_REASON_CHOICES).get(refund_req.reason_type, refund_req.reason_type)
+
+    return render_template(
+        "admin/refund_review.html",
+        refund_req=refund_req,
+        booking=booking,
+        learner=learner,
+        teacher=teacher,
+        payment=payment,
+        learner_report=learner_report,
+        teacher_report=teacher_report,
+        learner_reports_against=learner_reports_against,
+        learner_upheld_reports=learner_upheld_reports,
+        teacher_reports_against=teacher_reports_against,
+        teacher_upheld_reports=teacher_upheld_reports,
+        reason_label=reason_label,
+    )
+
+
+@admin_bp.route("/refunds/<int:request_id>/approve", methods=["POST"])
+@login_required
+@admin_required
+def refund_approve(request_id: int):
+    """Approve a refund request (full or partial) with an administrator note."""
+    refund_req = RefundRequest.query.get_or_404(request_id)
+    booking = refund_req.booking
+    payment = booking.payment or (Payment.query.filter_by(booking_id_ref=booking.id).order_by(Payment.id.desc()).first() if booking else None)
+
+    if not payment:
+        flash("No payment found for this booking.", "danger")
+        return redirect(url_for("admin.refund_review", request_id=refund_req.id))
+
+    raw_amount = request.form.get("refund_amount", "").strip()
+    admin_notes = request.form.get("admin_notes", "").strip()
+
+    try:
+        amount = Decimal(raw_amount)
+    except Exception:
+        flash("Invalid refund amount entered.", "danger")
+        return redirect(url_for("admin.refund_review", request_id=refund_req.id))
+
+    result = process_refund(payment, amount, current_user, admin_notes)
+    if not result["success"]:
+        flash(result["error"], "danger")
+        return redirect(url_for("admin.refund_review", request_id=refund_req.id))
+
+    is_full = (amount == Decimal(str(payment.amount)))
+    refund_req.status = "approved" if is_full else "partially_approved"
+    refund_req.approved_amount = amount
+    refund_req.admin_notes = admin_notes or None
+    refund_req.decided_by = current_user.id
+    refund_req.decided_at = datetime.utcnow()
+    db.session.commit()
+
+    if result.get("warning"):
+        flash(result["warning"], "warning")
+
+    status_str = "fully approved" if is_full else f"partially approved (NPR {amount:.2f})"
+    flash(f"Refund Request #{refund_req.id} {status_str}. Learner and teacher have been notified.", "success")
+    return redirect(url_for("admin.refund_list"))
+
+
+@admin_bp.route("/refunds/<int:request_id>/reject", methods=["POST"])
+@login_required
+@admin_required
+def refund_reject(request_id: int):
+    """Reject a refund request with an explanation note and notify the student."""
+    refund_req = RefundRequest.query.get_or_404(request_id)
+    booking = refund_req.booking
+    admin_notes = request.form.get("admin_notes", "").strip()
+
+    refund_req.status = "rejected"
+    refund_req.admin_notes = admin_notes or None
+    refund_req.decided_by = current_user.id
+    refund_req.decided_at = datetime.utcnow()
+    db.session.commit()
+
+    topic = booking.topic if booking else "Mentorship Session"
+    notify(
+        user_id=refund_req.learner_id,
+        title=f"Refund Request Rejected: Booking #{refund_req.booking_id}",
+        body=(
+            f"Your refund request for session '{topic}' has been rejected by an administrator.\n\n"
+            f"Reason: {admin_notes or 'Request did not meet refund criteria.'}"
+        ),
+        notif_type="payment",
+        link=url_for("booking.detail", booking_id=refund_req.booking_id) if booking else url_for("learner.dashboard"),
+    )
+
+    flash(f"Refund Request #{refund_req.id} marked as rejected. Learner has been notified.", "info")
+    return redirect(url_for("admin.refund_list"))
+

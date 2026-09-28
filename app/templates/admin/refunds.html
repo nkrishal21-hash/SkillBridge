@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% from '_icons.html' import icon %}
+{% block title %}Refund Management — SkillBridge Admin{% endblock %}
+
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto; padding: 32px 24px;">
+
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <h1 style="margin: 0; font-size: 1.75rem; font-weight: 800;">Refund Management</h1>
+      <p style="margin: 6px 0 0; color: var(--text-secondary); font-size: 0.9rem;">
+        Review student refund requests, assess misconduct &amp; strike history, and issue full or partial refunds.
+      </p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{{ url_for('admin.payment_list') }}" class="btn btn-outline btn-sm">
+        {{ icon('credit-card', 14) }} All Payments
+      </a>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-sm">&larr; Admin Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px;">
+    <div style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); border-radius: var(--radius-lg); padding: 20px; color: white;">
+      <div style="font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Pending Requests</div>
+      <div style="font-size: 1.8rem; font-weight: 800;">{{ pending_count }}</div>
+      <div style="font-size: 0.78rem; opacity: 0.75; margin-top: 4px;">Awaiting administrative review</div>
+    </div>
+    <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: var(--radius-lg); padding: 20px; color: white;">
+      <div style="font-size: 0.78rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Approved / Partial</div>
+      <div style="font-size: 1.8rem; font-weight: 800;">{{ approved_count }}</div>
+      <div style="font-size: 0.78rem; opacity: 0.75; margin-top: 4px;">Refunds granted</div>
+    </div>
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Rejected Requests</div>
+      <div style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">{{ rejected_count }}</div>
+      <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Declined claims</div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 0;">
+    {% for tab_key, tab_label in [('pending', 'Pending Review'), ('approved', 'Approved'), ('partially_approved', 'Partially Approved'), ('rejected', 'Rejected'), ('all', 'All')] %}
+      <a href="{{ url_for('admin.refund_list', filter=tab_key) }}"
+         class="admin-payout-tab {% if filter_status == tab_key %}active{% endif %}"
+         style="padding: 10px 16px; font-size: 0.88rem; font-weight: 600; text-decoration: none; color: {% if filter_status == tab_key %}var(--primary){% else %}var(--text-secondary){% endif %}; border-bottom: 2px solid {% if filter_status == tab_key %}var(--primary){% else %}transparent{% endif %}; margin-bottom: -2px;">
+        {{ tab_label }}
+        {% if tab_key == 'pending' and pending_count > 0 %}
+          <span style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 4px;">
+            {{ pending_count }}
+          </span>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </div>
+
+  <!-- Refund Requests Table -->
+  {% if refund_requests %}
+    <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+        <thead>
+          <tr style="background: var(--bg-alt); border-bottom: 2px solid var(--border-subtle);">
+            <th style="padding: 12px 16px; text-align: left; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Req #</th>
+            <th style="padding: 12px 16px; text-align: left; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Learner</th>
+            <th style="padding: 12px 16px; text-align: left; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Teacher &amp; Session</th>
+            <th style="padding: 12px 16px; text-align: left; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Reason</th>
+            <th style="padding: 12px 16px; text-align: right; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Amount</th>
+            <th style="padding: 12px 16px; text-align: center; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Status</th>
+            <th style="padding: 12px 16px; text-align: center; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Date</th>
+            <th style="padding: 12px 16px; text-align: center; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in refund_requests %}
+            {% set b = r.booking %}
+            {% set p = b.payment if b else None %}
+            <tr style="border-bottom: 1px solid var(--border-subtle); transition: background var(--transition-fast);" onmouseover="this.style.background='var(--bg-alt)'" onmouseout="this.style.background='white'">
+              <td style="padding: 12px 16px; font-weight: 700; color: var(--text-muted);">#{{ r.id }}</td>
+              <td style="padding: 12px 16px;">
+                <div style="font-weight: 600; color: var(--text-primary);">{{ r.learner.full_name if r.learner else '—' }}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ r.learner.email if r.learner else '' }}</div>
+              </td>
+              <td style="padding: 12px 16px;">
+                <div style="font-weight: 600; color: var(--text-primary);">
+                  {{ b.teacher.full_name if b and b.teacher else '—' }}
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {{ b.topic or 'Mentorship Session' if b else 'Booking #' ~ r.booking_id }}
+                </div>
+              </td>
+              <td style="padding: 12px 16px;">
+                <span class="badge" style="background: rgba(79, 70, 229, 0.08); color: var(--primary); font-size: 0.74rem; font-weight: 600;">
+                  {{ r.reason_type|replace('_', ' ')|capitalize }}
+                </span>
+              </td>
+              <td style="padding: 12px 16px; text-align: right; font-weight: 700;">
+                {% if r.approved_amount %}
+                  <div style="color: #059669;">NPR {{ "%.2f"|format(r.approved_amount) }}</div>
+                  {% if b and b.amount %}
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">of {{ "%.2f"|format(b.amount) }}</div>
+                  {% endif %}
+                {% elif b and b.amount %}
+                  NPR {{ "%.2f"|format(b.amount) }}
+                {% elif p and p.amount %}
+                  NPR {{ "%.2f"|format(p.amount) }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td style="padding: 12px 16px; text-align: center;">
+                {% if r.status == 'approved' %}
+                  <span class="badge" style="background: rgba(5, 150, 105, 0.1); color: #047857; font-size: 0.72rem; font-weight: 700;">Approved</span>
+                {% elif r.status == 'partially_approved' %}
+                  <span class="badge" style="background: rgba(14, 165, 233, 0.1); color: #0369a1; font-size: 0.72rem; font-weight: 700;">Partial</span>
+                {% elif r.status == 'rejected' %}
+                  <span class="badge" style="background: rgba(220, 38, 38, 0.1); color: var(--danger); font-size: 0.72rem; font-weight: 700;">Rejected</span>
+                {% else %}
+                  <span class="badge" style="background: rgba(245, 158, 11, 0.1); color: #b45309; font-size: 0.72rem; font-weight: 700;">Pending</span>
+                {% endif %}
+              </td>
+              <td style="padding: 12px 16px; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+                {{ r.created_at|npt('%b %d, %Y') }}
+              </td>
+              <td style="padding: 12px 16px; text-align: center;">
+                <a href="{{ url_for('admin.refund_review', request_id=r.id) }}"
+                   class="btn btn-primary btn-sm"
+                   style="font-size: 0.78rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+                  Review &rarr;
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+      <div style="display: flex; justify-content: center; gap: 6px; margin-top: 24px; flex-wrap: wrap;">
+        {% if pagination.has_prev %}
+          <a href="{{ url_for('admin.refund_list', page=pagination.prev_num, filter=filter_status) }}" class="btn btn-outline btn-sm">&larr; Prev</a>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if p %}
+            <a href="{{ url_for('admin.refund_list', page=p, filter=filter_status) }}" class="btn btn-sm {{ 'btn-primary' if p == pagination.page else 'btn-outline' }}">{{ p }}</a>
+          {% else %}
+            <span style="padding: 6px 10px; color: var(--text-muted);">…</span>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+          <a href="{{ url_for('admin.refund_list', page=pagination.next_num, filter=filter_status) }}" class="btn btn-outline btn-sm">Next &rarr;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div style="text-align: center; padding: 60px 20px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);">
+      <div style="margin-bottom: 16px; color: var(--text-muted);">
+        {{ icon('refresh-cw', 44) }}
+      </div>
+      <h3 style="color: var(--text-secondary); font-weight: 600; margin: 0 0 8px;">
+        No refund requests found.
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0;">
+        {% if filter_status == 'pending' %}
+          There are currently no refund requests awaiting review.
+        {% else %}
+          No records match the current status filter.
+        {% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

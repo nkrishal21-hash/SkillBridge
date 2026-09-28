@@ -174,13 +174,11 @@
                 {% if report.reason in ['late', 'no_show'] and report.booking_id and report.booking_id in eligible_payments %}
                   {% set p = eligible_payments[report.booking_id] %}
                   <div style="display: inline-block;">
-                    <form method="POST" action="{{ url_for('admin.refund_report', report_id=report.id) }}"
-                          onsubmit="return confirm('Issue internal refund of NPR {{ p.amount }} for Booking #{{ report.booking_id }}? This flips payment status to refunded and excludes it from teacher earnings.');">
-                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                      <button type="submit" class="btn btn-primary btn-sm" style="background: #0284c7; border-color: #0284c7; display: inline-flex; align-items: center; gap: 6px;">
-                        {{ icon('credit-card', 14) }} Refund NPR {{ "%.0f"|format(p.amount) }}
-                      </button>
-                    </form>
+                    <a href="{{ url_for('admin.refund_report', report_id=report.id) }}"
+                       class="btn btn-primary btn-sm"
+                       style="background: #0284c7; border-color: #0284c7; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+                      {{ icon('credit-card', 14) }} Issue Refund (NPR {{ "%.0f"|format(p.amount) }})...
+                    </a>
                   </div>
                 {% endif %}
               {% endif %}
