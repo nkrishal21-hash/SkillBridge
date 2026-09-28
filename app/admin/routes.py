@@ -56,12 +56,27 @@ def dashboard():
     pending_reports = Report.query.filter_by(status="pending").count()
     pending_refunds = RefundRequest.query.filter_by(status="pending").count()
 
-    # Revenue snapshot
-    total_revenue = db.session.query(
-        func.coalesce(func.sum(Payment.amount), 0.0)
-    ).filter_by(status="success").scalar() or 0.0
+    # Revenue snapshot:
+    #   success rows   → full payment.amount (platform keeps platform_fee_amount, teacher gets teacher_payout_amount)
+    #   refunded rows  → only the retained platform_fee_amount counts as platform revenue
+    success_rev = db.session.query(
+        func.coalesce(func.sum(Payment.platform_fee_amount), 0.0)
+    ).filter(Payment.status == "success").scalar() or 0.0
 
-    # Pending payouts snapshot
+    retained_rev = db.session.query(
+        func.coalesce(func.sum(Payment.platform_fee_amount), 0.0)
+    ).filter(Payment.status == "refunded").scalar() or 0.0
+
+    total_revenue = float(success_rev) + float(retained_rev)
+
+    # Refunded figures for transparency
+    total_refunded = db.session.query(
+        func.coalesce(func.sum(Payment.refund_amount), 0.0)
+    ).filter(Payment.status == "refunded").scalar() or 0.0
+
+    total_retained = float(retained_rev)  # alias for template clarity
+
+    # Pending payouts snapshot (success-only; refunded rows have teacher_payout_amount=0)
     total_pending_payouts = db.session.query(
         func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0)
     ).filter(
@@ -90,7 +105,9 @@ def dashboard():
         pending_courses=pending_courses,
         pending_reports=pending_reports,
         pending_refunds=pending_refunds,
-        total_revenue=float(total_revenue),
+        total_revenue=total_revenue,
+        total_refunded=float(total_refunded),
+        total_retained=total_retained,
         total_pending_payouts=float(total_pending_payouts),
         pending_payout_count=pending_payout_count,
         recent_payments=recent_payments,
@@ -277,10 +294,22 @@ def payment_list():
         Payment.initiated_at.desc()
     ).paginate(page=page, per_page=20, error_out=False)
 
-    # Revenue totals
-    revenue_total = db.session.query(
-        func.coalesce(func.sum(Payment.amount), 0.0)
-    ).filter_by(status="success").scalar() or 0.0
+    # Revenue totals (same accounting as dashboard):
+    #   success → sum of platform_fee_amount earned
+    #   refunded → sum of platform_fee_amount retained
+    success_rev = db.session.query(
+        func.coalesce(func.sum(Payment.platform_fee_amount), 0.0)
+    ).filter(Payment.status == "success").scalar() or 0.0
+
+    retained_rev = db.session.query(
+        func.coalesce(func.sum(Payment.platform_fee_amount), 0.0)
+    ).filter(Payment.status == "refunded").scalar() or 0.0
+
+    revenue_total = float(success_rev) + float(retained_rev)
+
+    refunds_total = db.session.query(
+        func.coalesce(func.sum(Payment.refund_amount), 0.0)
+    ).filter(Payment.status == "refunded").scalar() or 0.0
 
     return render_template(
         "admin/payments.html",
@@ -288,7 +317,9 @@ def payment_list():
         pagination=pagination,
         payments=pagination.items,
         filter_status=filter_status,
-        revenue_total=float(revenue_total),
+        revenue_total=revenue_total,
+        refunds_total=float(refunds_total),
+        retained_rev=float(retained_rev),
     )
 
 

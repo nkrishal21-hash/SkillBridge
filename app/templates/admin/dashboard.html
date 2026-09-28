@@ -62,11 +62,23 @@
       style="background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); border-radius: var(--radius-lg); padding: 24px; color: white;">
       <div
         style="font-size: 0.78rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">
-        Platform Revenue</div>
+        Platform Revenue (Earned)</div>
       <div style="font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;">NPR {{ "%.2f"|format(total_revenue) }}
       </div>
       <div style="font-size: 0.78rem; opacity: 0.7; margin-top: 4px;">{{ stats.total_payments }} total transactions
       </div>
+      {% if total_retained > 0 or total_refunded > 0 %}
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.25); display: flex; flex-direction: column; gap: 4px;">
+        <div style="font-size: 0.75rem; opacity: 0.9; display: flex; justify-content: space-between;">
+          <span>Refunded to learners:</span>
+          <span style="font-weight: 700;">NPR {{ "%.2f"|format(total_refunded) }}</span>
+        </div>
+        <div style="font-size: 0.75rem; opacity: 0.9; display: flex; justify-content: space-between;">
+          <span>Retained from refunds:</span>
+          <span style="font-weight: 700;">NPR {{ "%.2f"|format(total_retained) }}</span>
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Teacher Verification Queue Alert -->

@@ -52,9 +52,42 @@
         <div><strong>Gateway:</strong> eSewa Sandbox (EPAYTEST)</div>
         <div><strong>Order Ref:</strong> <code>{{ payment.gateway_reference_id }}</code></div>
         <div><strong>Txn Code:</strong> <code>{{ payment.gateway_transaction_id or 'N/A' }}</code></div>
-        <div><strong>Status:</strong> <span class="badge badge-status-approved" style="text-transform: uppercase; font-size: 0.75rem;">● {{ payment.status }}</span></div>
+        <div><strong>Status:</strong>
+          {% if payment.status == 'refunded' %}
+            <span class="badge" style="background: rgba(124, 58, 237, 0.15); color: #7C3AED; text-transform: uppercase; font-size: 0.75rem;">● REFUNDED</span>
+          {% else %}
+            <span class="badge badge-status-approved" style="text-transform: uppercase; font-size: 0.75rem;">● {{ payment.status }}</span>
+          {% endif %}
+        </div>
       </div>
     </div>
+
+    {% if payment.status == 'refunded' %}
+    <!-- Refund Alert Banner -->
+    <div style="background: linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(79,70,229,0.08) 100%); border: 2px solid #7C3AED; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <span style="background: #7C3AED; color: white; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 10px; border-radius: 20px;">REFUNDED</span>
+        <span style="font-size: 0.85rem; font-weight: 700; color: #6D28D9;">
+          NPR {{ "%.2f"|format(payment.refund_amount or 0) }} returned
+          {% if payment.refunded_at %} on {{ payment.refunded_at|npt('%b %d, %Y %I:%M %p NPT') }}{% endif %}
+        </span>
+      </div>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.82rem; color: var(--text-secondary);">
+        <span>Original paid: <strong>NPR {{ "%.2f"|format(payment.amount) }}</strong></span>
+        <span>Refunded: <strong style="color: #7C3AED;">NPR {{ "%.2f"|format(payment.refund_amount or 0) }}</strong></span>
+        {% set retained = (payment.amount or 0) - (payment.refund_amount or 0) %}
+        <span>Retained by platform: <strong style="color: var(--success);">NPR {{ "%.2f"|format(retained) }}</strong></span>
+      </div>
+      {% if payment.refund_note %}
+      <div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); font-style: italic;">
+        Admin note: {{ payment.refund_note }}
+      </div>
+      {% endif %}
+      <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
+        This is an internal accounting record only — no eSewa money movement has been triggered by this refund action.
+      </div>
+    </div>
+    {% endif %}
 
     <!-- Line Items Table -->
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 0.92rem;">
