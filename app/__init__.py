@@ -135,11 +135,15 @@ def create_app(config_name: str = None) -> Flask:
     from flask_login import current_user
     from app.models import Message, Notification
 
+    from app.utils.time import npt_filter
+
     @app.template_filter("nl2br")
     def nl2br_filter(s):
         if not s:
             return ""
         return Markup("<br>".join(escape(s).split("\n")))
+
+    app.add_template_filter(npt_filter, "npt")
 
     @app.context_processor
     def inject_global_badges():

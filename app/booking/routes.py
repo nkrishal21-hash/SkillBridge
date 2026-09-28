@@ -6,6 +6,7 @@ cancellations, detail views, and booking history.
 
 import uuid
 from datetime import date, datetime
+from app.utils.time import nepal_now, nepal_today, NPT
 from flask import (
     Blueprint,
     render_template,
@@ -66,7 +67,7 @@ def new(teacher_id: int):
 
     if form.validate_on_submit():
         session_date = form.session_date.data
-        if session_date < date.today():
+        if session_date < nepal_today():
             flash("Session date cannot be in the past.", "danger")
             return render_template(
                 "booking/new.html",
@@ -184,8 +185,8 @@ def detail(booking_id: int):
     has_paid = (payment is not None)
 
     # Session completion eligibility
-    session_end = datetime.combine(booking.session_date, booking.end_time)
-    is_past = (datetime.now() >= session_end)
+    session_end = datetime.combine(booking.session_date, booking.end_time).replace(tzinfo=NPT)
+    is_past = (nepal_now() >= session_end)
     can_mark_complete = (booking.status == "approved" and is_past)
 
     # Review status
@@ -406,8 +407,8 @@ def complete(booking_id: int):
         flash(f"Booking #{booking.id} cannot be marked complete because its current status is '{booking.status}'.", "warning")
         return redirect(url_for("booking.detail", booking_id=booking.id))
 
-    session_end = datetime.combine(booking.session_date, booking.end_time)
-    if datetime.now() < session_end:
+    session_end = datetime.combine(booking.session_date, booking.end_time).replace(tzinfo=NPT)
+    if nepal_now() < session_end:
         flash("This session cannot be marked complete before its scheduled end time has elapsed.", "warning")
         return redirect(url_for("booking.detail", booking_id=booking.id))
 

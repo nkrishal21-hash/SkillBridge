@@ -45,7 +45,7 @@
                   </span>
                 </div>
                 <span class="chat-inbox-time" {% if conv.last_message and conv.last_message.sent_at %}data-utc="{{ conv.last_message.sent_at.isoformat() }}Z"{% endif %}>
-                  {{ conv.last_message.sent_at.strftime('%b %d, %I:%M %p') if conv.last_message and conv.last_message.sent_at else '' }}
+                  {{ conv.last_message.sent_at|npt('%b %d, %I:%M %p') if conv.last_message and conv.last_message.sent_at else '' }}
                 </span>
               </div>
 

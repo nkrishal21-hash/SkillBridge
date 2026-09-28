@@ -165,7 +165,7 @@
 
           <div class="sidebar-stat-item">
             <span class="sidebar-stat-label">Member Since</span>
-            <span class="sidebar-stat-val">{{ profile.user.created_at.strftime('%b %Y') if profile.user.created_at else 'Recent' }}</span>
+            <span class="sidebar-stat-val">{{ profile.user.created_at|npt('%b %Y') if profile.user.created_at else 'Recent' }}</span>
           </div>
 
           {% if profile.linkedin_url or profile.website_url %}

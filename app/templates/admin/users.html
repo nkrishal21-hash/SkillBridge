@@ -86,7 +86,7 @@
                   {% endif %}
                 </td>
                 <td style="padding: 11px 16px; color: var(--text-muted); font-size: 0.8rem;">
-                  {{ u.created_at.strftime('%b %d, %Y') }}
+                  {{ u.created_at|npt('%b %d, %Y') }}
                 </td>
                 <td style="padding: 11px 16px; text-align: right;">
                   {% if u.role != 'admin' %}

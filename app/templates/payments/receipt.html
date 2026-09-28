@@ -33,7 +33,7 @@
           Receipt #: <strong>REC-SKB-{{ "%05d"|format(payment.id) }}</strong>
         </div>
         <div style="font-size: 0.84rem; color: var(--text-muted);">
-          Date: {{ payment.completed_at.strftime('%b %d, %Y') if payment.completed_at else payment.initiated_at.strftime('%b %d, %Y') }}
+          Date: {{ payment.completed_at|npt('%b %d, %Y') if payment.completed_at else payment.initiated_at|npt('%b %d, %Y') }}
         </div>
       </div>
     </div>

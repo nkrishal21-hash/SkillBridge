@@ -71,7 +71,7 @@
               </div>
               {% if profile.verified_at %}
                 <div style="font-size: 0.75rem; color: var(--success); margin-top: 4px;">
-                  Verified on {{ profile.verified_at.strftime('%b %d, %Y') }}
+                  Verified on {{ profile.verified_at|npt('%b %d, %Y') }}
                 </div>
               {% endif %}
 
@@ -84,7 +84,7 @@
                       {% set doc_labels = {'citizenship': 'Citizenship', 'passport': 'Passport', 'educational_certificate': 'Edu. Cert.', 'other': 'Other'} %}
                       <a href="{{ doc.file_url }}" target="_blank" rel="noopener noreferrer"
                          style="display: inline-flex; align-items: center; gap: 5px; background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 4px 10px; font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight: 600;"
-                         title="Uploaded {{ doc.uploaded_at.strftime('%b %d, %Y') }}">
+                         title="Uploaded {{ doc.uploaded_at|npt('%b %d, %Y') }}">
                         {{ icon('file-text', 12) }}
                         {{ doc_labels.get(doc.document_type, doc.document_type) }}
                       </a>

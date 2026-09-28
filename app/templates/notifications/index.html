@@ -76,7 +76,7 @@
               {% endif %}
 
               <div style="font-size: 0.78rem; color: var(--text-muted);">
-                {{ n.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                {{ n.created_at|npt('%b %d, %Y at %I:%M %p') }}
               </div>
             </div>
           </div>

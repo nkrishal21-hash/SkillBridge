@@ -168,7 +168,7 @@
                   <span class="payout-status-badge payout-released">Released</span>
                   {% if payment.payout_released_at %}
                     <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
-                      {{ payment.payout_released_at.strftime('%b %d, %Y') }}
+                      {{ payment.payout_released_at|npt('%b %d, %Y') }}
                     </div>
                   {% endif %}
                 {% elif payment.payout_status == 'pending' %}
@@ -178,7 +178,7 @@
                 {% endif %}
               </td>
               <td style="padding: 12px 16px; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
-                {{ payment.completed_at.strftime('%b %d, %Y') if payment.completed_at else '—' }}
+                {{ payment.completed_at|npt('%b %d, %Y') if payment.completed_at else '—' }}
               </td>
               <td style="padding: 12px 16px; text-align: center;">
                 {% if payment.payout_status != 'released' and payment.status == 'success' %}

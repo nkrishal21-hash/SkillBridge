@@ -69,7 +69,7 @@
           <div class="message-bubble {{ 'bubble-sent' if is_me else 'bubble-received' }}">
             <div class="message-text">{{ msg.body|nl2br }}</div>
             <div class="message-meta">
-              <span class="msg-time" data-utc="{{ msg.sent_at.isoformat() }}Z">{{ msg.sent_at.strftime('%I:%M %p') if msg.sent_at else '' }}</span>
+              <span class="msg-time" data-utc="{{ msg.sent_at.isoformat() }}Z">{{ msg.sent_at|npt('%I:%M %p') if msg.sent_at else '' }}</span>
               {% if is_me %}
                 <span class="read-indicator" title="{{ 'Read' if msg.is_read else 'Delivered' }}">
                   {{ '✓✓' if msg.is_read else '✓' }}

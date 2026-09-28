@@ -84,10 +84,10 @@
             <span>{{ course.enrollments.count() }} enrolled</span>
             {% if course.approved_at %}
             <span>&bull;</span>
-            <span style="color: var(--success);">Approved {{ course.approved_at.strftime('%b %d, %Y') }}</span>
+            <span style="color: var(--success);">Approved {{ course.approved_at|npt('%b %d, %Y') }}</span>
             {% else %}
             <span>&bull;</span>
-            <span>Submitted {{ course.created_at.strftime('%b %d, %Y') }}</span>
+            <span>Submitted {{ course.created_at|npt('%b %d, %Y') }}</span>
             {% endif %}
           </div>
         </div>

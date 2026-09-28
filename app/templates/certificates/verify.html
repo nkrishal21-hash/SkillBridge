@@ -73,7 +73,7 @@
               Issue Date
             </div>
             <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">
-              {{ cert.issued_at.strftime('%B %d, %Y') if cert.issued_at else 'Verified' }}
+              {{ cert.issued_at|npt('%B %d, %Y') if cert.issued_at else 'Verified' }}
             </div>
           </div>
         </div>

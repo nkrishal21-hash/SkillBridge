@@ -216,7 +216,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <div style="font-size: 0.82rem; font-weight: 700; color: #166534; text-transform: uppercase;">Your Submitted Review</div>
               <div style="font-size: 0.82rem; color: var(--text-muted);">
-                {{ user_review.created_at.strftime('%b %d, %Y') if user_review.created_at else 'Recent' }}
+                {{ user_review.created_at|npt('%b %d, %Y') if user_review.created_at else 'Recent' }}
               </div>
             </div>
             <div style="font-size: 1.15rem; margin-bottom: 6px;">
@@ -241,7 +241,7 @@
                     </div>
                     <div>
                       <div style="font-weight: 600; font-size: 0.92rem;">{{ rev.learner.full_name if rev.learner else 'SkillBridge Learner' }}</div>
-                      <div style="font-size: 0.78rem; color: var(--text-muted);">{{ rev.created_at.strftime('%b %d, %Y') if rev.created_at else 'Recent' }}</div>
+                      <div style="font-size: 0.78rem; color: var(--text-muted);">{{ rev.created_at|npt('%b %d, %Y') if rev.created_at else 'Recent' }}</div>
                     </div>
                   </div>
 

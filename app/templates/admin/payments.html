@@ -73,7 +73,7 @@
                   NPR {{ "%.0f"|format(p.amount) }}
                 </td>
                 <td style="padding: 11px 16px; color: var(--text-muted); font-size: 0.8rem;">
-                  {{ p.completed_at.strftime('%b %d, %Y') if p.completed_at else p.initiated_at.strftime('%b %d, %Y') }}
+                  {{ (p.completed_at or p.initiated_at)|npt('%b %d, %Y') }}
                 </td>
                 <td style="padding: 11px 16px; font-size: 0.74rem; color: var(--text-muted);">
                   {% if p.gateway_transaction_id %}

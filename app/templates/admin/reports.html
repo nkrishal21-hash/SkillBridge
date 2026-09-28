@@ -67,9 +67,9 @@
             </div>
 
             <div style="font-size: 0.8rem; color: var(--text-muted);">
-              Reported on {{ report.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+              Reported on {{ report.created_at|npt('%b %d, %Y at %I:%M %p') }}
               {% if report.resolved_at %}
-                &bull; Settled on {{ report.resolved_at.strftime('%b %d, %Y') }}
+                &bull; Settled on {{ report.resolved_at|npt('%b %d, %Y') }}
               {% endif %}
             </div>
           </div>

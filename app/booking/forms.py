@@ -5,6 +5,7 @@ WTForms classes for scheduling 1-on-1 sessions and teacher approvals.
 
 from datetime import date
 from flask_wtf import FlaskForm
+from app.utils.time import nepal_today
 from wtforms import (
     DateField,
     SelectField,
@@ -105,7 +106,7 @@ class BookingForm(FlaskForm):
 
     def validate_session_date(self, field):
         """Ensure booking session is not scheduled in the past."""
-        if field.data and field.data < date.today():
+        if field.data and field.data < nepal_today():
             raise ValidationError("Session date cannot be in the past.")
 
 

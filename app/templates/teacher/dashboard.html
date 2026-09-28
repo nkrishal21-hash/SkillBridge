@@ -240,7 +240,7 @@
                   {% endif %}
                 </div>
                 <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">
-                  {{ payment.completed_at.strftime('%b %d, %Y') if payment.completed_at else payment.initiated_at.strftime('%b %d, %Y') }}
+                  {{ (payment.completed_at or payment.initiated_at)|npt('%b %d, %Y') }}
                   &bull; {{ payment.gateway | upper }}
                   {% if payment.payout_status == 'released' %}
                     <span style="color: #059669; font-weight: 600;">· Paid out</span>
@@ -306,7 +306,7 @@
                     {{ review.learner.full_name if review.learner else 'Student' }}
                   </span>
                   <span style="font-size: 0.78rem; color: var(--text-muted); margin-left: 8px;">
-                    {{ review.created_at.strftime('%b %d, %Y') }}
+                    {{ review.created_at|npt('%b %d, %Y') }}
                   </span>
                 </div>
                 <span style="color: #D97706; font-size: 0.9rem; font-weight: 700;">

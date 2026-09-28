@@ -98,7 +98,7 @@
                   {{ document_type_labels.get(doc.document_type, doc.document_type) }}
                 </div>
                 <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 3px;">
-                  Uploaded {{ doc.uploaded_at.strftime('%b %d, %Y at %I:%M %p') }}
+                  Uploaded {{ doc.uploaded_at|npt('%b %d, %Y at %I:%M %p') }}
                 </div>
               </div>
             </div>

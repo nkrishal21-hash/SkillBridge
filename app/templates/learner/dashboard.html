@@ -140,7 +140,7 @@
                       {{ icon('check', 12) }} Verified Credential
                     </span>
                     <span style="font-size: 0.75rem; color: var(--text-muted);">
-                      {{ cert.issued_at.strftime('%b %d, %Y') }}
+                      {{ cert.issued_at|npt('%b %d, %Y') }}
                     </span>
                   </div>
                   <h4 style="font-size: 0.98rem; font-weight: 700; margin-bottom: 4px; color: var(--text-primary); line-height: 1.35;">
@@ -312,7 +312,7 @@
                     </p>
                   {% endif %}
                   <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">
-                    {{ notif.created_at.strftime('%b %d, %I:%M %p') }}
+                    {{ notif.created_at|npt('%b %d, %I:%M %p') }}
                   </div>
                 </div>
               </div>

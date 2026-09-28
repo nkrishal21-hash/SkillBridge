@@ -46,7 +46,7 @@
       <div style="display: flex; justify-content: space-between; padding: 8px 0;">
         <span style="color: var(--text-muted);">Date &amp; Time</span>
         <span style="color: var(--text-secondary);">
-          {{ payment.completed_at.strftime('%b %d, %Y %I:%M %p UTC') if payment.completed_at else 'Just now' }}
+          {{ payment.completed_at|npt if payment.completed_at else 'Just now' }}
         </span>
       </div>
     </div>
