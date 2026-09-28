@@ -22,6 +22,7 @@
 | Post-9 | App-Wide UI Polish: Custom SVG Icon System | ✅ Done | 2026-09-20 |
 | Post-9 | Visual Identity & Polish: Brand Palette & Form Distinction | ✅ Done | 2026-09-21 |
 | Post-9 | **Critical Fixes: Payment Integrity, Teacher Verification, Refund-on-Cancel, Credential Uploads** | ✅ Done | 2026-09-27 |
+| Post-9 | **Comprehensive Mentorship Refund Architecture & Accounting Overhaul** | ✅ Done | 2026-09-28 |
 | 10 | Deployment (Render + Aiven + Cloudinary) | ⬜ Not started | |
 
 Status values: ⬜ Not started · 🟡 In progress · ✅ Done · ⚠️ Blocked
@@ -764,6 +765,98 @@ Five targeted improvements implemented in separate commits (Parts 1–5).
 - [ ] Khalti sandbox test credentials obtained
 - [ ] Cloudinary account created, API key/secret noted
 - [ ] Render account created, GitHub repo connected
+
+---
+
+## Post-Phase-9 — Comprehensive Mentorship Refund Architecture & Accounting Overhaul
+**Status:** ✅ Done  
+**Date started / completed:** 2026-09-28 / 2026-09-28  
+**Git commits:** `eda8cb5` (Part 1) · `c01b5d2` (Part 2) · `141e122` (Part 3) · `75f20bf` (Part 4) · `91c5399` (Part 5)
+
+### Checklist
+
+**Part 1 — Central Refund Service & Schema**
+- [x] `db_init.py`: idempotent `migrate_refund_columns()` adds `refund_amount NUMERIC(10,2)`, `refunded_at DATETIME`, `refunded_by INT`, `refund_note TEXT` to `payments` via `inspect()` + `ALTER TABLE ADD COLUMN` (same pattern as commission migration). Verified with `DESCRIBE payments` and run twice (idempotent).
+- [x] `app/models.py`: four new columns on `Payment`; `RefundRequest` table with `id`, `booking_id`, `learner_id`, `reason_type`, `description`, `status`, `approved_amount`, `admin_notes`, `decided_by`, `decided_at`, `created_at`.
+- [x] `app/refunds/service.py`: `process_refund(payment, amount, admin, note)` enforcing status guard (success-only), amount bounds (0 < amount ≤ payment.amount), learner misconduct check (block on `resolved`, warn on `pending/reviewed`), payout-released reconciliation warning, accounting split (`platform_fee_amount = retained`, `teacher_payout_amount = 0`), and in-app notifications for learner + teacher with NPT timestamps.
+
+**Part 2 — Replace Auto-Refund on Cancel / Payout Hold Guards**
+- [x] `booking/routes.py cancel()`: payment stays `success` (held); learner + teacher notified that refund can be requested from the booking page.
+- [x] `app/refunds/service.py get_payment_hold_reason()`: returns hold reason if booking is cancelled, open refund request pending, or open report pending/reviewed.
+- [x] `app/admin/routes.py`: `release_payout` blocks on held payment; `release_all_payouts` filters out held payments; `total_pending_payout` and `teacher_subtotals` exclude held payments.
+- [x] `app/teacher/routes.py`: `pending_payout_total` excludes held payments.
+- [x] `app/templates/admin/payouts.html`: amber "On hold" badge with reason; Release button hidden/disabled for held payments.
+
+**Part 3 — Student Refund Request Workflow**
+- [x] `app/booking/forms.py`: `RefundRequestForm` with `REFUND_REASON_CHOICES` (cancelled_by_teacher, cancelled_by_student, session_not_held, teacher_marked_complete_without_teaching, other).
+- [x] `app/booking/routes.py submit_refund_request()`: validates eligibility (unrefunded success payment, cancelled/approved/completed booking, no upheld misconduct report, max 1 open request per booking), creates `RefundRequest`, notifies all admins.
+- [x] `app/templates/booking/detail.html`: Refund Status & Request section showing "Under review", "Refunded NPR X of Y", "Rejected", or the request form as appropriate.
+
+**Part 4 — Admin Refund Console**
+- [x] `/admin/refunds` (`refund_list`): queue table with status filter tabs (pending / approved / partially_approved / rejected / all) and summary count cards.
+- [x] `/admin/refunds/<id>` (`refund_review`): full case review — booking, payment, both parties' reports, trust & safety history, approve/reject forms.
+- [x] `refund_approve()` / `refund_reject()`: process or reject request, update `RefundRequest.status`, notify learner.
+- [x] `/admin/payments/<id>/refund` (`payment_refund_direct`): direct amount-entry refund without a prior request; uses same `process_refund()` service.
+- [x] `refund_report()` updated: GET/POST with custom amount entry, uses `process_refund()` service; replaced fixed full-refund behaviour.
+- [x] Templates: `refunds.html`, `refund_review.html`, `refund_direct.html`; updated `dashboard.html`, `payments.html`, `reports.html`, `base.html` with nav link and pending count badge.
+
+**Part 5 — Accounting Audit & Receipt Refund Display**
+- [x] `app/admin/routes.py dashboard()`: platform revenue = `sum(platform_fee_amount WHERE status='success')` + `sum(platform_fee_amount WHERE status='refunded')`; added `total_refunded` and `total_retained` template variables.
+- [x] `app/admin/routes.py payment_list()`: same accounting formula for `revenue_total`; added `refunds_total` and `retained_rev`.
+- [x] `app/templates/admin/dashboard.html`: Platform Revenue card shows "Refunded to learners" and "Retained from refunds" sub-row when non-zero.
+- [x] `app/templates/admin/payments.html`: header shows platform revenue earned + total refunded + retained from refunds as inline metrics.
+- [x] `app/templates/payments/receipt.html`: prominent purple REFUNDED banner showing refund amount, original amount, retained amount, NPT date, and admin note; status badge changes to purple for refunded payments.
+- [x] `scripts/test_refund_system.py`: 12 scenarios, 42 assertions — all pass.
+
+### Verification Results (42/42 passed)
+
+| Test | Scenario | Result |
+|---|---|---|
+| T1 | Full refund: status, amounts, notifications, NPT time | ✅ |
+| T2 | Partial refund 2000 → refund 1200, retain 800, teacher payout 0 | ✅ |
+| T3 | Double refund blocked (status guard) | ✅ |
+| T4 | Refund blocked for learner with upheld misconduct report | ✅ |
+| T5 | Cancelled-booking payment hold reason returned | ✅ |
+| T6 | Learner + teacher notifications contain NPT timestamps and amounts | ✅ |
+| T7 | Request → Approve: hold active, refund processed, request status updated | ✅ |
+| T8 | Request → Reject: payment stays success, request marked rejected | ✅ |
+| T9 | Receipt: refunded_at, refund_amount, refund_note set correctly | ✅ |
+| T10 | Amount bounds: zero and overage both rejected | ✅ |
+| T11 | Platform revenue accounting: retained included, refunded total correct | ✅ |
+| T12 | Pending misconduct report warns but allows refund | ✅ |
+
+### Files Created / Modified
+
+| File | Change |
+|---|---|
+| `db_init.py` | Idempotent `migrate_refund_columns()` (Part 1) |
+| `app/models.py` | `Payment` refund columns + `RefundRequest` model |
+| `app/refunds/__init__.py` | Blueprint init |
+| `app/refunds/service.py` | `process_refund()`, `get_payment_hold_reason()`, `_get_booking_for_payment()` |
+| `app/booking/forms.py` | `RefundRequestForm` + reason choices |
+| `app/booking/routes.py` | `cancel()` hold; `submit_refund_request()` endpoint |
+| `app/admin/routes.py` | Payout hold guards; refund list/review/approve/reject; direct payment refund; report refund overhaul; accounting fix |
+| `app/teacher/routes.py` | Exclude held payments from pending payout total |
+| `app/templates/admin/refunds.html` | Refund request queue |
+| `app/templates/admin/refund_review.html` | Full case review page |
+| `app/templates/admin/refund_direct.html` | Amount-entry refund form |
+| `app/templates/admin/payouts.html` | Hold badge + Release button guard |
+| `app/templates/admin/dashboard.html` | Pending refund card; revenue breakdown |
+| `app/templates/admin/payments.html` | Refund action; revenue metrics |
+| `app/templates/admin/reports.html` | Report refund action link |
+| `app/templates/base.html` | Admin nav dropdown refund link |
+| `app/templates/booking/detail.html` | Refund status & request form section |
+| `app/templates/payments/receipt.html` | REFUNDED banner + purple status badge |
+| `scripts/test_refund_system.py` | 12-scenario verification suite |
+| `PROGRESS.md` | This entry |
+
+### Scope Decisions & Architectural Notes
+
+- **Single Refund Service**: All refund paths (admin console, report-triggered, direct payment refund) call the same `process_refund()` function, ensuring business rules (misconduct block, double-refund prevention, accounting split) cannot be bypassed by any code path.
+- **Partial Refund Accounting**: On any refund (full or partial), `platform_fee_amount` is set to `payment.amount - refund_amount` (the retained portion) and `teacher_payout_amount` is set to 0. This means platform revenue queries sum `platform_fee_amount` from both `status='success'` and `status='refunded'` rows for an accurate total.
+- **No ENUM Changes**: `payment.status = 'refunded'` covers both full and partial refunds, per the constraint. The amount of the refund is in `refund_amount`.
+- **Payout Hold Priority**: `get_payment_hold_reason()` checks conditions in order: (1) booking cancelled, (2) open refund request, (3) open report. A cancelled booking therefore shows "Booking cancelled" as the hold reason even if an open refund request also exists — both conditions prevent release.
+- **Internal Accounting Only**: All refund notifications and admin flash messages clearly state "internal record only — no eSewa money movement". No gateway refund API is called.
 
 ---
 
