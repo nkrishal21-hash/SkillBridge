@@ -90,8 +90,16 @@ def dashboard():
         .scalar()
     ) or 0.0
 
-    # Still pending payout (payout_status == 'pending')
-    pending_payout_total = float(net_earnings) - float(paid_out_total)
+    # Still pending payout (payout_status == 'pending') — keep payments on hold OUT of pending payout total
+    from app.refunds.service import get_payment_hold_reason
+    pending_payments_all = Payment.query.filter(
+        and_(earnings_condition, Payment.payout_status == "pending")
+    ).all()
+    pending_payout_total = sum(
+        float(p.teacher_payout_amount or 0.0)
+        for p in pending_payments_all
+        if not get_payment_hold_reason(p)
+    )
 
     recent_payments = (
         Payment.query.filter(earnings_condition)

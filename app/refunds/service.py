@@ -59,6 +59,44 @@ def _get_booking_for_payment(payment: Payment):
     return None
 
 
+def get_payment_hold_reason(payment: Payment):
+    """
+    Check if a payment is blocked from payout release to the teacher.
+    Returns a human-readable reason string if on hold, or None if releasable.
+
+    Hold conditions:
+    1. Payment status is not 'success'
+    2. Linked booking is cancelled
+    3. Open refund request exists for this booking (status == 'pending')
+    4. Open report exists for this booking (status in ('pending', 'reviewed'))
+    """
+    if payment.status != "success":
+        return f"Payment is {payment.status}"
+
+    if payment.payment_for == "booking":
+        booking = _get_booking_for_payment(payment)
+        if booking:
+            if booking.status == "cancelled":
+                return "Booking cancelled"
+
+            from app.models import RefundRequest
+            open_req = RefundRequest.query.filter_by(
+                booking_id=booking.id,
+                status="pending",
+            ).first()
+            if open_req:
+                return "Open refund request"
+
+            open_report = Report.query.filter(
+                Report.booking_id == booking.id,
+                Report.status.in_(["pending", "reviewed"]),
+            ).first()
+            if open_report:
+                return f"Open report (#{open_report.id})"
+
+    return None
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Main service function
 # ─────────────────────────────────────────────────────────────────────────────

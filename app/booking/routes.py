@@ -329,6 +329,8 @@ def reject(booking_id: int):
 def cancel(booking_id: int):
     """
     Learner or Teacher cancels a booking while it is in pending or approved status.
+    Payment (if any) is held as 'success' — no auto-refund.
+    Both parties are notified that the learner can request a refund from the booking page.
     """
     booking = Booking.query.get_or_404(booking_id)
 
@@ -342,57 +344,60 @@ def cancel(booking_id: int):
     booking.status = "cancelled"
 
     # Check if a successful payment exists for this booking
-    payment = Payment.query.filter_by(
+    payment = booking.payment if (booking.payment and booking.payment.status == "success") else Payment.query.filter_by(
         payment_for="booking",
         booking_id_ref=booking.id,
         status="success",
     ).first()
 
-    refunded = False
-    if payment:
-        payment.status = "refunded"
-        refunded = True
+    db.session.commit()
 
-        # Send in-app notification to learner about the refund
+    if payment:
+        # Payment is held — do NOT auto-refund.
+        # Notify learner that they can request a refund.
         notify(
             user_id=booking.learner_id,
-            title=f"Session Payment Refunded (NPR {payment.amount})",
+            title=f"Session Cancelled — Refund Available: {booking.topic or 'Mentorship Session'}",
             body=(
-                f"Your booking #{booking.id} ('{booking.topic or 'Mentorship Session'}') was cancelled by "
-                f"{current_user.full_name}. Your payment of NPR {payment.amount} has been marked as refunded."
+                f"Your booking #{booking.id} has been cancelled by {current_user.full_name}. "
+                f"Your payment of NPR {payment.amount:.2f} is held. "
+                f"You can request a refund from the booking page."
             ),
             notif_type="payment",
             link=url_for("booking.detail", booking_id=booking.id),
         )
-
-        # If cancelled by learner, notify the teacher about the cancellation
+        # Notify teacher too
         if current_user.id == booking.learner_id:
             notify(
                 user_id=booking.teacher_id,
                 title=f"Session Cancelled: {booking.topic or 'Mentorship Session'}",
-                body=f"{current_user.full_name} has cancelled their booked mentorship session scheduled for {booking.session_date.strftime('%b %d, %Y')}.",
+                body=(
+                    f"{current_user.full_name} has cancelled the booked session "
+                    f"scheduled for {booking.session_date.strftime('%b %d, %Y')}. "
+                    f"The learner's payment is on hold pending a possible refund request."
+                ),
                 notif_type="booking",
                 link=url_for("booking.detail", booking_id=booking.id),
             )
+        else:
+            # Teacher cancelled — notify learner (already notified above)
+            pass
+
+        flash(
+            "The session booking has been cancelled. "
+            "Your payment is held — you may request a refund from this booking page.",
+            "info",
+        )
     else:
-        # Notify the other party about cancellation of unpaid/pending booking
+        # No payment — just notify the other party about the cancellation
         other_user_id = booking.teacher_id if current_user.id == booking.learner_id else booking.learner_id
         notify(
             user_id=other_user_id,
             title=f"Session Cancelled: {booking.topic or 'Mentorship Session'}",
-            body=f"{current_user.full_name} has cancelled the booking request for {booking.session_date.strftime('%b %d, %Y')}.",
+            body=f"{current_user.full_name} has cancelled the booking for {booking.session_date.strftime('%b %d, %Y')}.",
             notif_type="booking",
             link=url_for("booking.detail", booking_id=booking.id),
         )
-
-    db.session.commit()
-
-    if refunded:
-        flash(
-            f"The session booking has been cancelled and the payment of NPR {payment.amount} has been recorded as refunded.",
-            "info",
-        )
-    else:
         flash("The session booking has been cancelled.", "info")
 
     return redirect(url_for("booking.detail", booking_id=booking.id))

@@ -547,6 +547,10 @@ def payout_list():
     pagination = query.paginate(page=page, per_page=20, error_out=False)
     payments = pagination.items
 
+    from app.refunds.service import get_payment_hold_reason
+    for p in payments:
+        p.hold_reason = get_payment_hold_reason(p)
+
     # ── Per-teacher pending subtotals calculation ────────────────────────────
     pending_payments_all = Payment.query.filter(
         Payment.status == "success",
@@ -569,23 +573,25 @@ def payout_list():
                 "total_pending": Decimal("0.00"),
                 "count": 0,
             }
+        # Keep payments on hold out of pending payout subtotals
+        if get_payment_hold_reason(p):
+            continue
         payout_amt = Decimal(str(p.teacher_payout_amount or 0))
         teacher_subtotals_map[key]["total_pending"] += payout_amt
         teacher_subtotals_map[key]["count"] += 1
 
     teacher_subtotals = sorted(
-        teacher_subtotals_map.values(),
+        [t for t in teacher_subtotals_map.values() if t["count"] > 0],
         key=lambda x: x["total_pending"],
         reverse=True,
     )
 
-    # Overall summary stats
-    total_pending_payout = db.session.query(
-        func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0)
-    ).filter(
-        Payment.status == "success",
-        Payment.payout_status == "pending",
-    ).scalar() or 0.0
+    # Overall summary stats (only releasable pending payouts)
+    total_pending_payout = sum(
+        Decimal(str(p.teacher_payout_amount or 0))
+        for p in pending_payments_all
+        if not get_payment_hold_reason(p)
+    )
 
     total_released_payout = db.session.query(
         func.coalesce(func.sum(Payment.teacher_payout_amount), 0.0)
@@ -617,6 +623,12 @@ def release_payout(payment_id: int):
 
     if payment.status != "success":
         flash("Only successful payments can have payouts released.", "warning")
+        return redirect(request.referrer or url_for("admin.payout_list"))
+
+    from app.refunds.service import get_payment_hold_reason
+    hold_reason = get_payment_hold_reason(payment)
+    if hold_reason:
+        flash(f"Cannot release payout for Payment #{payment.id}: Payment is on hold ({hold_reason}).", "danger")
         return redirect(request.referrer or url_for("admin.payout_list"))
 
     if payment.payout_status == "released":
@@ -671,13 +683,20 @@ def release_all_payouts(teacher_profile_id: int):
         db.or_(*conds)
     ).all()
 
-    if not pending_payments:
-        flash(f"No pending payouts found for teacher '{profile.user.full_name if profile.user else '(unknown)'}'", "info")
+    from app.refunds.service import get_payment_hold_reason
+    releasable_payments = [p for p in pending_payments if not get_payment_hold_reason(p)]
+    held_count = len(pending_payments) - len(releasable_payments)
+
+    if not releasable_payments:
+        msg = f"No releasable payouts found for teacher '{profile.user.full_name if profile.user else '(unknown)'}'."
+        if held_count > 0:
+            msg += f" {held_count} pending payment(s) are on hold and cannot be released."
+        flash(msg, "info")
         return redirect(request.referrer or url_for("admin.payout_list"))
 
-    total_released = sum(float(p.teacher_payout_amount or 0) for p in pending_payments)
+    total_released = sum(float(p.teacher_payout_amount or 0) for p in releasable_payments)
     now = datetime.utcnow()
-    for p in pending_payments:
+    for p in releasable_payments:
         p.payout_status = "released"
         p.payout_released_at = now
     db.session.commit()
@@ -689,15 +708,17 @@ def release_all_payouts(teacher_profile_id: int):
             title=f"Bulk Payout Released: NPR {total_released:.2f}",
             body=(
                 f"Your total pending earnings of NPR {total_released:.2f} "
-                f"across {len(pending_payments)} payment(s) have been marked as paid out."
+                f"across {len(releasable_payments)} payment(s) have been marked as paid out."
             ),
             notif_type="payment",
             link=url_for("teacher.dashboard"),
         )
 
-    flash(
-        f"Released {len(pending_payments)} payout(s) totalling NPR {total_released:.2f} for "
-        f"'{profile.user.full_name if profile.user else 'teacher'}'. Teacher has been notified.",
-        "success"
+    flash_msg = (
+        f"Released {len(releasable_payments)} payout(s) totalling NPR {total_released:.2f} for "
+        f"'{profile.user.full_name if profile.user else 'teacher'}'. Teacher has been notified."
     )
+    if held_count > 0:
+        flash_msg += f" Note: {held_count} payment(s) are on hold and were not released."
+    flash(flash_msg, "success")
     return redirect(request.referrer or url_for("admin.payout_list", filter="released"))
