@@ -29,6 +29,7 @@ from app.booking.utils import (
     calculate_session_times,
     send_new_booking_email,
     send_booking_response_email,
+    booking_is_paid,
 )
 from app.notifications.utils import notify
 
@@ -182,12 +183,12 @@ def detail(booking_id: int):
         booking_id_ref=booking.id,
         status="success"
     ).first()
-    has_paid = (payment is not None)
+    has_paid = booking_is_paid(booking)
 
     # Session completion eligibility
     session_end = datetime.combine(booking.session_date, booking.end_time).replace(tzinfo=NPT)
     is_past = (nepal_now() >= session_end)
-    can_mark_complete = (booking.status == "approved" and is_past)
+    can_mark_complete = (booking.status == "approved" and is_past and has_paid)
 
     # Review status
     review = booking.review
@@ -256,12 +257,21 @@ def approve(booking_id: int):
     db.session.commit()
 
     # Send in-app notification to learner
+    is_paid = booking_is_paid(booking)
+    if is_paid:
+        notif_body = f"{current_user.full_name} has approved your session for {booking.session_date.strftime('%b %d, %Y')} at {booking.start_time.strftime('%I:%M %p')}."
+        notif_link = url_for("booking.detail", booking_id=booking.id)
+    else:
+        pay_url = url_for("payments.checkout", payment_for="booking", target_id=booking.id)
+        notif_body = f"{current_user.full_name} has approved your session for {booking.session_date.strftime('%b %d, %Y')} at {booking.start_time.strftime('%I:%M %p')}. Payment of NPR {booking.amount or 0:.2f} is required to unlock your live session."
+        notif_link = pay_url
+
     notify(
         user_id=booking.learner_id,
         title=f"Booking Approved: {booking.topic}",
-        body=f"{current_user.full_name} has approved your session for {booking.session_date.strftime('%b %d, %Y')} at {booking.start_time.strftime('%I:%M %p')}.",
+        body=notif_body,
         notif_type="booking",
-        link=url_for("booking.detail", booking_id=booking.id),
+        link=notif_link,
     )
 
     # Send response email to learner
@@ -405,6 +415,10 @@ def complete(booking_id: int):
 
     if booking.status != "approved":
         flash(f"Booking #{booking.id} cannot be marked complete because its current status is '{booking.status}'.", "warning")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    if not booking_is_paid(booking):
+        flash("This session cannot be marked complete because payment has not been received.", "warning")
         return redirect(url_for("booking.detail", booking_id=booking.id))
 
     session_end = datetime.combine(booking.session_date, booking.end_time).replace(tzinfo=NPT)

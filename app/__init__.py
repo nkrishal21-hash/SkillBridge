@@ -136,6 +136,7 @@ def create_app(config_name: str = None) -> Flask:
     from app.models import Message, Notification
 
     from app.utils.time import npt_filter
+    from app.booking.utils import booking_is_paid
 
     @app.template_filter("nl2br")
     def nl2br_filter(s):
@@ -144,6 +145,7 @@ def create_app(config_name: str = None) -> Flask:
         return Markup("<br>".join(escape(s).split("\n")))
 
     app.add_template_filter(npt_filter, "npt")
+    app.jinja_env.globals["booking_is_paid"] = booking_is_paid
 
     @app.context_processor
     def inject_global_badges():

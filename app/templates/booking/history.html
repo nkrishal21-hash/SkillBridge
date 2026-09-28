@@ -94,7 +94,7 @@
           </div>
 
           <div style="display: flex; gap: 10px; align-items: center;">
-            {% if booking.status == 'approved' and booking.jitsi_room %}
+            {% if booking.status == 'approved' and booking.jitsi_room and booking_is_paid(booking) %}
               <span class="badge badge-preview" title="Room ID: {{ booking.jitsi_room }}">Room Set</span>
             {% endif %}
             <a href="{{ url_for('booking.detail', booking_id=booking.id) }}" class="btn btn-outline btn-sm">

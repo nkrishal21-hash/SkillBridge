@@ -88,6 +88,25 @@ def send_new_booking_email(booking: Booking) -> bool:
         return False
 
 
+def booking_is_paid(booking) -> bool:
+    """
+    Check if a mentorship booking is paid (or free).
+    True if booking.amount is None or <= 0, or a Payment exists with
+    payment_for='booking', booking_id_ref=booking.id, and status='success'.
+    """
+    if not booking:
+        return False
+    if booking.amount is None or booking.amount <= 0:
+        return True
+    from app.models import Payment
+    payment = Payment.query.filter_by(
+        payment_for="booking",
+        booking_id_ref=booking.id,
+        status="success"
+    ).first()
+    return payment is not None
+
+
 def send_booking_response_email(booking: Booking) -> bool:
     """
     Send email notification to learner when teacher approves or rejects their booking request.
@@ -95,12 +114,15 @@ def send_booking_response_email(booking: Booking) -> bool:
     Returns True if sent via SMTP, False otherwise.
     """
     detail_url = url_for("booking.detail", booking_id=booking.id, _external=True)
+    is_paid = booking_is_paid(booking)
 
     print(f"\n[SkillBridge Booking] Booking #{booking.id} Status Updated to '{booking.status.upper()}' for Learner {booking.learner.email}:")
     print(f"  Teacher: {booking.teacher.full_name}")
     print(f"  Topic: {booking.topic}")
-    if booking.status == "approved":
+    if booking.status == "approved" and is_paid:
         print(f"  Jitsi Room: {booking.jitsi_room}")
+    elif booking.status == "approved" and not is_paid:
+        print(f"  Payment Required: NPR {booking.amount or 0:.2f} (Jitsi room gated until payment)")
     if booking.teacher_response_note:
         print(f"  Teacher Note: {booking.teacher_response_note}")
     print(f"  Detail URL: {detail_url}\n")
@@ -112,16 +134,49 @@ def send_booking_response_email(booking: Booking) -> bool:
     try:
         if booking.status == "approved":
             subject = f"SkillBridge — Booking Approved: {booking.topic}"
-            status_text = f"Great news! <strong>{booking.teacher.full_name}</strong> has approved your 1-on-1 mentorship session."
-            jitsi_note = f"""
-            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; margin-top: 14px; color: #065f46; font-size: 14px;">
-                <strong>Session Link:</strong> Room ID <code>{booking.jitsi_room}</code> will be activated for your live video call at the scheduled time.
-            </div>
-            """
+            if is_paid:
+                status_text = f"Great news! <strong>{booking.teacher.full_name}</strong> has approved your 1-on-1 mentorship session."
+                jitsi_note = f"""
+                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; margin-top: 14px; color: #065f46; font-size: 14px;">
+                    <strong>Session Link:</strong> Room ID <code>{booking.jitsi_room}</code> will be activated for your live video call at the scheduled time.
+                </div>
+                """
+                action_btn_html = f"""
+                <div style="text-align: center; margin: 28px 0;">
+                    <a href="{detail_url}" style="background-color: #0a4b94; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">
+                        View Booking Details
+                    </a>
+                </div>
+                """
+            else:
+                checkout_url = url_for("payments.checkout", payment_for="booking", target_id=booking.id, _external=True)
+                status_text = f"Great news! <strong>{booking.teacher.full_name}</strong> has approved your 1-on-1 mentorship session. Payment is required to unlock your live session."
+                jitsi_note = f"""
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px; margin-top: 14px; color: #92400e; font-size: 14px;">
+                    <strong>Payment Required:</strong> Please complete your payment of <strong>NPR {booking.amount or 0:.2f}</strong> to unlock your live video call room.
+                </div>
+                """
+                action_btn_html = f"""
+                <div style="text-align: center; margin: 28px 0;">
+                    <a href="{checkout_url}" style="background-color: #0a4b94; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block; margin-right: 8px; margin-bottom: 8px;">
+                        Pay NPR {booking.amount or 0:.2f} to Unlock Session
+                    </a>
+                    <a href="{detail_url}" style="background-color: #f1f5f9; color: #334155; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block; margin-bottom: 8px;">
+                        View Details
+                    </a>
+                </div>
+                """
         else:
             subject = f"SkillBridge — Booking Request Update: {booking.topic}"
             status_text = f"<strong>{booking.teacher.full_name}</strong> was unable to accept your booking request for the scheduled time."
             jitsi_note = ""
+            action_btn_html = f"""
+            <div style="text-align: center; margin: 28px 0;">
+                <a href="{detail_url}" style="background-color: #0a4b94; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">
+                    View Booking Details
+                </a>
+            </div>
+            """
 
         teacher_note_html = ""
         if booking.teacher_response_note:
@@ -139,7 +194,7 @@ def send_booking_response_email(booking: Booking) -> bool:
         msg.html = f"""
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
             <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="color: #4f46e5; margin: 0; font-size: 24px; font-weight: 700;">SkillBridge</h2>
+                <h2 style="color: #0a4b94; margin: 0; font-size: 24px; font-weight: 700;">SkillBridge</h2>
                 <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Session Status Notification</p>
             </div>
             <p style="color: #1e293b; font-size: 16px;">Hello <strong>{booking.learner.full_name}</strong>,</p>
@@ -154,11 +209,7 @@ def send_booking_response_email(booking: Booking) -> bool:
                 {jitsi_note}
                 {teacher_note_html}
             </div>
-            <div style="text-align: center; margin: 28px 0;">
-                <a href="{detail_url}" style="background-color: #4f46e5; color: #ffffff; padding: 12px 26px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">
-                    View Booking Details
-                </a>
-            </div>
+            {action_btn_html}
             <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;">
             <p style="color: #94a3b8; font-size: 12px; text-align: center;">
                 SkillBridge &bull; Peer-to-Peer Learning Platform

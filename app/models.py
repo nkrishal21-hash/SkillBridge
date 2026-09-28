@@ -380,6 +380,12 @@ class Booking(BaseModel):
     payment = db.relationship("Payment", foreign_keys=[payment_id])
     review = db.relationship("Review", back_populates="booking", uselist=False)
 
+    @property
+    def is_paid(self) -> bool:
+        """True if booking is paid or free."""
+        from app.booking.utils import booking_is_paid
+        return booking_is_paid(self)
+
     def __repr__(self):
         return f"<Booking {self.id}: learner={self.learner_id} teacher={self.teacher_id} {self.status}>"
 
