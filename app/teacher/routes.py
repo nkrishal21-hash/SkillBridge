@@ -178,7 +178,19 @@ def profile_edit():
         form.linkedin_url.data = profile.linkedin_url
         form.website_url.data = profile.website_url
 
-    return render_template("teacher/profile_edit.html", form=form, profile=profile)
+    existing_docs = (
+        TeacherDocument.query
+        .filter_by(teacher_profile_id=profile.id)
+        .order_by(TeacherDocument.uploaded_at.desc())
+        .all()
+    )
+    return render_template(
+        "teacher/profile_edit.html",
+        form=form,
+        profile=profile,
+        documents=existing_docs,
+        document_type_labels=DOCUMENT_TYPE_LABELS,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -192,74 +204,107 @@ DOCUMENT_TYPE_LABELS = {
 }
 
 
-@teacher_bp.route("/documents", methods=["GET", "POST"])
+@teacher_bp.route("/documents", methods=["GET"])
 @login_required
 @teacher_required
 def documents():
-    """Upload and manage credential documents for admin verification review."""
+    """
+    Legacy URL — kept so that existing links (dashboard banner, admin links) do not break.
+    Redirects to Edit Profile which now hosts the credential documents section.
+    """
+    return redirect(url_for("teacher.profile_edit") + "#credential-documents")
+
+
+@teacher_bp.route("/profile/documents/upload", methods=["POST"])
+@login_required
+@teacher_required
+def upload_documents():
+    """
+    Multi-file credential document upload endpoint POSTed from the Edit Profile page.
+    Accepts multiple files of the same document type in one batch (input[multiple]).
+    Each file becomes its own TeacherDocument row.
+    Validates extension (pdf/jpg/jpeg/png) and size (max 10 MB per file).
+    Enforces a per-type cap of 10 documents.
+    Redirects back to Edit Profile on success or error.
+    """
     profile = current_user.teacher_profile
     if not profile:
         profile = TeacherProfile(user=current_user)
         db.session.add(profile)
         db.session.commit()
 
-    if request.method == "POST":
-        doc_type = request.form.get("document_type", "").strip()
-        file_storage = request.files.get("document_file")
+    allowed_types = ["citizenship", "passport", "educational_certificate", "other"]
+    doc_type = request.form.get("document_type", "").strip()
+    if doc_type not in allowed_types:
+        flash("Please select a valid document type.", "danger")
+        return redirect(url_for("teacher.profile_edit") + "#credential-documents")
 
-        allowed_types = ["citizenship", "passport", "educational_certificate", "other"]
-        if doc_type not in allowed_types:
-            flash("Please select a valid document type.", "danger")
-            return redirect(url_for("teacher.documents"))
+    files = request.files.getlist("document_files")
+    if not files or all(not f.filename for f in files):
+        flash("No files were selected. Please choose at least one file.", "danger")
+        return redirect(url_for("teacher.profile_edit") + "#credential-documents")
 
+    # Per-type cap: count existing docs of this type
+    existing_count = TeacherDocument.query.filter_by(
+        teacher_profile_id=profile.id,
+        document_type=doc_type,
+    ).count()
+    cap = 10
+    slots_left = cap - existing_count
+    if slots_left <= 0:
+        flash(
+            f"You already have {cap} documents of type '{DOCUMENT_TYPE_LABELS.get(doc_type, doc_type)}'. "
+            "Delete some before uploading more.",
+            "danger",
+        )
+        return redirect(url_for("teacher.profile_edit") + "#credential-documents")
+
+    uploaded = 0
+    errors = []
+    for file_storage in files[:slots_left]:
+        if not file_storage or not file_storage.filename:
+            continue
         try:
             file_url = upload_teacher_document(file_storage, profile.id)
         except ValueError as err:
-            flash(str(err), "danger")
-            return redirect(url_for("teacher.documents"))
-
+            errors.append(f"{file_storage.filename}: {err}")
+            continue
         doc = TeacherDocument(
             teacher_profile_id=profile.id,
             document_type=doc_type,
             file_url=file_url,
         )
         db.session.add(doc)
+        uploaded += 1
+
+    if uploaded:
         db.session.commit()
         flash(
-            "Document uploaded successfully. The admin will review it before granting verification.",
+            f"{uploaded} document{'s' if uploaded != 1 else ''} uploaded. "
+            "Admin will review them before granting verified status.",
             "success",
         )
-        return redirect(url_for("teacher.documents"))
+    for err_msg in errors:
+        flash(err_msg, "danger")
 
-    existing_docs = (
-        TeacherDocument.query
-        .filter_by(teacher_profile_id=profile.id)
-        .order_by(TeacherDocument.uploaded_at.desc())
-        .all()
-    )
-    return render_template(
-        "teacher/documents.html",
-        profile=profile,
-        documents=existing_docs,
-        document_type_labels=DOCUMENT_TYPE_LABELS,
-    )
+    return redirect(url_for("teacher.profile_edit") + "#credential-documents")
 
 
 @teacher_bp.route("/documents/<int:doc_id>/delete", methods=["POST"])
 @login_required
 @teacher_required
 def delete_document(doc_id: int):
-    """Delete a previously uploaded credential document."""
+    """Delete a previously uploaded credential document (only allowed while unverified)."""
     profile = current_user.teacher_profile
     doc = TeacherDocument.query.get_or_404(doc_id)
     # Ownership check — must belong to the current teacher's profile
     if not profile or doc.teacher_profile_id != profile.id:
         flash("You do not have permission to delete that document.", "danger")
-        return redirect(url_for("teacher.documents"))
+        return redirect(url_for("teacher.profile_edit") + "#credential-documents")
     db.session.delete(doc)
     db.session.commit()
     flash("Document deleted.", "success")
-    return redirect(url_for("teacher.documents"))
+    return redirect(url_for("teacher.profile_edit") + "#credential-documents")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

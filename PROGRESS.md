@@ -653,6 +653,79 @@ choose not to verify until docs are present.
 
 ---
 
+## Post-Phase-9 — Nepal Time, Payment Gate, Receipt Access & Document UX
+**Status:** ✅ Done
+**Date started / completed:** 2026-09-28 / 2026-09-28
+
+### Overview
+Five targeted improvements implemented in separate commits (Parts 1–5).
+
+### Part 1 — Nepal Time (NPT UTC+05:45)
+- Created `app/utils/time.py`: `NPT = timezone(timedelta(hours=5, minutes=45))`, `nepal_now()`, `nepal_today()`, `to_nepal(dt)` (treats naive as UTC), `npt_filter()`.
+- Registered `npt` Jinja filter (default `'%b %d, %Y %I:%M %p'`, accepts optional format arg) in `app/__init__.py`.
+- Replaced all UTC datetime `.strftime()` calls on `created_at`, `completed_at`, `initiated_at`, `sent_at`, `refunded_at`, `uploaded_at` fields with `|npt` filter across: `notifications/index.html`, `learner/dashboard.html`, `teacher/dashboard.html`, `teacher/documents.html`, `courses/course_detail.html`, `certificates/verify.html`, `admin/{dashboard,payments,payouts,reports,users,courses,teachers}.html`, `booking/detail.html`, `payments/{success,receipt}.html`, `chat/{inbox,conversation}.html`.
+- `session_date`, `start_time`, `end_time` (wall-clock NPT values) — kept with plain strftime, no conversion.
+- Chat message timestamps retained as client-side local-time (JS formatLocalTime) per spec.
+- `app/booking/routes.py` (3 spots) and `app/booking/forms.py` (1 spot): replaced `date.today()` / `datetime.now()` with `nepal_today()` / `nepal_now()`.
+- **Verified:** `to_nepal(UTC 05:28)` → `11:13 AM NPT`; `|npt` filter renders correct output; `nepal_today()` and `nepal_now()` return NPT-aware values.
+- **Commit:** fddf4a2
+
+### Part 2 — Payment required before live mentorship session
+- `booking_is_paid(booking)` helper in `app/booking/utils.py`: returns `True` when `booking.amount` is None / ≤ 0 OR a `Payment` with `payment_for='booking'`, `booking_id_ref=booking.id`, `status='success'` exists.
+- Exposed as `Booking.is_paid` property and `booking_is_paid` Jinja global.
+- `booking/detail.html` live session block (Jitsi room name, launch buttons, embed JS) gated on `status == 'approved' AND booking_is_paid`.
+- Unpaid approved booking: learner sees "Pay to unlock your live session" CTA; teacher sees "Waiting for the student's payment" notice. No room name exposed to either party.
+- Approval email / notification updated to include payment prompt and checkout link.
+- "Mark Session Complete" button also gated on `booking_is_paid`.
+- **Commit:** 1c794e0
+
+### Part 3 — Remove 'Awaiting Instructor Approval' text block
+- Removed the pending-approval information text block from `booking/detail.html` entirely (both learner and teacher view).
+- **Commit:** 7cbab1a
+
+### Part 4 — Teacher can view payment receipt for their own booking
+- `payments/routes.py` `receipt()`: added `is_teacher_owner` check — teacher whose `booking.teacher_id == current_user.id` may view the receipt for that booking. Other teachers' receipts return 403.
+- `booking/detail.html` teacher view: "Payment received" badge when paid; "View Payment Receipt" link button; "Awaiting payment" amber badge when unpaid.
+- `payments/receipt.html`: "Back to Dashboard" link now role-aware (teacher → teacher dashboard, admin → admin dashboard, learner → learner dashboard).
+- **Commit:** 1352405
+
+### Part 5 — Document upload moved into Edit Profile
+- `teacher/profile_edit.html`: new `#credential-documents` section appended with its own separate CSRF form.
+  - Multi-file input (`multiple`, `name="document_files"`), one document type per batch.
+  - Validates extension (PDF/JPG/JPEG/PNG), 16 MB per file, per-type cap of 10 docs.
+  - Lists existing docs with View and Delete actions (Delete hidden when teacher is already verified).
+- New route `POST /teacher/profile/documents/upload` (`teacher.upload_documents`): handles `request.files.getlist("document_files")`, one `TeacherDocument` row per file, flashes count on success.
+- `GET /teacher/documents` preserved as a redirect to `profile_edit#credential-documents` so all existing links continue to work.
+- `teacher.delete_document` redirects back to `profile_edit#credential-documents` instead of the old standalone page.
+- `teacher/dashboard.html` banner updated to link to `profile_edit#credential-documents`.
+- Documents remain sensitive: shown only to the owning teacher and admins; never on public profile; filenames use `profile_{id}_{timestamp}.{ext}`.
+- **Verified:** all templates parse; routes registered; `/teacher/documents` redirects (302) to login for anonymous, and to `profile_edit#credential-documents` for authenticated teachers; multi-file upload endpoint accepts POST.
+- **Commit:** (Part 5 commit)
+
+**Files modified in this session:**
+- `app/utils/time.py` (new)
+- `app/__init__.py`
+- `app/booking/forms.py`, `app/booking/routes.py`, `app/booking/utils.py`
+- `app/models.py`
+- `app/payments/routes.py`
+- `app/teacher/routes.py`
+- `app/templates/booking/detail.html`
+- `app/templates/booking/history.html`
+- `app/templates/payments/receipt.html`
+- `app/templates/payments/success.html`
+- `app/templates/teacher/profile_edit.html`
+- `app/templates/teacher/dashboard.html`
+- `app/templates/notifications/index.html`
+- `app/templates/learner/dashboard.html`
+- `app/templates/teacher/dashboard.html`
+- `app/templates/teacher/documents.html`
+- `app/templates/courses/course_detail.html`
+- `app/templates/certificates/verify.html`
+- `app/templates/admin/{dashboard,payments,payouts,reports,users,courses,teachers}.html`
+- `app/templates/chat/inbox.html`, `app/templates/chat/conversation.html`
+
+---
+
 ## Phase 10 — Deployment (Render + Aiven + Cloudinary)
 **Status:** ⬜
 **Date started / completed:** —

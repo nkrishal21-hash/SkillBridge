@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_icons.html' import icon %}
 
 {% block title %}Edit Mentor Profile — SkillBridge{% endblock %}
 
@@ -159,6 +160,124 @@
         </a>
       </div>
     </form>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Credential Document Upload Section                          -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div id="credential-documents" class="auth-card" style="max-width: 100%; padding: 36px 32px; margin-top: 24px;">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+      {{ icon('file-text', 20) }} Credential Documents
+    </h2>
+    <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 24px;">
+      Upload your identity and qualification documents so admin can verify your instructor status.
+      Documents are <strong>only visible to you and platform admins</strong> — they are never shown on your public profile.
+    </p>
+
+    {% if not profile.is_verified %}
+      <div style="background: linear-gradient(135deg, #fff8ed 0%, #fff3db 100%); border: 1px solid #f6c860; border-radius: var(--radius-lg); padding: 14px 18px; margin-bottom: 22px; display: flex; align-items: flex-start; gap: 12px;">
+        <span style="color: #d97706; flex-shrink: 0; margin-top: 2px;">{{ icon('alert-circle', 18) }}</span>
+        <div style="font-size: 0.88rem; color: #78350f;">
+          <strong style="color: #92400e;">Verification pending</strong> — upload at least one document so admin can grant verified status.
+          {% if not documents %}<br>No documents uploaded yet.{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-lg); padding: 12px 18px; margin-bottom: 22px; display: flex; align-items: center; gap: 10px;">
+        <span style="color: var(--success);">{{ icon('check-circle', 18) }}</span>
+        <span style="font-size: 0.88rem; font-weight: 600; color: #166534;">Your profile is verified. Documents are kept for record-keeping only.</span>
+      </div>
+    {% endif %}
+
+    <!-- Upload Form -->
+    {% if not profile.is_verified %}
+    <form method="POST" action="{{ url_for('teacher.upload_documents') }}" enctype="multipart/form-data" novalidate
+          style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 28px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="doc-type">Document Type <span style="color: var(--danger);">*</span></label>
+          <select name="document_type" id="doc-type" class="form-control" required>
+            <option value="" disabled selected>— Select type —</option>
+            <option value="citizenship">Citizenship Card</option>
+            <option value="passport">Passport</option>
+            <option value="educational_certificate">Educational Certificate</option>
+            <option value="other">Other Document</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="doc-files">Files (PDF, JPG, PNG — max 16 MB each)</label>
+          <input type="file" name="document_files" id="doc-files" class="form-control"
+                 accept=".pdf,.jpg,.jpeg,.png"
+                 multiple
+                 style="padding: 10px 14px; cursor: pointer;">
+          <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">You can select multiple files at once for the same document type.</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="doc-upload-btn" style="display: inline-flex; align-items: center; gap: 6px;">
+        {{ icon('upload', 16) }} Upload Documents
+      </button>
+    </form>
+    {% endif %}
+
+    <!-- Existing Documents List -->
+    <div>
+      <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+        {{ icon('file-text', 16) }} Uploaded Documents
+        <span style="font-size: 0.78rem; font-weight: 500; background: var(--bg-alt); border-radius: 999px; padding: 2px 10px; color: var(--text-secondary);">{{ documents|length }}</span>
+      </h3>
+
+      {% if documents %}
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          {% for doc in documents %}
+            <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; box-shadow: var(--shadow-sm);">
+              <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+                <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--bg-alt); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--primary);">
+                  {% if doc.file_url.lower().endswith('.pdf') %}
+                    {{ icon('file-text', 20) }}
+                  {% else %}
+                    {{ icon('image', 20) }}
+                  {% endif %}
+                </div>
+                <div style="min-width: 0;">
+                  <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem;">
+                    {{ document_type_labels.get(doc.document_type, doc.document_type) }}
+                  </div>
+                  <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">
+                    Uploaded {{ doc.uploaded_at|npt('%b %d, %Y at %I:%M %p') }}
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                <a href="{{ doc.file_url }}" target="_blank" rel="noopener noreferrer"
+                   class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 5px;">
+                  {{ icon('external-link', 13) }} View
+                </a>
+                {% if not profile.is_verified %}
+                <form method="POST" action="{{ url_for('teacher.delete_document', doc_id=doc.id) }}"
+                      onsubmit="return confirm('Delete this document? This cannot be undone.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline btn-sm"
+                          style="color: var(--danger); border-color: var(--danger); display: inline-flex; align-items: center; gap: 5px;">
+                    {{ icon('trash-2', 13) }} Delete
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align: center; padding: 36px 20px; background: var(--bg-alt); border: 1px dashed var(--border-subtle); border-radius: var(--radius-lg); color: var(--text-muted);">
+          <div style="margin-bottom: 8px;">{{ icon('file-text', 36) }}</div>
+          <p style="font-size: 0.95rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">No documents uploaded yet</p>
+          <p style="font-size: 0.84rem;">Use the form above to upload your first credential document.</p>
+        </div>
+      {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}
