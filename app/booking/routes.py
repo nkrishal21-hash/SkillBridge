@@ -15,14 +15,20 @@ from flask import (
     flash,
     request,
     abort,
+    has_request_context,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import or_, and_
 from app import db
-from app.models import Booking, User, TeacherProfile, Payment, Report
+from app.models import Booking, User, TeacherProfile, Payment, Report, RefundRequest
 from app.auth.utils import learner_required, teacher_required
 from app.teacher.utils import available_days_list
-from app.booking.forms import BookingForm, BookingResponseForm
+from app.booking.forms import (
+    BookingForm,
+    BookingResponseForm,
+    RefundRequestForm,
+    REFUND_REASON_CHOICES,
+)
 from app.reviews.forms import ReviewForm
 from app.reports.forms import ReportForm
 from app.booking.utils import (
@@ -178,11 +184,10 @@ def detail(booking_id: int):
     is_learner = (current_user.id == booking.learner_id)
     response_form = BookingResponseForm()
 
-    # Payment status check
-    payment = Payment.query.filter_by(
+    # Payment status check (fetch latest payment row even if refunded)
+    payment = booking.payment or Payment.query.filter_by(
         booking_id_ref=booking.id,
-        status="success"
-    ).first()
+    ).order_by(Payment.id.desc()).first()
     has_paid = booking_is_paid(booking)
 
     # Session completion eligibility
@@ -209,6 +214,32 @@ def detail(booking_id: int):
             can_report = True
             report_form = ReportForm()
 
+    # Refund request status & eligibility
+    latest_refund_req = RefundRequest.query.filter_by(
+        booking_id=booking.id
+    ).order_by(RefundRequest.id.desc()).first()
+    open_refund_req = RefundRequest.query.filter_by(
+        booking_id=booking.id,
+        status="pending"
+    ).first()
+
+    # Misconduct report check (upheld report against learner blocks refund)
+    upheld_misconduct = Report.query.filter_by(
+        reported_id=booking.learner_id,
+        booking_id=booking.id,
+        status="resolved",
+    ).first()
+
+    can_request_refund = bool(
+        is_learner
+        and payment
+        and payment.status == "success"
+        and booking.status in ("cancelled", "approved", "completed")
+        and not upheld_misconduct
+        and not open_refund_req
+    )
+    refund_request_form = RefundRequestForm() if can_request_refund else None
+
     return render_template(
         "booking/detail.html",
         booking=booking,
@@ -224,6 +255,11 @@ def detail(booking_id: int):
         can_report=can_report,
         pending_report=pending_report,
         report_form=report_form,
+        refund_request=latest_refund_req,
+        open_refund_request=open_refund_req,
+        can_request_refund=can_request_refund,
+        upheld_misconduct=upheld_misconduct,
+        refund_request_form=refund_request_form,
     )
 
 
@@ -399,6 +435,87 @@ def cancel(booking_id: int):
             link=url_for("booking.detail", booking_id=booking.id),
         )
         flash("The session booking has been cancelled.", "info")
+
+    return redirect(url_for("booking.detail", booking_id=booking.id))
+
+
+@booking_bp.route("/<int:booking_id>/refund-request", methods=["POST"])
+@login_required
+@learner_required
+def submit_refund_request(booking_id: int):
+    """
+    Learner submits a refund request for a booking payment.
+    Enforces eligibility: successful unrefunded payment, valid booking status,
+    no upheld misconduct report, and at most one open refund request per booking.
+    Notifies all administrators upon submission.
+    """
+    booking = Booking.query.get_or_404(booking_id)
+
+    if current_user.id != booking.learner_id:
+        abort(403)
+
+    payment = booking.payment or Payment.query.filter_by(
+        booking_id_ref=booking.id,
+    ).order_by(Payment.id.desc()).first()
+
+    if not payment or payment.status != "success":
+        flash("Only bookings with a successful, unrefunded payment are eligible for refund requests.", "warning")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    if booking.status not in ("cancelled", "approved", "completed"):
+        flash(f"Cannot request a refund for a booking with status '{booking.status}'.", "warning")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    # Misconduct report check
+    upheld_misconduct = Report.query.filter_by(
+        reported_id=booking.learner_id,
+        booking_id=booking.id,
+        status="resolved",
+    ).first()
+    if upheld_misconduct:
+        flash("You are not eligible to request a refund due to an upheld misconduct report for this session.", "danger")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    # One open request per booking
+    existing_open = RefundRequest.query.filter_by(
+        booking_id=booking.id,
+        status="pending",
+    ).first()
+    if existing_open:
+        flash("A refund request is already pending review for this booking.", "warning")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    form = RefundRequestForm()
+    if form.validate_on_submit():
+        refund_req = RefundRequest(
+            booking_id=booking.id,
+            learner_id=current_user.id,
+            reason_type=form.reason_type.data,
+            description=(form.description.data or "").strip() or None,
+            status="pending",
+        )
+        db.session.add(refund_req)
+        db.session.commit()
+
+        # Notify all admins
+        reason_label = dict(REFUND_REASON_CHOICES).get(form.reason_type.data, form.reason_type.data)
+        admins = User.query.filter_by(role="admin").all()
+        for adm in admins:
+            notify(
+                user_id=adm.id,
+                title=f"New Refund Request: Booking #{booking.id}",
+                body=(
+                    f"Learner {current_user.full_name} submitted a refund request for "
+                    f"Booking #{booking.id} ({booking.topic or 'Mentorship Session'}).\n"
+                    f"Reason: {reason_label}."
+                ),
+                notif_type="payment",
+                link=f"/admin/refunds/{refund_req.id}",
+            )
+
+        flash("Your refund request has been submitted and is under administrative review.", "success")
+    else:
+        flash("Please select a valid refund reason.", "danger")
 
     return redirect(url_for("booking.detail", booking_id=booking.id))
 

@@ -126,3 +126,36 @@ class BookingResponseForm(FlaskForm):
     )
 
     submit = SubmitField("Submit Response")
+
+
+REFUND_REASON_CHOICES = [
+    ("cancelled_by_teacher", "Session Cancelled by Teacher"),
+    ("cancelled_by_student", "Session Cancelled by Student"),
+    ("session_not_held", "Session Was Not Held"),
+    ("teacher_marked_complete_without_teaching", "Teacher Marked Complete Without Teaching"),
+    ("other", "Other Reason"),
+]
+
+
+class RefundRequestForm(FlaskForm):
+    """Form for learners to submit a refund request for a booking payment."""
+
+    reason_type = SelectField(
+        "Reason for Refund",
+        choices=REFUND_REASON_CHOICES,
+        validators=[DataRequired(message="Please select a reason for your refund request.")],
+    )
+
+    description = TextAreaField(
+        "Explanation / Details",
+        validators=[
+            Optional(),
+            Length(max=2000, message="Description must be under 2000 characters."),
+        ],
+        render_kw={
+            "rows": 3,
+            "placeholder": "Provide details to help the admin team review your refund request...",
+        },
+    )
+
+    submit = SubmitField("Submit Refund Request")

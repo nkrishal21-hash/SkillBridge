@@ -335,6 +335,108 @@
       </div>
     {% endif %}
 
+    <!-- Refund Status & Request Section -->
+    {% if payment and (is_learner or is_teacher or current_user.is_admin) %}
+      <div style="margin-bottom: 24px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+        <h3 style="font-size: 1.15rem; margin-bottom: 14px;">Refund &amp; Payment Status</h3>
+
+        {% if payment.status == 'refunded' %}
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span style="display: inline-flex; color: #16a34a; margin-top: 2px;">{{ icon('check-circle', 22) }}</span>
+              <div>
+                <div style="font-weight: 700; color: #15803d; font-size: 1rem;">
+                  Refunded NPR {{ "%.2f"|format(payment.refund_amount or 0) }} of {{ "%.2f"|format(payment.amount) }}
+                </div>
+                <p style="color: #166534; font-size: 0.88rem; margin: 4px 0 0; line-height: 1.5;">
+                  Processed on {{ payment.refunded_at|npt('%b %d, %Y %I:%M %p') if payment.refunded_at else 'Recent' }}
+                  {% if payment.refund_note %}
+                    <br><strong>Admin Note:</strong> {{ payment.refund_note }}
+                  {% endif %}
+                </p>
+                <div style="font-size: 0.78rem; color: #15803d; margin-top: 8px; opacity: 0.85;">
+                  * Note: Internal record only — no eSewa money movement has occurred.
+                </div>
+              </div>
+            </div>
+          </div>
+        {% elif open_refund_request %}
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span style="display: inline-flex; color: #d97706; margin-top: 2px;">{{ icon('clock', 22) }}</span>
+              <div>
+                <div style="font-weight: 700; color: #92400e; font-size: 1rem;">Under review</div>
+                <p style="color: #78350f; font-size: 0.88rem; margin: 4px 0 0; line-height: 1.5;">
+                  Your refund request submitted on {{ open_refund_request.created_at|npt('%b %d, %Y %I:%M %p') }} is currently being reviewed by the admin moderation team.
+                  {% if open_refund_request.description %}
+                    <br><strong>Details submitted:</strong> {{ open_refund_request.description }}
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+        {% elif refund_request and refund_request.status == 'rejected' and not can_request_refund %}
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <span style="display: inline-flex; color: #dc2626; margin-top: 2px;">{{ icon('x-circle', 22) }}</span>
+              <div>
+                <div style="font-weight: 700; color: #991b1b; font-size: 1rem;">Rejected</div>
+                <p style="color: #7f1d1d; font-size: 0.88rem; margin: 4px 0 0; line-height: 1.5;">
+                  Your refund request was reviewed and rejected by an administrator.
+                  {% if refund_request.admin_notes %}
+                    <br><strong>Decision Note:</strong> {{ refund_request.admin_notes }}
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if is_learner %}
+          {% if upheld_misconduct %}
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 16px;">
+              <div style="font-weight: 700; color: #991b1b; font-size: 0.92rem;">Refund Not Available</div>
+              <p style="color: #7f1d1d; font-size: 0.85rem; margin: 4px 0 0;">
+                You are not eligible to request a refund due to an upheld misconduct report on this session.
+              </p>
+            </div>
+          {% elif can_request_refund and refund_request_form %}
+            <div class="refund-request-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span style="display: inline-flex; color: var(--primary);">{{ icon('refresh-cw', 18) }}</span>
+                <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">Request Session Refund</h4>
+              </div>
+              <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4;">
+                If your session was cancelled, not conducted, or experienced serious issues, you can submit a refund request for administrator review.
+              </p>
+
+              <form method="POST" action="{{ url_for('booking.submit_refund_request', booking_id=booking.id) }}">
+                {{ refund_request_form.hidden_tag() }}
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                  <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">
+                    {{ refund_request_form.reason_type.label.text }}
+                  </label>
+                  {{ refund_request_form.reason_type(class="form-control", style="max-width: 400px; font-weight: 600;") }}
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                  <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">
+                    {{ refund_request_form.description.label.text }}
+                  </label>
+                  {{ refund_request_form.description(class="form-control", rows=3, placeholder="Describe what happened and reason for seeking a refund...") }}
+                </div>
+
+                <button type="submit" class="btn btn-outline btn-sm" style="color: var(--primary); border-color: var(--primary); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                  {{ icon('refresh-cw', 14) }} Submit Refund Request
+                </button>
+              </form>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    {% endif %}
+
     <!-- Action Controls -->
     <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
       <!-- Teacher Approval Controls -->
