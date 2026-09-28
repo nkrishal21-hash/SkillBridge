@@ -54,7 +54,7 @@
       <div style="display: flex; flex-wrap: wrap; gap: 4px;">
         {% if available_days %}
           {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
-            <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: {{ '#ecfdf5' if d in available_days else 'var(--bg-alt)' }}; color: {{ '#065f46' if d in available_days else 'var(--text-muted)' }}; font-weight: {{ '700' if d in available_days else 'normal' }};">
+            <span class="schedule-day-badge {{ 'available' if d in available_days else '' }}">
               {{ d }}
             </span>
           {% endfor %}
@@ -105,7 +105,7 @@
           <span style="font-size: 0.85rem; color: var(--text-secondary);">Estimated Session Fee:</span>
           <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Calculated from instructor's rate (NPR {{ "%.0f"|format(profile.hourly_rate or 0) }}/hr)</div>
         </div>
-        <div style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; color: var(--primary);" id="estimated-fee-display">
+        <div style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; color: var(--primary);" id="estimated-fee-display" data-hourly-rate="{{ profile.hourly_rate or 0 }}">
           NPR {{ "%.2f"|format((profile.hourly_rate or 0)|float) }}
         </div>
       </div>
@@ -145,7 +145,8 @@
 
 {% block extra_scripts %}
 <script>
-  const hourlyRate = {{ profile.hourly_rate or 0 }};
+  const feeDisplayEl = document.getElementById('estimated-fee-display');
+  const hourlyRate = parseFloat(feeDisplayEl ? feeDisplayEl.dataset.hourlyRate : "0") || 0;
 
   function updateEstimatedFee() {
     const durationSelect = document.getElementById('duration_minutes');

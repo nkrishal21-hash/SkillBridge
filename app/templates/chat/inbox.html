@@ -27,7 +27,7 @@
         {% for conv in conversations %}
           <a href="{{ url_for('chat.conversation', user_id=conv.partner.id) }}" class="chat-inbox-item {{ 'unread' if conv.unread_count > 0 else '' }}">
             <!-- Avatar -->
-            <div class="teacher-card-avatar" style="width: 52px; height: 52px; font-size: 1.25rem; flex-shrink: 0; background: {% if conv.partner.role == 'teacher' %}linear-gradient(135deg, var(--primary), var(--secondary)){% else %}linear-gradient(135deg, #6366f1, #ec4899){% endif %};">
+            <div class="teacher-card-avatar {{ 'chat-avatar-teacher' if conv.partner.role == 'teacher' else 'chat-avatar-user' }}" style="width: 52px; height: 52px; font-size: 1.25rem; flex-shrink: 0;">
               {% if conv.partner.profile_photo %}
                 <img src="{{ conv.partner.profile_photo }}" alt="{{ conv.partner.full_name }}">
               {% else %}

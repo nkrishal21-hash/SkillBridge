@@ -10,7 +10,7 @@
 {% block content %}
 <div class="container" style="max-width: 860px; padding-top: 24px; padding-bottom: 50px;">
   <!-- Conversation Wrapper Card -->
-  <div class="content-box chat-box-wrapper" style="padding: 0; display: flex; flex-direction: column; height: 78vh; min-height: 540px; overflow: hidden; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+  <div class="content-box chat-box-wrapper" data-current-user-id="{{ current_user.id }}" data-partner-id="{{ partner.id }}" style="padding: 0; display: flex; flex-direction: column; height: 78vh; min-height: 540px; overflow: hidden; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
     
     <!-- Top Header Bar -->
     <div class="chat-header-bar">
@@ -20,7 +20,7 @@
         </a>
 
         <!-- Partner Avatar -->
-        <div class="teacher-card-avatar" style="width: 44px; height: 44px; font-size: 1.15rem; flex-shrink: 0; background: {% if partner.role == 'teacher' %}linear-gradient(135deg, var(--primary), var(--secondary)){% else %}linear-gradient(135deg, #6366f1, #ec4899){% endif %};">
+        <div class="teacher-card-avatar {{ 'chat-avatar-teacher' if partner.role == 'teacher' else 'chat-avatar-user' }}" style="width: 44px; height: 44px; font-size: 1.15rem; flex-shrink: 0;">
           {% if partner.profile_photo %}
             <img src="{{ partner.profile_photo }}" alt="{{ partner.full_name }}">
           {% else %}
@@ -57,7 +57,7 @@
 
     <!-- Messages Scroll Area -->
     <div id="messages-container" class="chat-messages-container">
-      <div id="empty-state-notice" style="text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 0.92rem; {{ 'display: none;' if messages|length > 0 else '' }}">
+      <div id="empty-state-notice" class="chat-empty-notice{{ ' d-none' if messages|length > 0 else '' }}">
         <div style="margin-bottom: 8px; color: var(--text-muted);">{{ icon('message-circle', 36) }}</div>
         <p style="margin: 0;">This is the start of your direct conversation with <strong>{{ partner.full_name }}</strong>.</p>
         <p style="font-size: 0.82rem; margin-top: 4px;">Say hello or ask a question below.</p>
@@ -107,8 +107,9 @@
 {% block extra_scripts %}
 <script>
   (function() {
-    const currentUserId = {{ current_user.id }};
-    const partnerId = {{ partner.id }};
+    const chatWrapper = document.querySelector(".chat-box-wrapper");
+    const currentUserId = parseInt(chatWrapper ? chatWrapper.dataset.currentUserId : "0", 10);
+    const partnerId = parseInt(chatWrapper ? chatWrapper.dataset.partnerId : "0", 10);
     const messagesContainer = document.getElementById("messages-container");
     const emptyNotice = document.getElementById("empty-state-notice");
     const chatForm = document.getElementById("chat-form");
@@ -188,6 +189,7 @@
 
       if (emptyNotice) {
         emptyNotice.style.display = "none";
+        emptyNotice.classList.add("d-none");
       }
 
       const isMe = (data.sender_id === currentUserId);

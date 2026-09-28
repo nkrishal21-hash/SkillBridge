@@ -135,13 +135,13 @@
           </div>
         </div>
 
-        <div id="quiz-questions-container">
+        <div id="quiz-questions-container" data-initial-count="{{ form.quiz_questions|length }}">
           {% for q_subform in form.quiz_questions %}
             {% set q_idx = loop.index0 %}
             <div class="quiz-question-box" id="quiz-question-{{ q_idx }}" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 18px; position: relative;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <strong style="font-size: 1rem; color: var(--text-primary);">Question #{{ loop.index }}</strong>
-                <button type="button" class="btn btn-sm" onclick="removeQuestion({{ q_idx }})" style="background: transparent; color: var(--danger); border: none; font-size: 1.1rem; cursor: pointer;" title="Remove Question">&times; Remove</button>
+                <button type="button" class="btn btn-sm" onclick="removeQuestion(this)" style="background: transparent; color: var(--danger); border: none; font-size: 1.1rem; cursor: pointer;" title="Remove Question">&times; Remove</button>
               </div>
 
               <div class="form-group">
@@ -218,7 +218,8 @@
     }
   });
 
-  let questionCounter = {{ form.quiz_questions|length }};
+  const quizContainer = document.getElementById('quiz-questions-container');
+  let questionCounter = parseInt((quizContainer && quizContainer.dataset.initialCount) || '0', 10);
 
   function addQuestionRow() {
     const container = document.getElementById('quiz-questions-container');
@@ -232,7 +233,7 @@
     div.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <strong style="font-size: 1rem; color: var(--text-primary);">Question #${idx + 1}</strong>
-        <button type="button" class="btn btn-sm" onclick="removeQuestion(${idx})" style="background: transparent; color: var(--danger); border: none; font-size: 1.1rem; cursor: pointer;">&times; Remove</button>
+        <button type="button" class="btn btn-sm" onclick="removeQuestion(this)" style="background: transparent; color: var(--danger); border: none; font-size: 1.1rem; cursor: pointer;">&times; Remove</button>
       </div>
 
       <div class="form-group">
@@ -273,10 +274,17 @@
     container.appendChild(div);
   }
 
-  function removeQuestion(idx) {
-    const el = document.getElementById('quiz-question-' + idx);
-    if (el) {
-      el.remove();
+  function removeQuestion(target) {
+    if (typeof target === 'number' || typeof target === 'string') {
+      const el = document.getElementById('quiz-question-' + target);
+      if (el) {
+        el.remove();
+      }
+    } else if (target && target.closest) {
+      const box = target.closest('.quiz-question-box');
+      if (box) {
+        box.remove();
+      }
     }
   }
 </script>

@@ -41,11 +41,11 @@
   {% if notifications %}
     <div style="display: flex; flex-direction: column; gap: 12px;">
       {% for n in notifications %}
-        <div class="notification-item-card {{ 'notification-unread' if not n.is_read else '' }}" style="background: white; border: 1px solid {{ 'var(--primary)' if not n.is_read else 'var(--border-subtle)' }}; border-radius: var(--radius-md); padding: 18px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);">
+        <div class="notification-item-card {{ 'notification-unread' if not n.is_read else '' }}">
           
           <div style="display: flex; gap: 16px; align-items: flex-start; flex: 1; min-width: 0;">
             <!-- Icon by type -->
-            <div style="width: 44px; height: 44px; border-radius: var(--radius-full); background: {{ 'var(--primary-light)' if not n.is_read else 'var(--bg-alt)' }}; color: {{ 'var(--primary)' if not n.is_read else 'var(--text-muted)' }}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div class="notification-icon-wrap">
               {% if n.notif_type == 'booking' %}
                 {{ icon('calendar', 20) }}
               {% elif n.notif_type == 'payment' %}
