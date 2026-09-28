@@ -100,6 +100,39 @@ def migrate_payout_columns(app_ctx):
         print("[db_init] Backfill no-op — no payment rows needed updating.")
 
 
+def migrate_refund_columns(app_ctx):
+    """
+    Idempotent migration: add 4 refund-tracking columns to the `payments` table
+    if they do not already exist.
+
+    refund_amount   NUMERIC(10,2) NULL  — amount refunded to the learner
+    refunded_at     DATETIME NULL       — timestamp of refund action
+    refunded_by     INT NULL            — admin User.id who issued the refund
+    refund_note     TEXT NULL           — admin note / reason for the refund
+
+    Safe to run multiple times — no-op on subsequent executions.
+    """
+    inspector = inspect(db.engine)
+    existing_columns = {col["name"] for col in inspector.get_columns("payments")}
+    statements = []
+    if "refund_amount" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN refund_amount NUMERIC(10,2) NULL")
+    if "refunded_at" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN refunded_at DATETIME NULL")
+    if "refunded_by" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN refunded_by INT NULL")
+    if "refund_note" not in existing_columns:
+        statements.append("ALTER TABLE payments ADD COLUMN refund_note TEXT NULL")
+
+    for stmt in statements:
+        db.session.execute(text(stmt))
+    if statements:
+        db.session.commit()
+        print(f"[db_init] Added {len(statements)} refund column(s) to payments table.")
+    else:
+        print("[db_init] payments table already has refund columns — skipping.")
+
+
 def main():
     app = create_app()
     uri = app.config["SQLALCHEMY_DATABASE_URI"]
@@ -118,9 +151,13 @@ def main():
         for table in inspector.get_table_names():
             print(f"          • {table}")
 
+        # ── Idempotent refund column migration (run FIRST so ORM queries work) ──
+        print("\n[db_init] Running refund column migration...")
+        from flask import current_app as _flask_app
+        migrate_refund_columns(_flask_app._get_current_object())
+
         # ── Idempotent payout column migration ───────────────────────────────
         print("\n[db_init] Running payout column migration...")
-        from flask import current_app as _flask_app
         migrate_payout_columns(_flask_app._get_current_object())
 
         # ── Seed default admin account (idempotent) ──────────────────────────

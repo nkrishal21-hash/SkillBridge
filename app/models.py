@@ -535,6 +535,13 @@ class Payment(BaseModel):
     )
     payout_released_at = db.Column(db.DateTime, nullable=True)
 
+    # ── Refund Tracking (added in refund overhaul) ─────────────────────────
+    # Populated by process_refund(). NULL while status != 'refunded'.
+    refund_amount = db.Column(db.Numeric(10, 2), nullable=True)   # amount returned to learner
+    refunded_at = db.Column(db.DateTime, nullable=True)           # when refund was processed
+    refunded_by = db.Column(db.Integer, nullable=True)            # admin User.id
+    refund_note = db.Column(db.Text, nullable=True)               # admin note
+
     # ── Relationships ──────────────────────────────────────────────────────────
     learner = db.relationship("User", foreign_keys=[learner_id], back_populates="payments")
     course = db.relationship("Course")
@@ -695,3 +702,47 @@ class Report(BaseModel):
     def __repr__(self):
         return f"<Report {self.id}: {self.reason} status={self.status}>"
 
+
+# ────────────────────────────────────────────────────────────────────────────────
+# 15. REFUND REQUESTS
+# ────────────────────────────────────────────────────────────────────────────────
+class RefundRequest(BaseModel):
+    """
+    Student-initiated refund request for a booking payment.
+    Admin reviews, then approves (fully or partially) or rejects.
+    One open request per booking at a time.
+    """
+    __tablename__ = "refund_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    booking_id = db.Column(
+        db.Integer, db.ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    learner_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Why the student is requesting a refund (plain String -- no ENUM)
+    # Values: cancelled_by_teacher | cancelled_by_student | session_not_held
+    #         teacher_marked_complete_without_teaching | other
+    reason_type = db.Column(db.String(80), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    # Workflow status (plain String, not ENUM)
+    # Values: pending | approved | partially_approved | rejected
+    status = db.Column(db.String(30), nullable=False, default="pending")
+
+    # Admin decision fields
+    approved_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    admin_notes = db.Column(db.Text, nullable=True)
+    decided_by = db.Column(db.Integer, nullable=True)
+    decided_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    # -- Relationships
+    booking = db.relationship("Booking", backref="refund_requests")
+    learner = db.relationship("User", foreign_keys=[learner_id])
+
+    def __repr__(self):
+        return f"RefundRequest {self.id}: booking={self.booking_id} status={self.status}"
