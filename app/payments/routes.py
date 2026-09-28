@@ -364,11 +364,25 @@ def esewa_failure():
 def receipt(payment_id: int):
     """
     Display a printable receipt for a completed transaction.
-    Only the paying learner or an administrator can view.
+    Accessible by:
+    - The paying learner (learner_id == current_user.id)
+    - Platform administrators (current_user.is_admin)
+    - The booking's teacher (booking.teacher_id == current_user.id, for payment_for='booking')
+    Teachers cannot view receipts of other teachers' bookings.
     """
     payment = Payment.query.get_or_404(payment_id)
 
-    if payment.learner_id != current_user.id and not current_user.is_admin:
+    is_learner = (payment.learner_id == current_user.id)
+    is_admin = current_user.is_admin
+    is_teacher_owner = False
+
+    if payment.payment_for == "booking" and payment.booking_id_ref:
+        from app.models import Booking
+        booking = Booking.query.get(payment.booking_id_ref)
+        if booking and booking.teacher_id == current_user.id:
+            is_teacher_owner = True
+
+    if not (is_learner or is_admin or is_teacher_owner):
         abort(403)
 
     return render_template("payments/receipt.html", payment=payment)

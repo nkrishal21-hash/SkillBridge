@@ -49,9 +49,20 @@
           NPR {{ "%.2f"|format(booking.amount or 0) }}
         </div>
         {% if has_paid %}
-          <div style="margin-top: 4px;">
+          <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span class="badge badge-payment-success" style="font-size: 0.76rem; padding: 3px 8px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 4px;">
-              {{ icon('check', 12) }} Payment Confirmed
+              {{ icon('check', 12) }} {% if is_teacher %}Payment received{% else %}Payment Confirmed{% endif %}
+            </span>
+            {% if is_teacher and payment %}
+              <a href="{{ url_for('payments.receipt', payment_id=payment.id) }}" class="btn btn-outline btn-xs" style="font-size: 0.75rem; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px;">
+                {{ icon('file-text', 12) }} View Payment Receipt
+              </a>
+            {% endif %}
+          </div>
+        {% elif is_teacher and booking.amount and booking.amount > 0 %}
+          <div style="margin-top: 6px;">
+            <span class="badge" style="font-size: 0.76rem; padding: 3px 8px; background: #fffbeb; color: #92400e; border: 1px solid #fde68a; border-radius: var(--radius-full); display: inline-flex; align-items: center; gap: 4px;">
+              {{ icon('clock', 12) }} Awaiting payment
             </span>
           </div>
         {% elif booking.status == 'approved' and booking.amount and booking.amount > 0 and is_learner %}

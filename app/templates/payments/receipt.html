@@ -7,7 +7,7 @@
 <div class="container" style="max-width: 680px; padding-top: 40px; padding-bottom: 70px;">
   <!-- Print & Back Navigation (hidden when printing) -->
   <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-    <a href="{{ url_for('learner.dashboard') }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Dashboard</a>
+    <a href="{{ url_for('teacher.dashboard') if current_user.is_teacher else (url_for('admin.dashboard') if current_user.is_admin else url_for('learner.dashboard')) }}" style="font-size: 0.88rem; color: var(--text-muted);">&larr; Back to Dashboard</a>
     <button type="button" onclick="window.print();" class="btn btn-outline btn-sm" style="display: flex; align-items: center; gap: 6px;">
       Print Receipt
     </button>
