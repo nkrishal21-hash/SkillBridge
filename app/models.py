@@ -675,12 +675,14 @@ class Favorite(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 14. REPORTS
+# 14. REPORTS (REPORT ADMIN)
 # ─────────────────────────────────────────────────────────────────────────────
 class Report(BaseModel):
     """
-    Incident reports filed by learners or teachers for sessions/behavior.
-    Reviewed by administrators for disciplinary action or refunds.
+    Incident and dispute reports filed by learners or teachers (Report Admin).
+    Supports unified case management: learner reporting teacher with optional refund,
+    teacher reporting learner, evidence uploads, teacher/learner responses,
+    and administrative review and resolution.
     """
     __tablename__ = "reports"
 
@@ -688,23 +690,86 @@ class Report(BaseModel):
     reporter_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     reported_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id", ondelete="SET NULL"), nullable=True)
-    reason = db.Column(db.Enum("late", "no_show", "misbehavior", "other", name="report_reason"), nullable=False)
+    
+    # Kept compatible with existing records; extended via string to avoid MySQL ENUM restriction
+    reason = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     status = db.Column(db.Enum("pending", "reviewed", "resolved", "dismissed", name="report_status"), default="pending", nullable=False)
     admin_notes = db.Column(db.Text, nullable=True)
+    
+    # ── Report Admin Unification fields ───────────────────────────────────────
+    refund_requested = db.Column(db.Boolean, default=False, nullable=False)
+    refund_request_id = db.Column(db.Integer, db.ForeignKey("refund_requests.id", ondelete="SET NULL"), nullable=True)
+    response_requested = db.Column(db.Boolean, default=False, nullable=False)
+    response_requested_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     resolved_at = db.Column(db.DateTime, nullable=True)
 
     reporter = db.relationship("User", foreign_keys=[reporter_id])
     reported = db.relationship("User", foreign_keys=[reported_id])
     booking = db.relationship("Booking")
+    refund_request = db.relationship("RefundRequest", foreign_keys=[refund_request_id], backref="linked_reports")
 
     def __repr__(self):
         return f"<Report {self.id}: {self.reason} status={self.status}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 15. REPORT EVIDENCE & RESPONSES
+# ─────────────────────────────────────────────────────────────────────────────
+class ReportResponse(BaseModel):
+    """
+    Dispute response or explanation submitted by the reported user (or reporter)
+    in a Report Admin case.
+    """
+    __tablename__ = "report_responses"
+
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.Integer, db.ForeignKey("reports.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    explanation = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    report = db.relationship(
+        "Report",
+        backref=db.backref("responses", cascade="all, delete-orphan", lazy="joined", order_by="ReportResponse.created_at.asc()")
+    )
+    user = db.relationship("User", foreign_keys=[user_id])
+
+    def __repr__(self):
+        return f"<ReportResponse {self.id}: report={self.report_id} user={self.user_id}>"
+
+
+class ReportEvidence(BaseModel):
+    """
+    Uploaded proof/evidence (image, video, document) for a Report Admin case.
+    Stored using Cloudinary with fallback to local disk storage.
+    """
+    __tablename__ = "report_evidence"
+
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.Integer, db.ForeignKey("reports.id", ondelete="CASCADE"), nullable=False, index=True)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    file_url = db.Column(db.String(500), nullable=False)
+    file_type = db.Column(db.String(50), nullable=False)  # 'image', 'video', 'document'
+    original_filename = db.Column(db.String(255), nullable=True)
+    response_id = db.Column(db.Integer, db.ForeignKey("report_responses.id", ondelete="SET NULL"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    report = db.relationship(
+        "Report",
+        backref=db.backref("evidence_items", cascade="all, delete-orphan", lazy="joined", order_by="ReportEvidence.created_at.asc()")
+    )
+    uploader = db.relationship("User", foreign_keys=[uploaded_by])
+    response = db.relationship("ReportResponse", foreign_keys=[response_id], backref="evidence_items")
+
+    def __repr__(self):
+        return f"<ReportEvidence {self.id}: report={self.report_id} type={self.file_type}>"
+
+
 # ────────────────────────────────────────────────────────────────────────────────
-# 15. REFUND REQUESTS
+# 16. REFUND REQUESTS
 # ────────────────────────────────────────────────────────────────────────────────
 class RefundRequest(BaseModel):
     """
@@ -746,3 +811,4 @@ class RefundRequest(BaseModel):
 
     def __repr__(self):
         return f"RefundRequest {self.id}: booking={self.booking_id} status={self.status}"
+

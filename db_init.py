@@ -133,6 +133,44 @@ def migrate_refund_columns(app_ctx):
         print("[db_init] payments table already has refund columns — skipping.")
 
 
+def migrate_report_admin_columns(app_ctx):
+    """
+    Idempotent migration for Report Admin unification:
+    - Alter `reason` column on `reports` table to VARCHAR(100) to support extended reasons safely.
+    - Add `refund_requested`, `refund_request_id`, `response_requested`, `response_requested_at`
+      columns to `reports` if they do not exist.
+    """
+    inspector = inspect(db.engine)
+    existing_tables = set(inspector.get_table_names())
+    if "reports" not in existing_tables:
+        return
+
+    existing_columns = {col["name"]: col for col in inspector.get_columns("reports")}
+    statements = []
+
+    # Modify reason from ENUM to VARCHAR(100) if not already varchar
+    reason_col = existing_columns.get("reason")
+    if reason_col and "enum" in str(reason_col.get("type", "")).lower():
+        statements.append("ALTER TABLE reports MODIFY COLUMN reason VARCHAR(100) NOT NULL")
+
+    if "refund_requested" not in existing_columns:
+        statements.append("ALTER TABLE reports ADD COLUMN refund_requested BOOLEAN NOT NULL DEFAULT 0")
+    if "refund_request_id" not in existing_columns:
+        statements.append("ALTER TABLE reports ADD COLUMN refund_request_id INT NULL")
+    if "response_requested" not in existing_columns:
+        statements.append("ALTER TABLE reports ADD COLUMN response_requested BOOLEAN NOT NULL DEFAULT 0")
+    if "response_requested_at" not in existing_columns:
+        statements.append("ALTER TABLE reports ADD COLUMN response_requested_at DATETIME NULL")
+
+    for stmt in statements:
+        db.session.execute(text(stmt))
+    if statements:
+        db.session.commit()
+        print(f"[db_init] Applied {len(statements)} Report Admin column change(s).")
+    else:
+        print("[db_init] reports table already up-to-date for Report Admin — skipping.")
+
+
 def main():
     app = create_app()
     uri = app.config["SQLALCHEMY_DATABASE_URI"]
@@ -159,6 +197,10 @@ def main():
         # ── Idempotent payout column migration ───────────────────────────────
         print("\n[db_init] Running payout column migration...")
         migrate_payout_columns(_flask_app._get_current_object())
+
+        # ── Idempotent Report Admin migration ────────────────────────────────
+        print("\n[db_init] Running Report Admin column migration...")
+        migrate_report_admin_columns(_flask_app._get_current_object())
 
         # ── Seed default admin account (idempotent) ──────────────────────────
         from app.models import User

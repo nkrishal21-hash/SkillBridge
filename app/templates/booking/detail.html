@@ -286,62 +286,18 @@
       </div>
     {% endif %}
 
-    <!-- Incident Reporting Block (Approved or Completed sessions) -->
-    {% if booking.status in ['approved', 'completed'] and (is_learner or is_teacher) %}
+    <!-- ================================================================= -->
+    <!-- UNIFIED REPORT ADMIN SECTION                                       -->
+    <!-- ================================================================= -->
+    {% if booking.status in ['approved', 'completed', 'cancelled'] and (is_learner or is_teacher or current_user.is_admin) %}
       <div style="margin-bottom: 24px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
-        <h3 style="font-size: 1.15rem; margin-bottom: 14px;">Trust &amp; Safety</h3>
+        <h3 style="font-size: 1.15rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          {{ icon('shield', 20) }} Report Admin
+        </h3>
 
-        {% if pending_report %}
-          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 16px 20px; display: flex; align-items: flex-start; gap: 12px;">
-            <span style="display: inline-flex; color: #b45309; margin-top: 2px;">{{ icon('clock', 20) }}</span>
-            <div>
-              <div style="font-weight: 700; color: #92400e; font-size: 0.92rem;">Incident Report Pending Review</div>
-              <p style="color: #78350f; font-size: 0.85rem; margin-top: 2px; margin-bottom: 0;">
-                You submitted a report for this session on {{ pending_report.created_at|npt('%b %d, %Y') }}. Our administrative moderation team is currently reviewing the issue.
-              </p>
-            </div>
-          </div>
-        {% elif can_report and report_form %}
-          <div class="report-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-              <span style="display: inline-flex; color: var(--danger);">{{ icon('alert-triangle', 20) }}</span>
-              <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">
-                {% if is_learner %}Report Teacher{% else %}Report Student{% endif %}
-              </h4>
-            </div>
-            <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
-              Encountered attendance issues (late/no-show) or unprofessional conduct with {% if is_learner %}{{ booking.teacher.full_name }}{% else %}{{ booking.learner.full_name }}{% endif %}? File a confidential report for admin review.
-            </p>
-
-            <form method="POST" action="{{ url_for('reports.report_booking', booking_id=booking.id) }}">
-              {{ report_form.hidden_tag() }}
-
-              <div class="form-group" style="margin-bottom: 14px;">
-                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ report_form.reason.label.text }}</label>
-                {{ report_form.reason(class="form-control", style="max-width: 360px; font-weight: 600;") }}
-              </div>
-
-              <div class="form-group" style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">{{ report_form.description.label.text }}</label>
-                {{ report_form.description(class="form-control", rows=3, placeholder="Describe what happened, relevant times, and any details for administrators...") }}
-              </div>
-
-              <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                {{ icon('alert-triangle', 14) }} Submit Report
-              </button>
-            </form>
-          </div>
-        {% endif %}
-      </div>
-    {% endif %}
-
-    <!-- Refund Status & Request Section -->
-    {% if payment and (is_learner or is_teacher or current_user.is_admin) %}
-      <div style="margin-bottom: 24px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
-        <h3 style="font-size: 1.15rem; margin-bottom: 14px;">Refund &amp; Payment Status</h3>
-
-        {% if payment.status == 'refunded' %}
-          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 16px;">
+        <!-- Payment Refund Status (If already refunded) -->
+        {% if payment and payment.status == 'refunded' %}
+          <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 18px;">
             <div style="display: flex; align-items: flex-start; gap: 12px;">
               <span style="display: inline-flex; color: #16a34a; margin-top: 2px;">{{ icon('check-circle', 22) }}</span>
               <div>
@@ -360,79 +316,286 @@
               </div>
             </div>
           </div>
-        {% elif open_refund_request %}
-          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 16px;">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-              <span style="display: inline-flex; color: #d97706; margin-top: 2px;">{{ icon('clock', 22) }}</span>
-              <div>
-                <div style="font-weight: 700; color: #92400e; font-size: 1rem;">Under review</div>
-                <p style="color: #78350f; font-size: 0.88rem; margin: 4px 0 0; line-height: 1.5;">
-                  Your refund request submitted on {{ open_refund_request.created_at|npt('%b %d, %Y %I:%M %p') }} is currently being reviewed by the admin moderation team.
-                  {% if open_refund_request.description %}
-                    <br><strong>Details submitted:</strong> {{ open_refund_request.description }}
-                  {% endif %}
-                </p>
+        {% endif %}
+
+        <!-- Active Report Filed by Current User (my_report) -->
+        {% if my_report %}
+          <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; margin-bottom: 18px; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-weight: 700; font-size: 0.95rem;">Case #{{ my_report.id }}: Report to Admin</span>
+                {% if my_report.status == 'pending' %}
+                  <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; font-weight: 700; font-size: 0.76rem;">Pending Review</span>
+                {% elif my_report.status == 'reviewed' %}
+                  <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; font-weight: 700; font-size: 0.76rem;">Under Review</span>
+                {% elif my_report.status == 'resolved' %}
+                  <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-weight: 700; font-size: 0.76rem;">Resolved</span>
+                {% elif my_report.status == 'dismissed' %}
+                  <span class="badge" style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); font-weight: 600; font-size: 0.76rem;">Dismissed</span>
+                {% endif %}
               </div>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">
+                Submitted on {{ my_report.created_at|npt('%b %d, %Y at %I:%M %p') }}
+              </span>
             </div>
-          </div>
-        {% elif refund_request and refund_request.status == 'rejected' and not can_request_refund %}
-          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 16px;">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-              <span style="display: inline-flex; color: #dc2626; margin-top: 2px;">{{ icon('x-circle', 22) }}</span>
-              <div>
-                <div style="font-weight: 700; color: #991b1b; font-size: 1rem;">Rejected</div>
-                <p style="color: #7f1d1d; font-size: 0.88rem; margin: 4px 0 0; line-height: 1.5;">
-                  Your refund request was reviewed and rejected by an administrator.
-                  {% if refund_request.admin_notes %}
-                    <br><strong>Decision Note:</strong> {{ refund_request.admin_notes }}
-                  {% endif %}
-                </p>
+
+            <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.5;">
+              <strong>Stated Reason:</strong>
+              <span class="badge" style="background: var(--bg-alt); color: var(--text-primary); font-size: 0.8rem; font-weight: 600;">
+                {{ report_reason_dict.get(my_report.reason, my_report.reason|replace('_', ' ')|title) }}
+              </span>
+            </div>
+
+            {% if my_report.description %}
+              <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.86rem; color: var(--text-primary); margin-bottom: 12px; white-space: pre-wrap;">{{ my_report.description }}</div>
+            {% endif %}
+
+            <!-- Uploaded Evidence -->
+            {% if my_report.evidence_items %}
+              <div style="margin-top: 10px; margin-bottom: 14px;">
+                <div style="font-size: 0.76rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 6px;">Your Uploaded Evidence</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  {% for ev in my_report.evidence_items %}
+                    {% if ev.uploaded_by == current_user.id %}
+                      <a href="{{ ev.file_url }}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.8rem; text-decoration: none; color: var(--primary);">
+                        {% if ev.file_type == 'image' %}{{ icon('image', 14) }}{% elif ev.file_type == 'video' %}{{ icon('video', 14) }}{% else %}{{ icon('file-text', 14) }}{% endif %}
+                        {{ ev.original_filename or ('Evidence #' ~ ev.id) }}
+                      </a>
+                    {% endif %}
+                  {% endfor %}
+                </div>
               </div>
-            </div>
+            {% endif %}
+
+            <!-- Refund Request Info (If attached to this report) -->
+            {% if my_report.refund_requested or my_report.refund_request %}
+              {% set rr = my_report.refund_request %}
+              <div style="margin-top: 12px; padding: 12px 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); font-size: 0.86rem;">
+                <div style="font-weight: 700; color: #92400e; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                  {{ icon('refresh-cw', 14) }} Refund Request Status
+                </div>
+                <div style="color: #78350f;">
+                  {% if rr and rr.status == 'approved' %}
+                    <span style="color: #047857; font-weight: 700;">Approved: NPR {{ "%.2f"|format(rr.approved_amount or payment.amount) }}</span>
+                    {% if rr.admin_notes %}<br><strong>Admin Note:</strong> {{ rr.admin_notes }}{% endif %}
+                  {% elif rr and rr.status == 'partially_approved' %}
+                    <span style="color: #0284c7; font-weight: 700;">Partially Approved: NPR {{ "%.2f"|format(rr.approved_amount) }}</span>
+                    {% if rr.admin_notes %}<br><strong>Admin Note:</strong> {{ rr.admin_notes }}{% endif %}
+                  {% elif rr and rr.status == 'rejected' %}
+                    <span style="color: var(--danger); font-weight: 700;">Refund Rejected</span>
+                    {% if rr.admin_notes %}<br><strong>Reason:</strong> {{ rr.admin_notes }}{% endif %}
+                  {% else %}
+                    <span style="color: #b45309; font-weight: 600;">Refund request submitted and is under administrative review.</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+
+            <!-- Admin Notes (if any) -->
+            {% if my_report.admin_notes %}
+              <div style="margin-top: 12px; background: #f8fafc; border-left: 3px solid var(--primary); padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 0.84rem; color: var(--text-secondary);">
+                <strong>Admin Decision / Notes:</strong> {{ my_report.admin_notes }}
+              </div>
+            {% endif %}
+
+            <!-- Other party's response (if submitted) -->
+            {% if my_report.responses %}
+              <div style="margin-top: 16px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">
+                  Response from {{ booking.teacher.full_name if is_learner else booking.learner.full_name }}
+                </div>
+                {% for resp in my_report.responses %}
+                  <div style="background: var(--bg-alt); border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 8px; font-size: 0.86rem;">
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">
+                      {{ resp.user.full_name }} <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 400;">({{ resp.created_at|npt('%b %d, %Y %I:%M %p') }})</span>
+                    </div>
+                    <div style="color: var(--text-secondary); white-space: pre-wrap;">{{ resp.explanation }}</div>
+                    {% if resp.evidence_items %}
+                      <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        {% for rev in resp.evidence_items %}
+                          <a href="{{ rev.file_url }}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 0.76rem; text-decoration: none; color: var(--primary);">
+                            {{ icon('file-text', 12) }} {{ rev.original_filename or ('Proof #' ~ rev.id) }}
+                          </a>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
           </div>
         {% endif %}
 
-        {% if is_learner %}
-          {% if upheld_misconduct %}
-            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 16px;">
-              <div style="font-weight: 700; color: #991b1b; font-size: 0.92rem;">Refund Not Available</div>
-              <p style="color: #7f1d1d; font-size: 0.85rem; margin: 4px 0 0;">
-                You are not eligible to request a refund due to an upheld misconduct report on this session.
-              </p>
+        <!-- Report Filed Against Current User (Dispute & Response opportunity) -->
+        {% if report_against_me %}
+          <div style="background: #fff8f8; border: 1px solid #fecaca; border-radius: var(--radius-lg); padding: 22px; margin-bottom: 18px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="color: var(--danger);">{{ icon('alert-circle', 20) }}</span>
+              <h4 style="margin: 0; font-size: 1rem; color: #991b1b;">
+                Report Case #{{ report_against_me.id }} Filed Regarding This Session
+              </h4>
             </div>
-          {% elif can_request_refund and refund_request_form %}
-            <div class="refund-request-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 22px;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                <span style="display: inline-flex; color: var(--primary);">{{ icon('refresh-cw', 18) }}</span>
-                <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">Request Session Refund</h4>
+            <p style="font-size: 0.86rem; color: #7f1d1d; margin-bottom: 12px; line-height: 1.5;">
+              {{ booking.learner.full_name if is_teacher else booking.teacher.full_name }} reported an issue regarding attendance or conduct.
+              <br><strong>Stated Reason:</strong> {{ report_reason_dict.get(report_against_me.reason, report_against_me.reason|replace('_', ' ')|title) }}
+              {% if report_against_me.description %}
+                <br><strong>Details:</strong> {{ report_against_me.description }}
+              {% endif %}
+            </p>
+
+            <!-- Evidence uploaded by reporter against you -->
+            {% if report_against_me.evidence_items %}
+              <div style="margin-bottom: 14px;">
+                <div style="font-size: 0.76rem; text-transform: uppercase; font-weight: 700; color: #991b1b; letter-spacing: 0.05em; margin-bottom: 6px;">Submitted Evidence by Reporter</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  {% for ev in report_against_me.evidence_items %}
+                    {% if ev.uploaded_by != current_user.id %}
+                      <a href="{{ ev.file_url }}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: white; border: 1px solid #fca5a5; border-radius: var(--radius-sm); font-size: 0.78rem; text-decoration: none; color: #991b1b;">
+                        {{ icon('eye', 13) }} {{ ev.original_filename or ('Evidence #' ~ ev.id) }}
+                      </a>
+                    {% endif %}
+                  {% endfor %}
+                </div>
               </div>
-              <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4;">
-                If your session was cancelled, not conducted, or experienced serious issues, you can submit a refund request for administrator review.
-              </p>
+            {% endif %}
 
-              <form method="POST" action="{{ url_for('booking.submit_refund_request', booking_id=booking.id) }}">
-                {{ refund_request_form.hidden_tag() }}
+            <!-- Current user's previous responses (if any) -->
+            {% set my_responses = [] %}
+            {% for r in report_against_me.responses %}
+              {% if r.user_id == current_user.id %}
+                {% set _ = my_responses.append(r) %}
+              {% endif %}
+            {% endfor %}
 
-                <div class="form-group" style="margin-bottom: 14px;">
-                  <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">
-                    {{ refund_request_form.reason_type.label.text }}
-                  </label>
-                  {{ refund_request_form.reason_type(class="form-control", style="max-width: 400px; font-weight: 600;") }}
+            {% if my_responses %}
+              <div style="margin-bottom: 14px; background: white; border: 1px solid #86efac; border-radius: var(--radius-md); padding: 14px;">
+                <div style="font-weight: 700; color: #15803d; font-size: 0.88rem; margin-bottom: 4px;">
+                  ✓ Your Submitted Explanation to Admin
                 </div>
+                {% for mr in my_responses %}
+                  <div style="font-size: 0.85rem; color: var(--text-secondary); white-space: pre-wrap; margin-bottom: 6px;">{{ mr.explanation }}</div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted);">Submitted on {{ mr.created_at|npt('%b %d, %Y %I:%M %p') }}</div>
+                  {% if mr.evidence_items %}
+                    <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap;">
+                      {% for mev in mr.evidence_items %}
+                        <a href="{{ mev.file_url }}" target="_blank" style="font-size: 0.74rem; color: var(--primary);">{{ mev.original_filename or 'Evidence' }}</a>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
 
-                <div class="form-group" style="margin-bottom: 16px;">
-                  <label style="display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">
-                    {{ refund_request_form.description.label.text }}
-                  </label>
-                  {{ refund_request_form.description(class="form-control", rows=3, placeholder="Describe what happened and reason for seeking a refund...") }}
-                </div>
+            <!-- Response Form for reported user if case is open -->
+            {% if report_against_me.status in ['pending', 'reviewed'] and report_response_form %}
+              <div style="background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                <h5 style="margin: 0 0 10px; font-size: 0.92rem; color: var(--text-primary); font-weight: 700;">
+                  Submit Explanation / Dispute Allegation to Admin
+                </h5>
+                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">
+                  Both sides are thoroughly reviewed by Admin before any decision or refund is considered. Provide your explanation and upload supporting proof.
+                </p>
 
-                <button type="submit" class="btn btn-outline btn-sm" style="color: var(--primary); border-color: var(--primary); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                  {{ icon('refresh-cw', 14) }} Submit Refund Request
-                </button>
-              </form>
+                <form method="POST" action="{{ url_for('reports.respond_to_report', report_id=report_against_me.id) }}" enctype="multipart/form-data">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.84rem; margin-bottom: 4px;">Your Response / Counter-Explanation</label>
+                    <textarea name="explanation" class="form-control" rows="3" required placeholder="Explain your perspective, clarify what occurred, or refute false claims..."></textarea>
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-weight: 600; font-size: 0.84rem; margin-bottom: 4px;">Upload Supporting Proof (Optional)</label>
+                    <input type="file" name="evidence" class="form-control" multiple accept="image/*,video/mp4,video/webm,video/quicktime,.pdf" style="font-size: 0.82rem; max-width: 440px;">
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 700;">
+                    Submit Response to Admin
+                  </button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        <!-- Unified Report Submission Form (When no open report filed by current user) -->
+        {% if can_report and report_form %}
+          <div class="report-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+              <span style="display: inline-flex; color: var(--danger);">{{ icon('alert-triangle', 20) }}</span>
+              <h4 style="font-size: 1.05rem; margin: 0; color: var(--text-primary);">
+                {% if is_learner %}Report Teacher to Admin{% else %}Report Learner to Admin{% endif %}
+              </h4>
             </div>
-          {% endif %}
+            <p style="font-size: 0.86rem; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.5;">
+              {% if is_learner %}
+                Encountered attendance issues (late/no-show), inappropriate conduct, incomplete teaching, or false information with {{ booking.teacher.full_name }}? Submit a case for admin moderation. You can optionally request a refund if eligible.
+              {% else %}
+                Encountered attendance issues, disrespectful conduct, false accusations, or misleading information with {{ booking.learner.full_name }}? Submit a confidential report and proof for admin moderation.
+              {% endif %}
+            </p>
+
+            <form method="POST" action="{{ url_for('reports.report_booking', booking_id=booking.id) }}" enctype="multipart/form-data">
+              {{ report_form.hidden_tag() }}
+
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; font-size: 0.86rem; margin-bottom: 6px;">
+                  {{ report_form.reason.label.text }}
+                </label>
+                {{ report_form.reason(class="form-control", style="max-width: 460px; font-weight: 600;") }}
+              </div>
+
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; font-size: 0.86rem; margin-bottom: 6px;">
+                  {{ report_form.description.label.text }}
+                </label>
+                {{ report_form.description(class="form-control", rows=3, placeholder="Describe what happened, relevant timestamps, and details for admin investigation...") }}
+              </div>
+
+              <!-- Evidence Upload Input -->
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 600; font-size: 0.86rem; margin-bottom: 4px;">
+                  Upload Evidence (Screenshots, Photos, Videos, or Documents)
+                </label>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">
+                  Proof is strongly required for attendance, teaching, or conduct complaints (JPG, PNG, WEBP, MP4, WEBM, PDF).
+                </div>
+                <input type="file" name="evidence" class="form-control" multiple accept="image/*,video/mp4,video/webm,video/quicktime,.pdf" style="max-width: 460px; font-size: 0.84rem;">
+              </div>
+
+              <!-- Refund Option: Available ONLY to learners -->
+              {% if is_learner %}
+                {% if payment and payment.status == 'success' and not upheld_misconduct %}
+                  <div class="form-group" style="margin-bottom: 18px; padding: 14px 18px; background: white; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); max-width: 520px;">
+                    <label style="display: block; font-weight: 700; font-size: 0.88rem; margin-bottom: 8px; color: var(--text-primary);">
+                      Do you want to request a refund?
+                    </label>
+                    <div style="display: flex; gap: 20px; font-size: 0.86rem;">
+                      <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="radio" name="request_refund" value="no" checked>
+                        <span>No, report only</span>
+                      </label>
+                      <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--primary); font-weight: 700;">
+                        <input type="radio" name="request_refund" value="yes">
+                        <span>Yes, request refund (NPR {{ "%.0f"|format(payment.amount) }})</span>
+                      </label>
+                    </div>
+                    <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 6px;">
+                      * Refunds are never automatic. The admin team investigates evidence from both sides before issuing a decision.
+                    </div>
+                  </div>
+                {% elif upheld_misconduct %}
+                  <div style="font-size: 0.82rem; color: var(--danger); margin-bottom: 14px;">
+                    Note: Refund request is ineligible due to an upheld misconduct report for this session.
+                  </div>
+                {% endif %}
+              {% endif %}
+
+              <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                {{ icon('alert-triangle', 14) }} Submit Report to Admin
+              </button>
+            </form>
+          </div>
         {% endif %}
       </div>
     {% endif %}

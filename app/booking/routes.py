@@ -30,7 +30,13 @@ from app.booking.forms import (
     REFUND_REASON_CHOICES,
 )
 from app.reviews.forms import ReviewForm
-from app.reports.forms import ReportForm
+from app.reports.forms import (
+    ReportForm,
+    ReportResponseForm,
+    LEARNER_REPORT_REASONS,
+    TEACHER_REPORT_REASONS,
+    REPORT_REASON_DICT,
+)
 from app.booking.utils import (
     calculate_session_times,
     send_new_booking_email,
@@ -200,19 +206,38 @@ def detail(booking_id: int):
     can_review = (booking.status == "completed" and is_learner and review is None)
     review_form = ReviewForm() if can_review else None
 
-    # Incident report status
+    # ── Report Admin Status & Context ─────────────────────────────────────────
+    my_report = Report.query.filter_by(
+        booking_id=booking.id,
+        reporter_id=current_user.id,
+    ).order_by(Report.id.desc()).first()
+
+    report_against_me = Report.query.filter_by(
+        booking_id=booking.id,
+        reported_id=current_user.id,
+    ).order_by(Report.id.desc()).first()
+
+    pending_report = my_report if (my_report and my_report.status == "pending") else None
     can_report = False
-    pending_report = None
     report_form = None
-    if booking.status in ("approved", "completed") and (is_learner or is_teacher):
-        pending_report = Report.query.filter_by(
-            booking_id=booking.id,
-            reporter_id=current_user.id,
-            status="pending",
-        ).first()
-        if not pending_report:
+
+    if booking.status in ("approved", "completed", "cancelled") and (is_learner or is_teacher):
+        # A user can file a report if they do not currently have a pending/reviewed report
+        if not (my_report and my_report.status in ("pending", "reviewed")):
             can_report = True
             report_form = ReportForm()
+            if is_learner:
+                report_form.reason.choices = LEARNER_REPORT_REASONS
+            else:
+                report_form.reason.choices = TEACHER_REPORT_REASONS
+
+    report_response_form = (
+        ReportResponseForm()
+        if (report_against_me and report_against_me.status in ("pending", "reviewed"))
+        else None
+    )
+
+    booking_reports = Report.query.filter_by(booking_id=booking.id).order_by(Report.created_at.desc()).all()
 
     # Refund request status & eligibility
     latest_refund_req = RefundRequest.query.filter_by(
@@ -254,7 +279,12 @@ def detail(booking_id: int):
         review_form=review_form,
         can_report=can_report,
         pending_report=pending_report,
+        my_report=my_report,
+        report_against_me=report_against_me,
+        booking_reports=booking_reports,
         report_form=report_form,
+        report_response_form=report_response_form,
+        report_reason_dict=REPORT_REASON_DICT,
         refund_request=latest_refund_req,
         open_refund_request=open_refund_req,
         can_request_refund=can_request_refund,

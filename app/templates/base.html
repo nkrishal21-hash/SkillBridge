@@ -79,6 +79,7 @@
                 <a href="{{ url_for('booking.history') }}" class="dropdown-item">Session Bookings</a>
               {% elif current_user.role == 'admin' %}
                 <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">Admin Console</a>
+                <a href="{{ url_for('admin.report_list') }}" class="dropdown-item">Report Admin</a>
                 <a href="{{ url_for('admin.refund_list') }}" class="dropdown-item">Refund Queue</a>
               {% endif %}
               <a href="{{ url_for('chat.inbox') }}" class="dropdown-item" style="display: flex; align-items: center; justify-content: space-between;">

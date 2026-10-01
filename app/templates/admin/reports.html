@@ -1,32 +1,53 @@
 {% extends "base.html" %}
 {% from '_icons.html' import icon %}
 
-{% block title %}Incident Reports — Admin — SkillBridge{% endblock %}
+{% block title %}Report Admin — Case Management — SkillBridge{% endblock %}
 
 {% block content %}
 <section class="dashboard-header">
   <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
     <div>
       <div style="font-size: 0.8rem; font-weight: 600; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">
-        <a href="{{ url_for('admin.dashboard') }}" style="color: inherit; text-decoration: none;">Admin</a> / Incident Reports
+        <a href="{{ url_for('admin.dashboard') }}" style="color: inherit; text-decoration: none;">Admin</a> / Report Admin
       </div>
-      <h2>Trust &amp; Safety: Incident Reports</h2>
-      <p style="color: var(--text-secondary); margin-top: 4px;">Review complaints regarding late attendance, no-shows, or unprofessional conduct during 1-on-1 mentorship calls.</p>
+      <h2>Report Admin &mdash; Dispute &amp; Case Management</h2>
+      <p style="color: var(--text-secondary); margin-top: 4px;">
+        Review reports filed by learners and teachers, inspect uploaded evidence, hear both sides, resolve disputes, and decide refunds.
+      </p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="{{ url_for('admin.refund_list') }}" class="btn btn-outline btn-sm">
+        {{ icon('refresh-cw', 14) }} Refund Queue
+      </a>
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-sm">&larr; Dashboard</a>
     </div>
   </div>
 </section>
 
 <div class="container" style="padding-top: 24px; padding-bottom: 60px;">
 
-  <!-- Status Tabs -->
+  <!-- Status & Category Filter Tabs (Fixes filter vs status mismatch) -->
   <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;">
-    {% for tab, label in [('pending', 'Pending Review'), ('resolved', 'Resolved'), ('dismissed', 'Dismissed'), ('all', 'All Reports')] %}
-      <a href="{{ url_for('admin.report_list', status=tab) }}"
-         class="btn btn-sm {{ 'btn-primary' if status_filter == tab else 'btn-outline' }}">
-        {{ label }}
-        {% if tab == 'pending' and pending_count > 0 %}
+    {% for tab_key, tab_label in [
+        ('pending', 'Pending Review'),
+        ('reviewed', 'Under Review'),
+        ('resolved', 'Resolved'),
+        ('dismissed', 'Dismissed'),
+        ('refund_requested', 'Refund Requested'),
+        ('learner_reports', 'Learner Reports'),
+        ('teacher_reports', 'Teacher Reports'),
+        ('all', 'All Cases')
+    ] %}
+      <a href="{{ url_for('admin.report_list', filter=tab_key) }}"
+         class="btn btn-sm {{ 'btn-primary' if filter_status == tab_key else 'btn-outline' }}">
+        {{ tab_label }}
+        {% if tab_key == 'pending' and pending_count > 0 %}
           <span style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 4px;">
             {{ pending_count }}
+          </span>
+        {% elif tab_key == 'refund_requested' and refund_requested_count > 0 %}
+          <span style="background: var(--primary); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 4px;">
+            {{ refund_requested_count }}
           </span>
         {% endif %}
       </a>
@@ -41,35 +62,48 @@
           <!-- Report Header -->
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Report #{{ report.id }}</span>
+              <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Case #{{ report.id }}</span>
               
               <!-- Reason Badge -->
-              {% if report.reason == 'late' %}
-                <span class="badge report-reason-badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706; font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('clock', 12) }} Late Arrival</span>
-              {% elif report.reason == 'no_show' %}
-                <span class="badge report-reason-badge" style="background: rgba(239, 68, 68, 0.12); color: var(--danger); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('x-circle', 12) }} No Show / Absent</span>
-              {% elif report.reason == 'misbehavior' %}
-                <span class="badge report-reason-badge" style="background: rgba(139, 92, 246, 0.12); color: var(--accent); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('alert-triangle', 12) }} Misbehavior</span>
-              {% else %}
-                <span class="badge report-reason-badge" style="background: rgba(100, 116, 139, 0.12); color: var(--text-secondary); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">{{ icon('file-text', 12) }} Other Issue</span>
-              {% endif %}
+              <span class="badge report-reason-badge" style="background: rgba(79, 70, 229, 0.08); color: var(--primary); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                {{ report_reason_dict.get(report.reason, report.reason|replace('_', ' ')|title) }}
+              </span>
 
               <!-- Status Badge -->
               {% if report.status == 'pending' %}
                 <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; font-size: 0.76rem; font-weight: 700;">Pending Review</span>
+              {% elif report.status == 'reviewed' %}
+                <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; font-size: 0.76rem; font-weight: 700;">Under Review</span>
               {% elif report.status == 'resolved' %}
                 <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #047857; font-size: 0.76rem; font-weight: 700;">Resolved</span>
               {% elif report.status == 'dismissed' %}
                 <span class="badge" style="background: rgba(100, 116, 139, 0.15); color: var(--text-muted); font-size: 0.76rem; font-weight: 600;">Dismissed</span>
-              {% else %}
-                <span class="badge" style="background: var(--bg-alt); color: var(--text-secondary); font-size: 0.76rem;">{{ report.status|capitalize }}</span>
+              {% endif %}
+
+              <!-- Refund Badge -->
+              {% if report.refund_requested or report.refund_request %}
+                <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #047857; font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                  {{ icon('refresh-cw', 12) }} Refund Requested
+                </span>
+              {% endif %}
+
+              <!-- Evidence & Response counters -->
+              {% if report.evidence_items %}
+                <span class="badge" style="background: var(--bg-alt); color: var(--text-secondary); font-size: 0.74rem;">
+                  {{ report.evidence_items|length }} proof file(s)
+                </span>
+              {% endif %}
+              {% if report.responses %}
+                <span class="badge" style="background: #eff6ff; color: #1d4ed8; font-size: 0.74rem;">
+                  {{ report.responses|length }} response(s)
+                </span>
               {% endif %}
             </div>
 
             <div style="font-size: 0.8rem; color: var(--text-muted);">
               Reported on {{ report.created_at|npt('%b %d, %Y at %I:%M %p') }}
               {% if report.resolved_at %}
-                &bull; Settled on {{ report.resolved_at|npt('%b %d, %Y') }}
+                &bull; Decided on {{ report.resolved_at|npt('%b %d, %Y') }}
               {% endif %}
             </div>
           </div>
@@ -85,7 +119,7 @@
                 </div>
                 <div>
                   <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">{{ report.reporter.full_name if report.reporter else 'Unknown' }}</div>
-                  <div style="font-size: 0.78rem; color: var(--text-muted);">{{ report.reporter.email if report.reporter else '—' }} &bull; <span style="text-transform: capitalize;">{{ report.reporter.role if report.reporter else '' }}</span></div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted);">{{ report.reporter.email if report.reporter else '—' }} &bull; <span style="text-transform: capitalize; font-weight: 600;">{{ report.reporter.role if report.reporter else '' }}</span></div>
                 </div>
               </div>
             </div>
@@ -112,7 +146,7 @@
 
             <!-- Booking & Payment Context -->
             <div>
-              <div style="font-size: 0.74rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 6px;">Booking Context</div>
+              <div style="font-size: 0.74rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; margin-bottom: 6px;">Booking &amp; Payment</div>
               {% if report.booking %}
                 <div style="font-size: 0.85rem; color: var(--text-primary); font-weight: 600;">
                   <a href="{{ url_for('booking.detail', booking_id=report.booking.id) }}" target="_blank" style="color: var(--primary); text-decoration: none;">
@@ -123,7 +157,7 @@
                 <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
                   Status: <strong>{{ report.booking.status|capitalize }}</strong>
                   {% if report.booking.amount %}
-                    &bull; Rate: NPR {{ "%.0f"|format(report.booking.amount) }}
+                    &bull; Amount: NPR {{ "%.0f"|format(report.booking.amount) }}
                   {% endif %}
                 </div>
               {% else %}
@@ -134,23 +168,29 @@
 
           <!-- Incident Description -->
           {% if report.description %}
-            <div>
+            <div style="margin-bottom: 14px;">
               <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.04em; margin-bottom: 4px;">Incident Details</div>
-              <div style="background: #ffffff; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.9rem; color: var(--text-primary); white-space: pre-wrap;">{{ report.description }}</div>
+              <div style="background: #ffffff; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.88rem; color: var(--text-primary); white-space: pre-wrap;">{{ report.description }}</div>
             </div>
           {% endif %}
 
           <!-- Admin Notes (if any) -->
           {% if report.admin_notes %}
-            <div style="background: #f8fafc; border-left: 3px solid var(--primary); padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 0.84rem; color: var(--text-secondary);">
+            <div style="background: #f8fafc; border-left: 3px solid var(--primary); padding: 10px 14px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 14px;">
               <strong>Admin Notes:</strong> {{ report.admin_notes }}
             </div>
           {% endif %}
 
           <!-- Row Action Controls -->
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
-            <!-- Left: Action buttons (Dismiss, Resolve, Refund) -->
+            <!-- Primary Action: Review Case Detail -->
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <a href="{{ url_for('admin.report_detail', report_id=report.id) }}"
+                 class="btn btn-primary btn-sm"
+                 style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                {{ icon('eye', 14) }} Review Case &amp; Evidence &rarr;
+              </a>
+
               {% if report.status in ['pending', 'reviewed'] %}
                 <!-- Dismiss -->
                 <form method="POST" action="{{ url_for('admin.dismiss_report', report_id=report.id) }}"
@@ -165,22 +205,10 @@
                 <form method="POST" action="{{ url_for('admin.resolve_report', report_id=report.id) }}"
                       onsubmit="return confirm('Mark report #{{ report.id }} as resolved?');">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn btn-primary btn-sm" style="background: var(--success); border-color: var(--success);">
+                  <button type="submit" class="btn btn-outline btn-sm" style="color: var(--success); border-color: #86efac;">
                     Resolve
                   </button>
                 </form>
-
-                <!-- Refund Button: Only for late/no_show with eligible successful payment -->
-                {% if report.reason in ['late', 'no_show'] and report.booking_id and report.booking_id in eligible_payments %}
-                  {% set p = eligible_payments[report.booking_id] %}
-                  <div style="display: inline-block;">
-                    <a href="{{ url_for('admin.refund_report', report_id=report.id) }}"
-                       class="btn btn-primary btn-sm"
-                       style="background: #0284c7; border-color: #0284c7; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
-                      {{ icon('credit-card', 14) }} Issue Refund (NPR {{ "%.0f"|format(p.amount) }})...
-                    </a>
-                  </div>
-                {% endif %}
               {% endif %}
             </div>
 
@@ -189,7 +217,7 @@
               {% if report.reported and report.reported.role != 'admin' %}
                 {% if report.reported.is_active %}
                   <form method="POST" action="{{ url_for('admin.ban_user', user_id=report.reported_id) }}"
-                        onsubmit="return confirm('Suspend and ban {{ report.reported.full_name }}? They will be immediately logged out and blocked from logging in.');">
+                        onsubmit="return confirm('Suspend and ban {{ report.reported.full_name }}?');">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-size: 0.78rem;">
                       Ban Reported User
@@ -206,13 +234,6 @@
               {% endif %}
             </div>
           </div>
-
-          <!-- Refund disclaimer text if refund button is shown -->
-          {% if report.status in ['pending', 'reviewed'] and report.reason in ['late', 'no_show'] and report.booking_id and report.booking_id in eligible_payments %}
-            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: -6px;">
-              <em>Marks this payment as refunded internally — does not trigger an automatic eSewa money transfer.</em>
-            </div>
-          {% endif %}
 
         </div>
       {% endfor %}
@@ -242,9 +263,9 @@
       <div style="margin-bottom: 12px; color: var(--text-muted);">{{ icon('shield', 40) }}</div>
       <p style="font-size: 1rem; margin-bottom: 0; font-weight: 600; color: var(--text-secondary);">
         {% if filter_status == 'pending' %}
-          No incident reports currently pending review.
+          No Report Admin cases currently pending review.
         {% else %}
-          No reports found for filter '{{ filter_status }}'.
+          No cases found for filter '{{ filter_status }}'.
         {% endif %}
       </p>
     </div>

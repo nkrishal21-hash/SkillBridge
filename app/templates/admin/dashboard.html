@@ -106,14 +106,14 @@
       </div>
     </a>
 
-    <!-- Incident Reports Queue Alert -->
+    <!-- Incident Reports / Report Admin Queue Alert -->
     <a href="{{ url_for('admin.report_list') }}"
       style="text-decoration: none; background: white; border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 8px; transition: transform var(--transition-fast), box-shadow var(--transition-fast);"
       class="admin-queue-card {% if pending_reports > 0 %}border-danger{% endif %}">
       <div style="color: var(--danger);">{{ icon('alert-triangle', 30) }}</div>
       <div style="font-weight: 800; font-size: 1.6rem;" class="{% if pending_reports > 0 %}text-danger{% endif %}">
         {{ pending_reports }}</div>
-      <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Pending Incident Reports</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Report Admin Cases</div>
       <div style="font-size: 0.76rem; color: var(--primary); font-weight: 700; margin-top: 4px;">Review Queue &rarr;
       </div>
     </a>
@@ -164,7 +164,7 @@
         {% endif %}
       </a>
       <a href="{{ url_for('admin.report_list') }}" class="btn btn-outline btn-sm">
-        Incident Reports
+        Report Admin
         {% if pending_reports > 0 %}
         <span
           style="background: var(--danger); color: white; font-size: 0.7rem; padding: 1px 6px; border-radius: 20px; margin-left: 6px;">{{

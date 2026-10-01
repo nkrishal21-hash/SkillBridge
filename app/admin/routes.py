@@ -8,15 +8,17 @@ from datetime import datetime
 from decimal import Decimal
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 
 from app import db
 from app.auth.utils import admin_required
 from app.models import (
     User, TeacherProfile, Course, Booking, Payment,
     Certificate, Notification, Report, RefundRequest,
+    ReportEvidence, ReportResponse,
 )
 from app.notifications.utils import notify
+from app.reports.forms import REPORT_REASON_DICT
 from app.refunds.service import (
     process_refund,
     get_payment_hold_reason,
@@ -460,33 +462,55 @@ def unban_user(user_id: int):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6. Incident Reports Queue & Moderation
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Report Admin — Unified Case Management & Moderation
 # ─────────────────────────────────────────────────────────────────────────────
 @admin_bp.route("/reports")
 @login_required
 @admin_required
 def report_list():
-    """Paginated queue of incident reports with status filtering."""
+    """
+    Paginated queue of unified Report Admin cases with comprehensive filtering.
+    Fixes the query-parameter mismatch by accepting both 'status' and 'filter'.
+    """
     page = request.args.get("page", 1, type=int)
-    filter_status = request.args.get("filter", "pending").strip().lower()
+    # Fix query param bug: accept both 'filter' and 'status'
+    filter_status = (request.args.get("status") or request.args.get("filter") or "pending").strip().lower()
 
     query = Report.query
 
-    if filter_status in ("pending", "reviewed", "resolved", "dismissed"):
-        query = query.filter_by(status=filter_status)
+    if filter_status == "pending":
+        query = query.filter(Report.status == "pending")
+    elif filter_status == "reviewed":
+        query = query.filter(Report.status == "reviewed")
+    elif filter_status == "resolved":
+        query = query.filter(Report.status == "resolved")
+    elif filter_status == "dismissed":
+        query = query.filter(Report.status == "dismissed")
+    elif filter_status == "refund_requested":
+        query = query.filter(or_(Report.refund_requested.is_(True), Report.refund_request_id.isnot(None)))
+    elif filter_status == "no_refund":
+        query = query.filter(and_(Report.refund_requested.is_(False), Report.refund_request_id.is_(None)))
+    elif filter_status == "learner_reports":
+        query = query.join(User, Report.reporter_id == User.id).filter(User.role == "learner")
+    elif filter_status == "teacher_reports":
+        query = query.join(User, Report.reporter_id == User.id).filter(User.role == "teacher")
+    # 'all' shows all reports
 
-    pagination = query.order_by(Report.created_at.desc()).paginate(
+    pagination = query.order_by(Report.created_at.desc(), Report.id.desc()).paginate(
         page=page, per_page=15, error_out=False
     )
 
-    # Queue counts
+    # Queue counts for filter badges
     pending_count = Report.query.filter_by(status="pending").count()
     reviewed_count = Report.query.filter_by(status="reviewed").count()
     resolved_count = Report.query.filter_by(status="resolved").count()
     dismissed_count = Report.query.filter_by(status="dismissed").count()
+    refund_requested_count = Report.query.filter(
+        or_(Report.refund_requested.is_(True), Report.refund_request_id.isnot(None))
+    ).count()
     total_count = Report.query.count()
 
-    # Pre-fetch associated payments for refund eligibility checking
     report_items = pagination.items
     booking_ids = [r.booking_id for r in report_items if r.booking_id]
     eligible_payments = {}
@@ -505,20 +529,127 @@ def report_list():
         pagination=pagination,
         reports=report_items,
         filter_status=filter_status,
+        status_filter=filter_status,  # backwards-compatible with template
         pending_count=pending_count,
         reviewed_count=reviewed_count,
         resolved_count=resolved_count,
         dismissed_count=dismissed_count,
+        refund_requested_count=refund_requested_count,
         total_count=total_count,
         eligible_payments=eligible_payments,
+        report_reason_dict=REPORT_REASON_DICT,
     )
+
+
+@admin_bp.route("/reports/<int:report_id>")
+@login_required
+@admin_required
+def report_detail(report_id: int):
+    """
+    Unified case review page for a Report Admin case.
+    Shows Case overview, Reporter, Reported User, Session, Payment info,
+    submitted evidence, participant responses, and Admin decision controls.
+    """
+    report = Report.query.get_or_404(report_id)
+    booking = report.booking
+    reporter = report.reporter
+    reported = report.reported
+
+    # Associated payment
+    payment = None
+    if booking:
+        payment = booking.payment or Payment.query.filter_by(
+            payment_for="booking",
+            booking_id_ref=booking.id,
+        ).order_by(Payment.id.desc()).first()
+
+    # Associated refund request (if any)
+    refund_req = report.refund_request
+    if not refund_req and booking:
+        refund_req = RefundRequest.query.filter_by(booking_id=booking.id).order_by(RefundRequest.id.desc()).first()
+
+    # Evidence items & responses
+    evidence_items = report.evidence_items
+    responses = report.responses
+
+    # Disciplinary / trust & safety strike counts
+    learner_id = booking.learner_id if booking else (reporter.id if reporter and reporter.role == "learner" else (reported.id if reported else None))
+    teacher_id = booking.teacher_id if booking else (reporter.id if reporter and reporter.role == "teacher" else (reported.id if reported else None))
+
+    learner_reports_against = Report.query.filter_by(reported_id=learner_id).count() if learner_id else 0
+    learner_upheld_reports = Report.query.filter_by(reported_id=learner_id, status="resolved").count() if learner_id else 0
+    teacher_reports_against = Report.query.filter_by(reported_id=teacher_id).count() if teacher_id else 0
+    teacher_upheld_reports = Report.query.filter_by(reported_id=teacher_id, status="resolved").count() if teacher_id else 0
+
+    reason_label = REPORT_REASON_DICT.get(report.reason, report.reason.replace("_", " ").title())
+
+    return render_template(
+        "admin/report_detail.html",
+        report=report,
+        booking=booking,
+        reporter=reporter,
+        reported=reported,
+        payment=payment,
+        refund_req=refund_req,
+        evidence_items=evidence_items,
+        responses=responses,
+        learner_reports_against=learner_reports_against,
+        learner_upheld_reports=learner_upheld_reports,
+        teacher_reports_against=teacher_reports_against,
+        teacher_upheld_reports=teacher_upheld_reports,
+        reason_label=reason_label,
+    )
+
+
+@admin_bp.route("/reports/<int:report_id>/mark-reviewed", methods=["POST"])
+@login_required
+@admin_required
+def mark_report_reviewed(report_id: int):
+    """Mark a Report Admin case as under review."""
+    report = Report.query.get_or_404(report_id)
+    report.status = "reviewed"
+    db.session.commit()
+    flash(f"Report #{report.id} marked as Under Review.", "info")
+    return redirect(url_for("admin.report_detail", report_id=report.id))
+
+
+@admin_bp.route("/reports/<int:report_id>/request-response", methods=["POST"])
+@login_required
+@admin_required
+def request_report_response(report_id: int):
+    """
+    Request a formal response and evidence from the reported user (teacher or learner).
+    Sets response_requested flag, changes status to reviewed, and dispatches notification.
+    """
+    report = Report.query.get_or_404(report_id)
+    report.response_requested = True
+    report.response_requested_at = datetime.utcnow()
+    if report.status == "pending":
+        report.status = "reviewed"
+    db.session.commit()
+
+    target_user = report.reported
+    if target_user:
+        notify(
+            user_id=target_user.id,
+            title=f"Action Required: Response Requested for Booking #{report.booking_id}",
+            body=(
+                f"An administrator is investigating Report #{report.id} regarding your session "
+                f"and has requested your formal explanation and supporting evidence."
+            ),
+            notif_type="system",
+            link=url_for("booking.detail", booking_id=report.booking_id) if report.booking_id else url_for("learner.dashboard"),
+        )
+
+    flash(f"Formal response requested from {target_user.full_name if target_user else 'user'}.", "success")
+    return redirect(url_for("admin.report_detail", report_id=report.id))
 
 
 @admin_bp.route("/reports/<int:report_id>/dismiss", methods=["POST"])
 @login_required
 @admin_required
 def dismiss_report(report_id: int):
-    """Dismiss an incident report with optional administrative notes."""
+    """Dismiss a report case with administrative notes and notify reporter."""
     report = Report.query.get_or_404(report_id)
     admin_notes = request.form.get("admin_notes", "").strip()
 
@@ -528,15 +659,32 @@ def dismiss_report(report_id: int):
         report.admin_notes = f"{report.admin_notes}\n{admin_notes}" if report.admin_notes else admin_notes
 
     db.session.commit()
+
+    if report.reporter_id:
+        notify(
+            user_id=report.reporter_id,
+            title=f"Report Admin Case #{report.id} Dismissed",
+            body=(
+                f"Your report regarding Booking #{report.booking_id} has been reviewed and "
+                f"dismissed by administration."
+                f"{(' Note: ' + admin_notes) if admin_notes else ''}"
+            ),
+            notif_type="system",
+            link=url_for("booking.detail", booking_id=report.booking_id) if report.booking_id else url_for("learner.dashboard"),
+        )
+
     flash(f"Report #{report.id} has been dismissed.", "info")
-    return redirect(request.referrer or url_for("admin.report_list", filter="dismissed"))
+    return redirect(request.referrer or url_for("admin.report_detail", report_id=report.id))
 
 
 @admin_bp.route("/reports/<int:report_id>/resolve", methods=["POST"])
 @login_required
 @admin_required
 def resolve_report(report_id: int):
-    """Mark an incident report as resolved with optional notes."""
+    """
+    Mark a report case as resolved (separate from refund decision).
+    Appends admin notes and notifies the reporter.
+    """
     report = Report.query.get_or_404(report_id)
     admin_notes = request.form.get("admin_notes", "").strip()
 
@@ -546,25 +694,37 @@ def resolve_report(report_id: int):
         report.admin_notes = f"{report.admin_notes}\n{admin_notes}" if report.admin_notes else admin_notes
 
     db.session.commit()
-    flash(f"Report #{report.id} has been marked as resolved.", "success")
-    return redirect(request.referrer or url_for("admin.report_list", filter="resolved"))
+
+    if report.reporter_id:
+        notify(
+            user_id=report.reporter_id,
+            title=f"Report Admin Case #{report.id} Resolved",
+            body=(
+                f"Your report regarding Booking #{report.booking_id} has been resolved by administration."
+                f"{(' Resolution Note: ' + admin_notes) if admin_notes else ''}"
+            ),
+            notif_type="system",
+            link=url_for("booking.detail", booking_id=report.booking_id) if report.booking_id else url_for("learner.dashboard"),
+        )
+
+    flash(f"Report #{report.id} marked as resolved.", "success")
+    return redirect(request.referrer or url_for("admin.report_detail", report_id=report.id))
 
 
-@admin_bp.route("/reports/<int:report_id>/refund", methods=["GET", "POST"])
+@admin_bp.route("/reports/<int:report_id>/refund-approve", methods=["POST"])
 @login_required
 @admin_required
-def refund_report(report_id: int):
+def report_refund_approve(report_id: int):
     """
-    Issue a booking refund for an incident report using process_refund().
-    GET: renders the amount-entry form.
-    POST: executes the refund with entered amount, updates Report to 'resolved',
-          and redirects to the resolved reports queue.
+    Approve refund for a Report Admin case using central process_refund().
+    Applies entered refund amount (full or partial), updates linked RefundRequest,
+    marks report as resolved, and triggers refund notifications.
     """
     report = Report.query.get_or_404(report_id)
 
     if not report.booking_id:
         flash("This report is not tied to a booking.", "warning")
-        return redirect(request.referrer or url_for("admin.report_list"))
+        return redirect(url_for("admin.report_detail", report_id=report.id))
 
     payment = Payment.query.filter_by(
         payment_for="booking",
@@ -574,45 +734,109 @@ def refund_report(report_id: int):
 
     if not payment:
         flash("Nothing to refund for this booking. No successful payment found.", "warning")
-        return redirect(request.referrer or url_for("admin.report_list"))
+        return redirect(url_for("admin.report_detail", report_id=report.id))
 
-    booking = report.booking
+    raw_amount = request.form.get("refund_amount", "").strip()
+    admin_notes = request.form.get("admin_notes", "").strip()
 
-    if request.method == "POST":
-        raw_amount = request.form.get("refund_amount", "").strip()
-        admin_notes = request.form.get("admin_notes", "").strip()
+    try:
+        amount = Decimal(raw_amount) if raw_amount else Decimal(str(payment.amount))
+    except Exception:
+        flash("Invalid refund amount entered.", "danger")
+        return redirect(url_for("admin.report_detail", report_id=report.id))
 
-        try:
-            amount = Decimal(raw_amount) if raw_amount else Decimal(str(payment.amount))
-        except Exception:
-            amount = Decimal(str(payment.amount))
+    note_text = f"Report Admin #{report.id} ({report.reason}): {admin_notes}".strip()
+    result = process_refund(payment, amount, current_user, note_text)
 
-        note_text = f"Report #{report.id} ({report.reason}): {admin_notes}".strip()
-        result = process_refund(payment, amount, current_user, note_text)
+    if not result["success"]:
+        flash(result["error"], "danger")
+        return redirect(url_for("admin.report_detail", report_id=report.id))
 
-        if not result["success"]:
-            flash(result["error"], "danger")
-            return redirect(url_for("admin.refund_report", report_id=report.id))
+    is_full = (amount == Decimal(str(payment.amount)))
 
-        report.status = "resolved"
-        report.resolved_at = datetime.utcnow()
-        report_note = f"Refunded NPR {amount:.2f} via Payment #{payment.id}. Note: {admin_notes}"
-        report.admin_notes = f"{report.admin_notes}\n{report_note}" if report.admin_notes else report_note
-        db.session.commit()
+    # Synchronize linked RefundRequest if one exists
+    refund_req = report.refund_request or RefundRequest.query.filter_by(
+        booking_id=report.booking_id,
+        status="pending",
+    ).first()
 
-        if result.get("warning"):
-            flash(result["warning"], "warning")
+    if refund_req:
+        refund_req.status = "approved" if is_full else "partially_approved"
+        refund_req.approved_amount = amount
+        refund_req.admin_notes = admin_notes or None
+        refund_req.decided_by = current_user.id
+        refund_req.decided_at = datetime.utcnow()
 
-        flash(f"Payment #{payment.id} refunded (NPR {amount:.2f}). Report #{report.id} marked as resolved.", "success")
-        return redirect(url_for("admin.report_list", filter="resolved"))
+    # Mark report as resolved with refund note
+    report.status = "resolved"
+    report.resolved_at = datetime.utcnow()
+    report_note = f"Refunded NPR {amount:.2f} via Payment #{payment.id}. Note: {admin_notes}".strip()
+    report.admin_notes = f"{report.admin_notes}\n{report_note}" if report.admin_notes else report_note
+    db.session.commit()
 
-    return render_template(
-        "admin/refund_direct.html",
-        payment=payment,
-        booking=booking,
-        report=report,
-        misconduct_blocked=False,
+    if result.get("warning"):
+        flash(result["warning"], "warning")
+
+    status_str = "fully approved" if is_full else f"partially approved (NPR {amount:.2f})"
+    flash(f"Refund {status_str} for Report #{report.id}. Both parties have been notified.", "success")
+    return redirect(url_for("admin.report_detail", report_id=report.id))
+
+
+@admin_bp.route("/reports/<int:report_id>/refund-reject", methods=["POST"])
+@login_required
+@admin_required
+def report_refund_reject(report_id: int):
+    """
+    Reject refund request within a Report Admin case.
+    Preserves payment as success, updates RefundRequest to rejected,
+    notifies the student, and appends admin notes to the case.
+    """
+    report = Report.query.get_or_404(report_id)
+    admin_notes = request.form.get("admin_notes", "").strip()
+
+    refund_req = report.refund_request or (
+        RefundRequest.query.filter_by(booking_id=report.booking_id, status="pending").first()
+        if report.booking_id
+        else None
     )
+
+    if refund_req:
+        refund_req.status = "rejected"
+        refund_req.admin_notes = admin_notes or None
+        refund_req.decided_by = current_user.id
+        refund_req.decided_at = datetime.utcnow()
+
+        topic = report.booking.topic if report.booking else "Mentorship Session"
+        notify(
+            user_id=refund_req.learner_id,
+            title=f"Refund Request Rejected: Booking #{report.booking_id}",
+            body=(
+                f"Your refund request for session '{topic}' has been rejected by an administrator.\n\n"
+                f"Reason: {admin_notes or 'Request did not meet refund criteria.'}"
+            ),
+            notif_type="payment",
+            link=url_for("booking.detail", booking_id=report.booking_id) if report.booking_id else url_for("learner.dashboard"),
+        )
+
+    reject_note = f"Refund rejected: {admin_notes}".strip()
+    report.admin_notes = f"{report.admin_notes}\n{reject_note}" if report.admin_notes else reject_note
+    db.session.commit()
+
+    flash(f"Refund request for Report #{report.id} rejected. Learner has been notified.", "info")
+    return redirect(url_for("admin.report_detail", report_id=report.id))
+
+
+@admin_bp.route("/reports/<int:report_id>/refund", methods=["GET", "POST"])
+@login_required
+@admin_required
+def refund_report(report_id: int):
+    """
+    Legacy direct refund route for backwards compatibility.
+    Redirects to the unified report_detail case review page.
+    """
+    if request.method == "POST":
+        return report_refund_approve(report_id)
+    return redirect(url_for("admin.report_detail", report_id=report_id))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -953,6 +1177,17 @@ def refund_approve(request_id: int):
     refund_req.admin_notes = admin_notes or None
     refund_req.decided_by = current_user.id
     refund_req.decided_at = datetime.utcnow()
+
+    # Synchronize linked Report if one exists
+    linked_report = Report.query.filter_by(refund_request_id=refund_req.id).first()
+    if not linked_report and booking:
+        linked_report = Report.query.filter_by(booking_id=booking.id, refund_requested=True).first()
+    if linked_report:
+        linked_report.status = "resolved"
+        linked_report.resolved_at = datetime.utcnow()
+        report_note = f"Refunded NPR {amount:.2f} via Payment #{payment.id}. Note: {admin_notes}".strip()
+        linked_report.admin_notes = f"{linked_report.admin_notes}\n{report_note}" if linked_report.admin_notes else report_note
+
     db.session.commit()
 
     if result.get("warning"):
@@ -976,6 +1211,15 @@ def refund_reject(request_id: int):
     refund_req.admin_notes = admin_notes or None
     refund_req.decided_by = current_user.id
     refund_req.decided_at = datetime.utcnow()
+
+    # Synchronize linked Report if one exists
+    linked_report = Report.query.filter_by(refund_request_id=refund_req.id).first()
+    if not linked_report and booking:
+        linked_report = Report.query.filter_by(booking_id=booking.id, refund_requested=True).first()
+    if linked_report:
+        reject_note = f"Refund rejected: {admin_notes}".strip()
+        linked_report.admin_notes = f"{linked_report.admin_notes}\n{reject_note}" if linked_report.admin_notes else reject_note
+
     db.session.commit()
 
     topic = booking.topic if booking else "Mentorship Session"
