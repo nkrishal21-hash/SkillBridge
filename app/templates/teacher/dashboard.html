@@ -251,7 +251,7 @@
               </div>
               <div style="text-align: right;">
                 <div style="font-weight: 800; color: var(--success); font-size: 0.95rem;">
-                  + NPR {{ "%.0f"|format(payment.teacher_payout_amount if payment.teacher_payout_amount else payment.amount * 0.8) }}
+                  + NPR {{ "%.0f"|format(payment.teacher_payout_amount if payment.teacher_payout_amount is not none else payment.amount * 0.8) }}
                 </div>
                 <div style="font-size: 0.72rem; color: var(--text-muted);">net (of NPR {{ "%.0f"|format(payment.amount) }})</div>
               </div>
