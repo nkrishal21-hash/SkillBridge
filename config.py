@@ -55,6 +55,10 @@ class Config:
         "ESEWA_GATEWAY_URL",
         "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
     )
+    ESEWA_STATUS_URL = os.environ.get(
+        "ESEWA_STATUS_URL",
+        "https://rc.esewa.com.np/api/epay/transaction/status/"
+    )
 
     # ── Khalti Sandbox ────────────────────────────────────────────────────────
     KHALTI_SECRET_KEY = os.environ.get(

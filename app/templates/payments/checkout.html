@@ -70,18 +70,35 @@
     </div>
 
     <!-- eSewa Sandbox Credentials Helper Box -->
-    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px; font-size: 0.88rem; color: #166534;">
-      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 8px;">
-        eSewa UAT Sandbox Test Credentials (Test Mode)
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px; font-size: 0.88rem; color: #166534;">
+      <div style="display: flex; align-items: center; justify-content: space-between; font-weight: 700; margin-bottom: 10px;">
+        <span style="font-size: 0.95rem;">🧪 eSewa Sandbox Test Accounts</span>
+        <span class="badge" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.72rem;">UAT Test Mode</span>
       </div>
-      <div class="checkout-creds-grid" style="gap: 8px; font-size: 0.84rem;">
-        <div><strong>eSewa ID / Mobile:</strong> <code>9806800001</code></div>
-        <div><strong>Password:</strong> <code>Nepal@123</code></div>
-        <div><strong>MPIN:</strong> <code>1122</code></div>
-        <div><strong>Token / OTP:</strong> <code>123456</code></div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; font-size: 0.82rem;">
+        <div style="background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #dcfce7;">
+          <div style="font-weight: 700; color: #14532d; margin-bottom: 4px;">Account 1 (Primary)</div>
+          <div><strong>ID / Mobile:</strong> <code>9806800001</code></div>
+          <div><strong>Password:</strong> <code>Nepal@123</code></div>
+        </div>
+        <div style="background: #ffffff; padding: 10px; border-radius: 6px; border: 1px solid #dcfce7;">
+          <div style="font-weight: 700; color: #14532d; margin-bottom: 4px;">Account 2 (Backup)</div>
+          <div><strong>ID / Mobile:</strong> <code>9806800002</code></div>
+          <div><strong>Password:</strong> <code>Nepal@123</code></div>
+        </div>
       </div>
-      <div style="font-size: 0.78rem; color: #15803d; margin-top: 8px;">
-        * No real money is deducted. Use the credentials above to complete the sandbox payment.
+
+      <div style="background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #dcfce7; font-size: 0.82rem; margin-bottom: 10px;">
+        <div style="font-weight: 700; color: #14532d; margin-bottom: 2px;">⚡ Last Stage Verification (OTP / MPIN):</div>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px;">
+          <div>If prompted for <strong>Token / OTP:</strong> <code>123456</code></div>
+          <div>If prompted for <strong>MPIN:</strong> <code>1122</code></div>
+        </div>
+      </div>
+
+      <div style="font-size: 0.78rem; color: #15803d; line-height: 1.4;">
+        💡 <em>Tip: If Account 1 shows "balance less than required" or fails on final confirm, use Account 2 (<code>9806800002</code>) or Account 3 (<code>9711111111</code> with Pass: <code>Test@123</code>).</em>
       </div>
     </div>
 

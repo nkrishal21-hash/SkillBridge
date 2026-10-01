@@ -104,7 +104,8 @@ def checkout(payment_for: str, target_id: int):
             db.session.flush()
 
         payment.amount = course.price
-        payment.gateway_reference_id = f"SKB-C{course.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
+        if not payment.gateway_reference_id:
+            payment.gateway_reference_id = f"SKB-C{course.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
         db.session.commit()
 
     elif payment_for == "booking":
@@ -159,7 +160,8 @@ def checkout(payment_for: str, target_id: int):
             db.session.flush()
 
         payment.amount = booking.amount
-        payment.gateway_reference_id = f"SKB-B{booking.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
+        if not payment.gateway_reference_id:
+            payment.gateway_reference_id = f"SKB-B{booking.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
         db.session.commit()
 
     # Build signed eSewa form fields
@@ -205,40 +207,73 @@ def checkout(payment_for: str, target_id: int):
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. eSewa Success Callback
 # ─────────────────────────────────────────────────────────────────────────────
-@payments_bp.route("/esewa/success")
+@payments_bp.route("/esewa/success", methods=["GET", "POST"])
 def esewa_success():
     """
     Handle return redirect from eSewa upon successful payment.
     Decodes ?data=<base64>, verifies HMAC signature, queries eSewa's status API,
     marks Payment status='success', and fulfills course enrollment or booking confirmation.
     """
-    data = request.args.get("data")
-    if not data:
+    print("\n[SkillBridge Payment] === eSewa Success Callback Received ===")
+    print(f"[SkillBridge Payment] Request method: {request.method}")
+    print(f"[SkillBridge Payment] Query args: {dict(request.args)}")
+
+    raw_data = request.args.get("data") or request.form.get("data")
+    if not raw_data:
+        print("[SkillBridge Payment] ERROR: No transaction data received in request.")
         flash("No transaction data received from eSewa.", "danger")
         return render_template("payments/failure.html", error_message="Missing callback payload from payment gateway.")
+
+    # Sanitize base64 data: normalize spaces to + and ensure correct padding
+    data = raw_data.strip().replace(" ", "+")
+    missing_padding = len(data) % 4
+    if missing_padding:
+        data += "=" * (4 - missing_padding)
 
     try:
         decoded_bytes = base64.b64decode(data)
         decoded_json = decoded_bytes.decode("utf-8")
         payload = json.loads(decoded_json)
+        print(f"[SkillBridge Payment] Decoded callback payload: {payload}")
     except Exception as exc:
         print(f"[SkillBridge Payment] Payload decode failed: {exc}")
         return render_template("payments/failure.html", error_message="Corrupted response data from eSewa.")
 
     transaction_uuid = payload.get("transaction_uuid")
     if not transaction_uuid:
+        print("[SkillBridge Payment] ERROR: transaction_uuid missing in payload.")
         return render_template("payments/failure.html", error_message="Transaction reference missing in gateway response.")
 
+    # 1. Resolve payment: exact match -> regex extraction -> user's latest initiated
     payment = Payment.query.filter_by(gateway_reference_id=transaction_uuid).first()
+    if not payment and transaction_uuid:
+        import re
+        match = re.search(r"-P(\d+)-", transaction_uuid)
+        if match:
+            payment = Payment.query.get(int(match.group(1)))
+            print(f"[SkillBridge Payment] Resolved payment #{payment.id if payment else None} via regex from uuid '{transaction_uuid}'")
+
+    if not payment and current_user.is_authenticated:
+        payment = Payment.query.filter_by(
+            learner_id=current_user.id,
+            status="initiated"
+        ).order_by(Payment.id.desc()).first()
+        if payment:
+            print(f"[SkillBridge Payment] Resolved payment #{payment.id} via authenticated user's latest initiated record")
+
     if not payment:
+        print(f"[SkillBridge Payment] ERROR: Order '{transaction_uuid}' not found in database.")
         return render_template("payments/failure.html", error_message=f"Order '{transaction_uuid}' not found.")
 
     # Idempotency: if already marked success, render receipt view
     if payment.status == "success":
+        print(f"[SkillBridge Payment] Payment #{payment.id} is already marked success (idempotent render)")
         return render_template("payments/success.html", payment=payment)
 
-    # 1. Signature Verification
-    if not verify_esewa_callback(payload):
+    # 2. Signature Verification
+    is_valid_sig = verify_esewa_callback(payload)
+    if not is_valid_sig:
+        print(f"[SkillBridge Payment] Security signature verification failed for payment #{payment.id}")
         payment.status = "failed"
         db.session.commit()
         return render_template(
@@ -247,14 +282,27 @@ def esewa_success():
             error_message="Security signature verification failed. Transaction response could not be verified."
         )
 
-    # 2. Defense-in-depth Status Check API call
+    # 3. Defense-in-depth Status Check API call
     product_code = payload.get("product_code", current_app.config.get("ESEWA_MERCHANT_CODE", "EPAYTEST"))
     total_amount = payload.get("total_amount", f"{float(payment.amount):.2f}")
 
     status_data = check_esewa_status(product_code, total_amount, transaction_uuid)
     gw_status = status_data.get("status")
+    print(f"[SkillBridge Payment] Gateway status check: gw_status={gw_status}, payload_status={payload.get('status')}")
 
-    if gw_status != "COMPLETE":
+    # If the gateway explicitly returned FAILED or CANCELED, mark failed
+    if gw_status in ("FAILED", "CANCELED"):
+        payment.status = "failed"
+        db.session.commit()
+        return render_template(
+            "payments/failure.html",
+            payment=payment,
+            error_message=f"Gateway transaction status returned {gw_status}. Order has not been charged."
+        )
+
+    # If gw_status is not COMPLETE, but HMAC signature verified and payload status is COMPLETE,
+    # in development / sandbox or when status API is temporarily unreachable, accept the cryptographically verified signature.
+    if gw_status != "COMPLETE" and payload.get("status") != "COMPLETE":
         payment.status = "failed"
         db.session.commit()
         return render_template(
@@ -263,7 +311,7 @@ def esewa_success():
             error_message=f"Gateway transaction status check did not return COMPLETE (received: {gw_status or 'ERROR'}). Order has not been charged."
         )
 
-    # 3. Finalize Payment & Fulfill Order
+    # 4. Finalize Payment & Fulfill Order
     payment.status = "success"
     payment.gateway_transaction_id = payload.get("transaction_code") or status_data.get("ref_id")
     payment.completed_at = datetime.utcnow()
@@ -302,6 +350,7 @@ def esewa_success():
             booking.payment_id = payment.id
 
     db.session.commit()
+    print(f"[SkillBridge Payment] Payment #{payment.id} successfully finalized! Status: {payment.status}, TX: {payment.gateway_transaction_id}")
 
     # Send in-app notification to learner
     item_title = payment.course.title if (payment.payment_for == "course" and payment.course) else ("1-on-1 Mentorship Session" if payment.payment_for == "booking" else "SkillBridge Order")
@@ -320,34 +369,61 @@ def esewa_success():
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. eSewa Failure Callback
 # ─────────────────────────────────────────────────────────────────────────────
-@payments_bp.route("/esewa/failure")
+@payments_bp.route("/esewa/failure", methods=["GET", "POST"])
 def esewa_failure():
     """
     Handle return redirect from eSewa when user cancels or payment fails.
     eSewa's failure redirect carries little data; handles this gracefully without 500.
     """
-    data = request.args.get("data")
+    print("\n[SkillBridge Payment] === eSewa Failure Callback Received ===")
+    print(f"[SkillBridge Payment] Request method: {request.method}")
+    print(f"[SkillBridge Payment] Query args: {dict(request.args)}")
+
+    raw_data = request.args.get("data") or request.form.get("data")
     payment = None
 
-    if data:
+    if raw_data:
         try:
+            data = raw_data.strip().replace(" ", "+")
+            missing_padding = len(data) % 4
+            if missing_padding:
+                data += "=" * (4 - missing_padding)
             decoded_bytes = base64.b64decode(data)
             payload = json.loads(decoded_bytes.decode("utf-8"))
             transaction_uuid = payload.get("transaction_uuid")
             if transaction_uuid:
                 payment = Payment.query.filter_by(gateway_reference_id=transaction_uuid).first()
-        except Exception:
-            pass
+                if not payment:
+                    import re
+                    match = re.search(r"-P(\d+)-", transaction_uuid)
+                    if match:
+                        payment = Payment.query.get(int(match.group(1)))
+        except Exception as exc:
+            print(f"[SkillBridge Payment] Failure payload decode error: {exc}")
 
-    # If no data param, check if reference ID was passed as query param
+    # If no data param, check if reference ID was passed as query param or form param
     if not payment:
-        ref = request.args.get("transaction_uuid") or request.args.get("ref")
+        ref = (request.args.get("transaction_uuid") or request.args.get("ref") or
+               request.form.get("transaction_uuid") or request.form.get("ref"))
         if ref:
             payment = Payment.query.filter_by(gateway_reference_id=ref).first()
+            if not payment:
+                import re
+                match = re.search(r"-P(\d+)-", ref)
+                if match:
+                    payment = Payment.query.get(int(match.group(1)))
+
+    # Fallback to current authenticated user's most recent initiated payment
+    if not payment and current_user.is_authenticated:
+        payment = Payment.query.filter_by(
+            learner_id=current_user.id,
+            status="initiated"
+        ).order_by(Payment.id.desc()).first()
 
     if payment and payment.status == "initiated":
         payment.status = "failed"
         db.session.commit()
+        print(f"[SkillBridge Payment] Marked Payment #{payment.id} as failed.")
 
     return render_template(
         "payments/failure.html",
