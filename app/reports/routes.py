@@ -18,6 +18,7 @@ from app.reports.forms import (
 )
 from app.reports.utils import upload_report_evidence
 from app.notifications.utils import notify
+from app.booking.utils import booking_is_paid
 from app.reports import reports_bp
 
 
@@ -41,6 +42,15 @@ def report_booking(booking_id: int):
     # Status check: approved, completed, or cancelled bookings can be reported
     if booking.status not in ("approved", "completed", "cancelled"):
         flash("Reports can only be filed for approved, completed, or cancelled sessions.", "danger")
+        return redirect(url_for("booking.detail", booking_id=booking.id))
+
+    # Payment authorization: learners must have paid before they can file a report.
+    # This prevents abuse where a student reports a teacher without having paid.
+    if is_learner and not booking_is_paid(booking):
+        flash(
+            "You must complete payment for this session before filing a report.",
+            "danger",
+        )
         return redirect(url_for("booking.detail", booking_id=booking.id))
 
     # Automatic server-side participant assignment (cannot be forged)

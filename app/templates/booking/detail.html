@@ -520,6 +520,17 @@
 
         <!-- Unified Report Submission Form (When no open report filed by current user) -->
         {% if can_report and report_form %}
+          {% if is_learner and not has_paid %}
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 18px 20px; font-size: 0.88rem; color: #92400e;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                {{ icon('alert-triangle', 16) }}
+                <strong>Payment required to submit a report</strong>
+              </div>
+              <p style="margin: 0; line-height: 1.5;">
+                You must complete your session payment before you can file a report or request a refund. Once payment is confirmed, the Report Admin form will appear here.
+              </p>
+            </div>
+          {% else %}
           <div class="report-box" style="background: var(--bg-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
               <span style="display: inline-flex; color: var(--danger);">{{ icon('alert-triangle', 20) }}</span>
@@ -596,6 +607,7 @@
               </button>
             </form>
           </div>
+          {% endif %}
         {% endif %}
       </div>
     {% endif %}

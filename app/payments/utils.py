@@ -53,7 +53,27 @@ def verify_esewa_callback(decoded_payload: dict, secret_key: str = None) -> bool
     )
     expected_signature = base64.b64encode(mac.digest()).decode("utf-8")
 
-    return hmac.compare_digest(expected_signature, returned_signature)
+    if hmac.compare_digest(expected_signature, returned_signature):
+        return True
+
+    # Comma-tolerant fallback: in eSewa v2 callbacks, total_amount may contain
+    # commas (e.g. "1,000.0"). If the primary signature check fails, test with
+    # commas stripped from total_amount.
+    clean_parts = []
+    for f in field_names:
+        val = str(decoded_payload.get(f, ""))
+        if f == "total_amount":
+            val = val.replace(",", "")
+        clean_parts.append(f"{f}={val}")
+    clean_message = ",".join(clean_parts)
+    mac_clean = hmac.new(
+        key.encode("utf-8"),
+        clean_message.encode("utf-8"),
+        hashlib.sha256
+    )
+    expected_clean_sig = base64.b64encode(mac_clean.digest()).decode("utf-8")
+
+    return hmac.compare_digest(expected_clean_sig, returned_signature)
 
 
 def check_esewa_status(product_code: str, total_amount: str, transaction_uuid: str) -> dict:
@@ -66,9 +86,18 @@ def check_esewa_status(product_code: str, total_amount: str, transaction_uuid: s
         "ESEWA_STATUS_URL",
         "https://rc.esewa.com.np/api/epay/transaction/status/"
     )
+
+    # Sanitize total_amount: strip any commas and format to 2 decimal places.
+    # eSewa API returns 400 Bad Request if total_amount contains commas (e.g. "1,000.00").
+    clean_amount = str(total_amount).replace(",", "").strip()
+    try:
+        clean_amount = f"{float(clean_amount):.2f}"
+    except (ValueError, TypeError):
+        pass
+
     params = {
         "product_code": product_code,
-        "total_amount": total_amount,
+        "total_amount": clean_amount,
         "transaction_uuid": transaction_uuid,
     }
 
@@ -87,3 +116,4 @@ def check_esewa_status(product_code: str, total_amount: str, transaction_uuid: s
             "status": "ERROR",
             "message": str(exc),
         }
+
