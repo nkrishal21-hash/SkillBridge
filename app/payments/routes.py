@@ -104,8 +104,7 @@ def checkout(payment_for: str, target_id: int):
             db.session.flush()
 
         payment.amount = course.price
-        if not payment.gateway_reference_id:
-            payment.gateway_reference_id = f"SKB-C{course.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
+        payment.gateway_reference_id = f"SKB-C{course.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
         db.session.commit()
 
     elif payment_for == "booking":
@@ -160,8 +159,7 @@ def checkout(payment_for: str, target_id: int):
             db.session.flush()
 
         payment.amount = booking.amount
-        if not payment.gateway_reference_id:
-            payment.gateway_reference_id = f"SKB-B{booking.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
+        payment.gateway_reference_id = f"SKB-B{booking.id}-P{payment.id}-{uuid.uuid4().hex[:6]}"
         db.session.commit()
 
     # Build signed eSewa form fields
