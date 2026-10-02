@@ -244,25 +244,26 @@ def esewa_success():
         print("[SkillBridge Payment] ERROR: transaction_uuid missing in payload.")
         return render_template("payments/failure.html", error_message="Transaction reference missing in gateway response.")
 
-    # 1. Resolve payment: exact match -> regex extraction -> user's latest initiated
+    # 1. Resolve payment: exact gateway_reference_id match -> regex -P{id}- extraction
+    #    SECURITY: The unsafe third-tier fallback ("user's latest initiated payment")
+    #    has been deliberately removed. It could credit an unrelated Payment record
+    #    when the primary lookups miss (e.g., learner with multiple abandoned checkouts).
+    import re
+
     payment = Payment.query.filter_by(gateway_reference_id=transaction_uuid).first()
+    if payment:
+        print(f"[SkillBridge Payment] Resolved payment #{payment.id} via exact gateway_reference_id match")
+
     if not payment and transaction_uuid:
-        import re
         match = re.search(r"-P(\d+)-", transaction_uuid)
         if match:
             payment = Payment.query.get(int(match.group(1)))
-            print(f"[SkillBridge Payment] Resolved payment #{payment.id if payment else None} via regex from uuid '{transaction_uuid}'")
-
-    if not payment and current_user.is_authenticated:
-        payment = Payment.query.filter_by(
-            learner_id=current_user.id,
-            status="initiated"
-        ).order_by(Payment.id.desc()).first()
-        if payment:
-            print(f"[SkillBridge Payment] Resolved payment #{payment.id} via authenticated user's latest initiated record")
+            if payment:
+                print(f"[SkillBridge Payment] Resolved payment #{payment.id} via regex from uuid '{transaction_uuid}'")
 
     if not payment:
-        print(f"[SkillBridge Payment] ERROR: Order '{transaction_uuid}' not found in database.")
+        print(f"[SkillBridge Payment] ERROR: Order '{transaction_uuid}' not found in database. "
+              f"No fallback resolution attempted (unsafe fallback removed).")
         return render_template("payments/failure.html", error_message=f"Order '{transaction_uuid}' not found.")
 
     # Idempotency: if already marked success, render receipt view
@@ -280,6 +281,48 @@ def esewa_success():
             "payments/failure.html",
             payment=payment,
             error_message="Security signature verification failed. Transaction response could not be verified."
+        )
+
+    # ── AMOUNT VERIFICATION (defense-in-depth) ──────────────────────────────
+    # Even though the HMAC signature is valid, verify that the amount eSewa
+    # actually charged matches the amount we expect for THIS specific payment.
+    # This prevents a scenario where a legitimate eSewa transaction for one
+    # amount is applied to a different Payment record for a different amount.
+    try:
+        # eSewa payloads may include commas in amounts (e.g., "1,500.00")
+        payload_amount_raw = str(payload.get("total_amount", "0"))
+        payload_amount = float(payload_amount_raw.replace(",", ""))
+        expected_amount = float(payment.amount)
+
+        # Allow for minor floating-point rounding (±0.01 NPR)
+        if abs(payload_amount - expected_amount) > 0.01:
+            print(f"[SkillBridge Payment] SECURITY WARNING: Amount mismatch! "
+                  f"Payment #{payment.id} expects NPR {expected_amount:.2f} "
+                  f"but eSewa payload reports NPR {payload_amount:.2f}. "
+                  f"Transaction UUID: {transaction_uuid}. "
+                  f"Refusing to fulfill — possible cross-payment resolution error.")
+            payment.status = "failed"
+            db.session.commit()
+            return render_template(
+                "payments/failure.html",
+                payment=payment,
+                error_message=(
+                    f"Amount verification failed: expected NPR {expected_amount:.2f} "
+                    f"but gateway reported NPR {payload_amount:.2f}. "
+                    f"Transaction has been rejected for safety. Please retry checkout."
+                ),
+            )
+        print(f"[SkillBridge Payment] Amount verification passed: "
+              f"expected={expected_amount:.2f}, received={payload_amount:.2f}")
+    except (ValueError, TypeError) as exc:
+        print(f"[SkillBridge Payment] SECURITY WARNING: Could not parse amount from payload: {exc}. "
+              f"Payload total_amount={payload.get('total_amount')!r}. Failing safely.")
+        payment.status = "failed"
+        db.session.commit()
+        return render_template(
+            "payments/failure.html",
+            payment=payment,
+            error_message="Amount verification failed: could not parse transaction amount. Please retry checkout.",
         )
 
     # 3. Defense-in-depth Status Check API call
@@ -413,12 +456,10 @@ def esewa_failure():
                 if match:
                     payment = Payment.query.get(int(match.group(1)))
 
-    # Fallback to current authenticated user's most recent initiated payment
-    if not payment and current_user.is_authenticated:
-        payment = Payment.query.filter_by(
-            learner_id=current_user.id,
-            status="initiated"
-        ).order_by(Payment.id.desc()).first()
+    # SECURITY: No fallback to "user's latest initiated payment" — same reasoning
+    # as esewa_success(). If we can't identify the specific payment, we simply
+    # don't mark anything as failed. The initiated payment will remain as-is
+    # and can be retried or will expire naturally.
 
     if payment and payment.status == "initiated":
         payment.status = "failed"
