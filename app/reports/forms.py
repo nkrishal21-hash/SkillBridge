@@ -7,35 +7,35 @@ from wtforms import SelectField, TextAreaField, SubmitField, RadioField
 from wtforms.validators import DataRequired, Optional, Length
 
 LEARNER_REPORT_REASONS = [
-    ("late", "⏰ Teacher Came Late / Tardy"),
-    ("no_show", "🚫 Teacher Did Not Attend / No Show"),
-    ("misbehavior", "⚠️ Teacher Misbehavior / Disrespectful Conduct"),
-    ("inappropriate_behavior", "🚫 Inappropriate Behavior While Teaching"),
-    ("session_not_properly_taught", "📉 Session Not Properly Taught"),
-    ("teacher_marked_completed_without_teaching", "❌ Marked Completed Without Teaching"),
-    ("false_or_misleading_information", "🤥 False or Misleading Information"),
-    ("session_issue", "🛠️ Session Quality / Platform Issue"),
-    ("other", "📝 Other Session Issue"),
+    ("late", "Teacher Came Late / Tardy"),
+    ("no_show", "Teacher Did Not Attend / No Show"),
+    ("misbehavior", "Teacher Misbehavior / Disrespectful Conduct"),
+    ("inappropriate_behavior", "Inappropriate Behavior While Teaching"),
+    ("session_not_properly_taught", "Session Not Properly Taught"),
+    ("teacher_marked_completed_without_teaching", "Marked Completed Without Teaching"),
+    ("false_or_misleading_information", "False or Misleading Information"),
+    ("session_issue", "Session Quality / Platform Issue"),
+    ("other", "Other Session Issue"),
 ]
 
 TEACHER_REPORT_REASONS = [
-    ("no_show", "🚫 Student Did Not Attend / Absent"),
-    ("misbehavior", "⚠️ Student Misbehavior / Disrespectful Conduct"),
-    ("inappropriate_behavior", "🚫 Inappropriate Behavior"),
-    ("false_or_misleading_information", "🤥 False Accusation / Misleading Information"),
-    ("other", "📝 Other Session Issue"),
+    ("no_show", "Student Did Not Attend / Absent"),
+    ("misbehavior", "Student Misbehavior / Disrespectful Conduct"),
+    ("inappropriate_behavior", "Inappropriate Behavior"),
+    ("false_or_misleading_information", "False Accusation / Misleading Information"),
+    ("other", "Other Session Issue"),
 ]
 
 ALL_REPORT_REASONS = [
-    ("late", "⏰ Late Arrival / Tardy"),
-    ("no_show", "🚫 No Show / Absent"),
-    ("misbehavior", "⚠️ Misbehavior / Unprofessional Conduct"),
-    ("inappropriate_behavior", "🚫 Inappropriate Behavior While Teaching"),
-    ("session_not_properly_taught", "📉 Session Not Properly Taught"),
-    ("teacher_marked_completed_without_teaching", "❌ Marked Completed Without Teaching"),
-    ("false_or_misleading_information", "🤥 False or Misleading Information"),
-    ("session_issue", "🛠️ Session Issue"),
-    ("other", "📝 Other Issue"),
+    ("late", "Late Arrival / Tardy"),
+    ("no_show", "No Show / Absent"),
+    ("misbehavior", "Misbehavior / Unprofessional Conduct"),
+    ("inappropriate_behavior", "Inappropriate Behavior While Teaching"),
+    ("session_not_properly_taught", "Session Not Properly Taught"),
+    ("teacher_marked_completed_without_teaching", "Marked Completed Without Teaching"),
+    ("false_or_misleading_information", "False or Misleading Information"),
+    ("session_issue", "Session Issue"),
+    ("other", "Other Issue"),
 ]
 
 REPORT_REASON_DICT = dict(ALL_REPORT_REASONS)
