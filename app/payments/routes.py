@@ -7,7 +7,7 @@ defense-in-depth status verification, order fulfillment, and receipts.
 import base64
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal, ROUND_HALF_UP
 from flask import (
     Blueprint,
@@ -31,6 +31,7 @@ from app.payments.utils import (
     check_esewa_status,
 )
 from app.notifications.utils import notify
+from app.utils.time import to_nepal, nepal_now
 
 payments_bp = Blueprint("payments", __name__)
 
@@ -402,6 +403,46 @@ def esewa_success():
         notif_type="payment",
         link=url_for("payments.receipt", payment_id=payment.id),
     )
+
+    # Send in-app notification to teacher
+    learner_name = payment.learner.full_name if payment.learner else "A student"
+    if payment.payment_for == "booking":
+        booking = Booking.query.get(payment.booking_id_ref) if payment.booking_id_ref else None
+        if not booking:
+            booking = Booking.query.filter_by(payment_id=payment.id).first()
+        if booking and booking.teacher_id:
+            topic_str = booking.topic or "1-on-1 Mentorship"
+            if isinstance(booking.session_date, datetime):
+                session_date_str = to_nepal(booking.session_date).strftime("%b %d, %Y")
+            elif isinstance(booking.session_date, date):
+                session_date_str = booking.session_date.strftime("%b %d, %Y")
+            else:
+                session_date_str = str(booking.session_date) if booking.session_date else ""
+
+            if booking.start_time:
+                session_date_str = f"{session_date_str} at {booking.start_time.strftime('%I:%M %p')}" if session_date_str else booking.start_time.strftime("%I:%M %p")
+
+            date_info = f" scheduled for {session_date_str}" if session_date_str else ""
+            notify(
+                user_id=booking.teacher_id,
+                title=f"Payment Received: NPR {payment.amount:.2f}",
+                body=f"{learner_name} has paid NPR {payment.amount:.2f} for mentorship session '{topic_str}'{date_info}.",
+                notif_type="payment",
+                link=url_for("booking.detail", booking_id=booking.id),
+            )
+    elif payment.payment_for == "course":
+        course = payment.course or (Course.query.get(payment.course_id) if payment.course_id else None)
+        teacher_user = payment.teacher_user
+        teacher_id = teacher_user.id if teacher_user else (course.teacher.user_id if (course and course.teacher) else None)
+        if course and teacher_id:
+            course_title = course.title or "Course"
+            notify(
+                user_id=teacher_id,
+                title=f"Payment Received: NPR {payment.amount:.2f}",
+                body=f"{learner_name} enrolled and paid NPR {payment.amount:.2f} for your course '{course_title}'.",
+                notif_type="payment",
+                link=url_for("courses.course_detail", course_id=course.id),
+            )
 
     flash("Payment successful! Your order has been confirmed.", "success")
     return render_template("payments/success.html", payment=payment)
