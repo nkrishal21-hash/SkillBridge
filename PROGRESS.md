@@ -864,3 +864,55 @@ Five targeted improvements implemented in separate commits (Parts 1–5).
 *(Free-form — useful for your project report's "challenges faced" section.)*
 
 -
+
+---
+
+## Post-9: Fix — Single Report Admin Action Per Booking (2026-10-03)
+
+### Problem
+
+On `booking/detail.html`, three report-related UI blocks were gated independently:
+1. `{% if my_report %}` — displays the user's own filed report case
+2. `{% if report_against_me %}` — displays a report filed against the user + response form
+3. `{% if can_report and report_form %}` — displays the "file a new report" submission form
+
+Block 3 had **no check against blocks 1 or 2**, so it rendered unconditionally alongside whichever of the first two was active. This produced a confusing "two different report options" on the same page: a response form to an existing case AND a separate fresh "Report Teacher/Learner to Admin" submission form, both visible at once.
+
+The server-side `report_booking()` route already rejects duplicate pending submissions, so the extra form was inviting a submission that would be rejected anyway.
+
+### Fix Applied
+
+Changed the template condition from:
+```jinja
+{% if can_report and report_form %}
+```
+to:
+```jinja
+{% set my_report_active = my_report and my_report.status in ['pending', 'reviewed'] %}
+{% set report_against_me_active = report_against_me and report_against_me.status in ['pending', 'reviewed'] %}
+{% if can_report and report_form and not my_report_active and not report_against_me_active %}
+```
+
+### Design Decision: Resolved/Dismissed Reports
+
+**Chosen behavior:** When `my_report.status` is `'resolved'` or `'dismissed'` (case closed), the user **can** file a new report on the same booking for a separate, later issue. The new-report form is only suppressed while `my_report.status` is `'pending'` or `'reviewed'` (still active).
+
+**Rationale:** A resolved/dismissed case represents a concluded administrative process. A user may encounter a *new* issue on the same booking (e.g., they initially reported a no-show, the case was dismissed, but later they discover the teacher provided false credentials). The server-side duplicate check in `report_booking()` only blocks `status='pending'`, confirming this design intent. The template-level `can_report` logic (set in `booking.detail()` route) already gates on `not (my_report.status in ('pending', 'reviewed'))`, so this template fix simply aligns visibility with that existing server logic.
+
+### Verification Results
+
+| Scenario | Expected | Result |
+|---|---|---|
+| Learner with active `report_against_me` (pending) | Only case block + response form visible, NO new report form | ✅ Pass |
+| Learner with no reports (clean paid/approved booking) | Only new report form visible | ✅ Pass |
+| Learner with own `my_report` (reviewed — still active) | Only case status block visible, NO new report form | ✅ Pass |
+| Teacher with own `my_report` (pending) | Only case status block visible, NO new report form | ✅ Pass |
+| Learner with closed `my_report` (resolved) | Case status block + new report form allowed | ✅ Pass |
+| End-to-end report submission through visible form | Report created successfully | ✅ Pass |
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `app/templates/booking/detail.html` | Added `not my_report_active and not report_against_me_active` guard to new-report form condition |
+| `PROGRESS.md` | This entry |

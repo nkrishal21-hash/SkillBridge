@@ -518,8 +518,10 @@
           </div>
         {% endif %}
 
-        <!-- Unified Report Submission Form (When no open report filed by current user) -->
-        {% if can_report and report_form %}
+        <!-- Unified Report Submission Form (When no active report case exists for this booking from either side) -->
+        {% set my_report_active = my_report and my_report.status in ['pending', 'reviewed'] %}
+        {% set report_against_me_active = report_against_me and report_against_me.status in ['pending', 'reviewed'] %}
+        {% if can_report and report_form and not my_report_active and not report_against_me_active %}
           {% if is_learner and not has_paid %}
             <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-md); padding: 18px 20px; font-size: 0.88rem; color: #92400e;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
