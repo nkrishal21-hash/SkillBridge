@@ -108,8 +108,8 @@ def send_password_reset_email(user: User, token: str) -> bool:
     reset_url = url_for("auth.reset_password", token=token, _external=True)
 
     # Always log the reset URL in dev mode for easy local testing
-    print(f"\n[SkillBridge Auth] Password Reset Link for {user.email}:")
-    print(f"  {reset_url}\n")
+    print(f"\n[SkillBridge Auth] Password Reset Link for {user.email}:", flush=True)
+    print(f"  {reset_url}\n", flush=True)
 
     mail_user = current_app.config.get("MAIL_USERNAME")
     if not mail_user or "your-gmail" in str(mail_user):

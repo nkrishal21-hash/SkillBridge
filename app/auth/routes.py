@@ -4,6 +4,7 @@ Handles user registration, login/logout, Google OAuth, and password reset flows.
 """
 
 from urllib.parse import urlparse
+from markupsafe import Markup
 from flask import (
     Blueprint,
     render_template,
@@ -265,8 +266,10 @@ def forgot_password():
                 # SMTP not set up in local dev — flash direct helper link for convenience
                 reset_url = url_for("auth.reset_password", token=token)
                 flash(
-                    f"[Dev Mode] Password reset link generated! "
-                    f"Since mail server is not configured, click here to reset: {reset_url}",
+                    Markup(
+                        f"[Dev Mode] Password reset link generated! Since mail server is not configured, "
+                        f"<a href='{reset_url}' style='font-weight: 700; text-decoration: underline; color: inherit;'>click here to reset your password</a>."
+                    ),
                     "info",
                 )
             else:
