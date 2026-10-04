@@ -35,6 +35,30 @@
   </div>
 </section>
 
+<!-- Stats Trust Bar -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="stats-bar-grid">
+      <div class="stats-bar-item">
+        <span class="stats-bar-number">{{ stats.learners }}</span>
+        <span class="stats-bar-label">Learners</span>
+      </div>
+      <div class="stats-bar-item">
+        <span class="stats-bar-number">{{ stats.teachers }}</span>
+        <span class="stats-bar-label">Teachers</span>
+      </div>
+      <div class="stats-bar-item">
+        <span class="stats-bar-number">{{ stats.courses }}</span>
+        <span class="stats-bar-label">Courses Available</span>
+      </div>
+      <div class="stats-bar-item">
+        <span class="stats-bar-number">{{ stats.sessions }}</span>
+        <span class="stats-bar-label">Sessions Completed</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Core Features Section -->
 <section class="container">
   <div class="features-grid">
@@ -75,4 +99,75 @@
     </div>
   </div>
 </section>
+
+<!-- FAQ Section -->
+<section class="faq-section">
+  <div class="container">
+    <div class="faq-header">
+      <h2>Frequently Asked Questions</h2>
+      <p>Everything you need to know about getting started on SkillBridge.</p>
+    </div>
+
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary class="faq-question">Is SkillBridge free to join?</summary>
+        <div class="faq-answer">
+          Yes — creating an account is completely free for both learners and teachers. Many courses are offered free of charge by community mentors. Premium courses and 1-on-1 mentorship sessions are priced by individual teachers and paid securely through eSewa or Khalti.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">How do payments work?</summary>
+        <div class="faq-answer">
+          When you enroll in a paid course or book a mentorship session, you pay through Nepal's most trusted digital wallets — eSewa and Khalti. Your payment is held securely until the session is completed or the course is delivered. Teachers receive their earnings after a small platform commission.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">How are teachers verified?</summary>
+        <div class="faq-answer">
+          Teachers submit credential documents (such as citizenship, educational certificates, or professional certifications) when setting up their profile. Our admin team reviews and verifies each teacher before they receive a "Verified" badge, which is displayed on their profile and course listings.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">What if a session doesn't go well?</summary>
+        <div class="faq-answer">
+          If you're unsatisfied with a mentorship session, you can submit a report through the platform's Trust &amp; Safety system. Our team reviews reports and can issue refunds, warn teachers, or take further action depending on the situation. You can also leave an honest review to help other learners.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">Can I earn a certificate?</summary>
+        <div class="faq-answer">
+          Absolutely. When you complete all lessons and quizzes in a course, you automatically receive a verifiable PDF certificate with a unique certificate ID. You can download, print, or share it — and anyone can verify its authenticity using the certificate verification link.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary class="faq-question">How do I become a teacher on SkillBridge?</summary>
+        <div class="faq-answer">
+          Register with a teacher account, complete your professional profile (headline, skills, hourly rate, and availability), and upload your credential documents. Once verified by our admin team, you can create courses, accept mentorship bookings, and start earning.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="landing-cta">
+  <div class="container" style="text-align: center;">
+    <h2>Ready to start your learning journey?</h2>
+    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 28px; max-width: 560px; margin-left: auto; margin-right: auto;">
+      Join a growing community of learners and mentors building skills that matter.
+    </p>
+    {% if not current_user.is_authenticated %}
+      <div class="hero-actions">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-accent btn-lg">Create Your Free Account</a>
+        <a href="{{ url_for('courses.catalog') }}" class="btn btn-outline btn-lg">Browse Courses</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
 {% endblock %}
+

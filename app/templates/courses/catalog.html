@@ -99,7 +99,7 @@
       {% if courses %}
         <div class="course-cards-grid">
           {% for course in courses %}
-            <div class="course-card">
+            <div class="course-card{% if course.price and course.price > 0 %} course-card-premium{% endif %}">
               <a href="{{ url_for('courses.course_detail', course_id=course.id) }}" class="course-card-thumb-link">
                 <div class="course-card-thumb">
                   {% if course.thumbnail_url %}

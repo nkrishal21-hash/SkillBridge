@@ -181,7 +181,15 @@ def create_app(config_name: str = None) -> Flask:
 
     @app.route("/")
     def index():
-        return render_template("index.html")
+        # Landing-page stats — real counts from the database
+        from app.models import User, Course, Booking
+        stats = {
+            "learners": User.query.filter_by(role="learner").count(),
+            "teachers": User.query.filter_by(role="teacher").count(),
+            "courses": Course.query.filter_by(is_published=True, is_approved=True).count(),
+            "sessions": Booking.query.filter_by(status="completed").count(),
+        }
+        return render_template("index.html", stats=stats)
 
     # ── Custom error pages ─────────────────────────────────────────────────────
     @app.errorhandler(404)

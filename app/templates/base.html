@@ -130,16 +130,42 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <div class="container footer-inner">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <img src="{{ url_for('static', filename='images/logo-navbar.png') }}"
-             alt="SkillBridge" class="footer-logo">
-        <div>
-          <strong>SkillBridge</strong> &mdash; Peer-to-Peer Learning &amp; Mentorship Platform
-          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Learn • Connect • Grow</div>
+    <div class="container">
+      <div class="footer-grid">
+        <!-- Brand Column -->
+        <div class="footer-col footer-brand-col">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+            <img src="{{ url_for('static', filename='images/logo-navbar.png') }}"
+                 alt="SkillBridge" class="footer-logo">
+            <div>
+              <strong style="font-family: var(--font-heading); font-size: 1.15rem;">SkillBridge</strong>
+            </div>
+          </div>
+          <p class="footer-tagline">Peer-to-Peer Learning &amp; Mentorship Platform. Learn from verified mentors, master new skills, and grow your career.</p>
+        </div>
+
+        <!-- Platform Column -->
+        <div class="footer-col">
+          <h4 class="footer-col-title">Platform</h4>
+          <ul class="footer-links">
+            <li><a href="{{ url_for('courses.catalog') }}">Browse Courses</a></li>
+            <li><a href="{{ url_for('teacher.search') }}">Find Mentors</a></li>
+            <li><a href="{{ url_for('auth.register') }}">Get Started</a></li>
+            <li><a href="{{ url_for('auth.register', role='teacher') }}">Teach on SkillBridge</a></li>
+          </ul>
+        </div>
+
+        <!-- Support Column -->
+        <div class="footer-col">
+          <h4 class="footer-col-title">Support</h4>
+          <ul class="footer-links">
+            <li><a href="{{ url_for('index') }}#faq">FAQ</a></li>
+            <li><a href="{{ url_for('auth.login') }}">Sign In</a></li>
+          </ul>
         </div>
       </div>
-      <div>
+
+      <div class="footer-bottom">
         &copy; 2026 SkillBridge. All rights reserved.
       </div>
     </div>

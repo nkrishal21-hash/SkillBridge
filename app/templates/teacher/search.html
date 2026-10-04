@@ -91,7 +91,7 @@
         <div class="teacher-cards-grid">
           {% for teacher in teachers %}
             {% set teacher_skills = parse_skills(teacher.skills) %}
-            <div class="teacher-card">
+            <div class="teacher-card{% if teacher.is_verified %} teacher-card-verified{% endif %}">
               <div class="teacher-card-top">
                 <div class="teacher-card-avatar">
                   {% if teacher.user.profile_photo %}
