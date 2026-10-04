@@ -896,7 +896,6 @@ a:hover {
 .hero {
   padding: 80px 0 60px;
   background: linear-gradient(180deg, #fdfcfb 0%, #f4f1ea 100%);
-  border-bottom: 1px solid var(--border-subtle);
 }
 
 .hero-content {
@@ -1100,6 +1099,7 @@ a:hover {
 .stats-bar {
   background: var(--primary);
   padding: 0;
+  margin-top: -1px;
 }
 
 .stats-bar-grid {
