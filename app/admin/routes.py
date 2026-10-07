@@ -13,9 +13,9 @@ from sqlalchemy import func, or_, and_
 from app import db
 from app.auth.utils import admin_required
 from app.models import (
-    User, TeacherProfile, Course, Booking, Payment,
+    User, TeacherProfile, TeacherDocument, Course, Booking, Payment,
     Certificate, Notification, Report, RefundRequest,
-    ReportEvidence, ReportResponse,
+    ReportEvidence, ReportResponse, Message, Favorite, Enrollment, Review,
 )
 from app.notifications.utils import notify
 from app.reports.forms import REPORT_REASON_DICT
@@ -392,6 +392,36 @@ def payment_refund_direct(payment_id: int):
     )
 
 
+def get_active_user_ids(user_ids: list[int]) -> set[int]:
+    """Precompute active user IDs for a list of user IDs in efficient batch queries."""
+    if not user_ids:
+        return set()
+    active_ids = set()
+    for row in db.session.query(Payment.learner_id).filter(Payment.learner_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(Booking.learner_id).filter(Booking.learner_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(Booking.teacher_id).filter(Booking.teacher_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(Enrollment.learner_id).filter(Enrollment.learner_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(Review.learner_id).filter(Review.learner_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(TeacherProfile.user_id).join(Course, Course.teacher_id == TeacherProfile.id).filter(TeacherProfile.user_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(TeacherProfile.user_id).join(Review, Review.teacher_id == TeacherProfile.id).filter(TeacherProfile.user_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(TeacherProfile.user_id).join(Course, Course.teacher_id == TeacherProfile.id).join(Payment, Payment.course_id == Course.id).filter(TeacherProfile.user_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(Booking.teacher_id).join(Payment, Payment.booking_id_ref == Booking.id).filter(Booking.teacher_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(Report.reporter_id).filter(Report.reporter_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    for row in db.session.query(Report.reported_id).filter(Report.reported_id.in_(user_ids)).distinct():
+        active_ids.add(row[0])
+    return active_ids
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. User Listing
 # ─────────────────────────────────────────────────────────────────────────────
@@ -412,12 +442,15 @@ def user_list():
         page=page, per_page=20, error_out=False
     )
 
+    active_user_ids = get_active_user_ids([u.id for u in pagination.items])
+
     return render_template(
         "admin/users.html",
         user=current_user,
         pagination=pagination,
         users=pagination.items,
         role_filter=role_filter,
+        active_user_ids=active_user_ids,
     )
 
 
@@ -458,6 +491,87 @@ def unban_user(user_id: int):
     db.session.commit()
 
     flash(f"User '{user.full_name}' has been unbanned and restored.", "success")
+    return redirect(request.referrer or url_for("admin.user_list"))
+
+
+@admin_bp.route("/users/<int:user_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def delete_user(user_id: int):
+    """
+    Safely delete or anonymize a user account with real safety rails:
+    1. Admins can NEVER be deleted.
+    2. Users cannot delete their own account via this endpoint.
+    3. If the user has real platform activity (payments, bookings, enrollments,
+       courses, or reviews):
+       - Refuse hard delete and perform SOFT DELETE / ANONYMIZE:
+         scrub full_name, replace email with unique placeholder,
+         clear profile_photo, set is_active=False, clear password_hash/tokens.
+         Keep historical payment/booking/review rows intact for financial/audit integrity.
+    4. If the user has ZERO activity (genuinely empty/test/spam account):
+       - Allow real hard delete of the User row (and empty TeacherProfile) via ORM.
+    """
+    user = User.query.get_or_404(user_id)
+
+    # Safety Rail 1: Never allow deleting own account
+    if user.id == current_user.id:
+        flash("You cannot delete your own administrator account.", "danger")
+        return redirect(request.referrer or url_for("admin.user_list"))
+
+    # Safety Rail 2: Never allow deleting an admin account
+    if user.role == "admin":
+        flash("You cannot delete an administrator account.", "danger")
+        return redirect(request.referrer or url_for("admin.user_list"))
+
+    # Check if already anonymized
+    if user.is_anonymized:
+        flash(f"User account #{user.id} has already been anonymized and deactivated.", "info")
+        return redirect(request.referrer or url_for("admin.user_list"))
+
+    user_name = user.full_name
+
+    # Safety Rail 3: Check whether this user has any real activity
+    if user.has_activity():
+        # Soft delete / Anonymize: scrub personally identifying fields
+        user.full_name = "Deleted User"
+        user.email = f"deleted_user_{user.id}@skillbridge.local"
+        user.profile_photo = None
+        user.is_active = False
+        user.password_hash = None
+        user.google_id = None
+        user.reset_token = None
+        user.reset_token_expiry = None
+        user.email_verify_token = None
+        user.is_email_verified = False
+
+        if user.teacher_profile:
+            user.teacher_profile.linkedin_url = None
+            user.teacher_profile.website_url = None
+
+        db.session.commit()
+
+        flash(
+            f"User account '{user_name}' (ID #{user.id}) has active history (bookings, payments, courses, or reviews). "
+            f"To preserve financial and audit integrity, the account was safely anonymized: "
+            f"personal details scrubbed, login disabled, and historical records preserved.",
+            "warning",
+        )
+    else:
+        # Hard delete: genuinely empty test/spam account with zero activity
+        if user.teacher_profile:
+            TeacherDocument.query.filter_by(teacher_profile_id=user.teacher_profile.id).delete(synchronize_session=False)
+        Message.query.filter(or_(Message.sender_id == user.id, Message.receiver_id == user.id)).delete(synchronize_session=False)
+        Notification.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+        Favorite.query.filter_by(learner_id=user.id).delete(synchronize_session=False)
+
+        db.session.delete(user)
+        db.session.commit()
+
+        flash(
+            f"User '{user_name}' (ID #{user.id}) had zero activity history and was permanently deleted from the database.",
+            "success",
+        )
+
     return redirect(request.referrer or url_for("admin.user_list"))
 
 

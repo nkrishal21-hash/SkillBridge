@@ -128,6 +128,80 @@ class User(BaseModel, UserMixin):
         self.failed_login_attempts = 0
         self.locked_until = None
 
+    @property
+    def is_anonymized(self) -> bool:
+        """True if this user account has been soft-deleted/anonymized."""
+        return bool(
+            (self.email and self.email.startswith(f"deleted_user_{self.id}@"))
+            or (self.full_name == "Deleted User" and not self.is_active)
+        )
+
+    def has_activity(self) -> bool:
+        """
+        Check whether this user has real platform activity that forbids hard delete:
+        - Learner: payments (any status), bookings, enrollments, reviews given
+        - Teacher: bookings as teacher, courses, reviews received, payments tied to courses/bookings
+        - Either: incident/dispute reports (reporter or reported)
+        """
+        from sqlalchemy import or_
+        from app.models import (
+            Payment as _Payment,
+            Booking as _Booking,
+            Course as _Course,
+            Report as _Report,
+        )
+
+        # 1. Learner activity
+        if self.payments.first() is not None:
+            return True
+        if self.bookings_as_learner.first() is not None:
+            return True
+        if self.enrollments.first() is not None:
+            return True
+        if self.reviews_given.first() is not None:
+            return True
+
+        # 2. Teacher activity
+        if self.bookings_as_teacher.first() is not None:
+            return True
+        if self.teacher_profile:
+            tp_id = self.teacher_profile.id
+            if self.teacher_profile.courses.first() is not None:
+                return True
+            if self.teacher_profile.reviews.first() is not None:
+                return True
+
+            # Payments for teacher's courses
+            course_payment = (
+                db.session.query(_Payment.id)
+                .join(_Course, _Payment.course_id == _Course.id)
+                .filter(_Course.teacher_id == tp_id)
+                .first()
+            )
+            if course_payment is not None:
+                return True
+
+        # Payments tied to teacher's bookings
+        booking_payment = (
+            db.session.query(_Payment.id)
+            .join(_Booking, _Payment.booking_id_ref == _Booking.id)
+            .filter(_Booking.teacher_id == self.id)
+            .first()
+        )
+        if booking_payment is not None:
+            return True
+
+        # 3. Incident / dispute reports
+        report_exists = (
+            _Report.query.filter(
+                or_(_Report.reporter_id == self.id, _Report.reported_id == self.id)
+            ).first()
+        )
+        if report_exists is not None:
+            return True
+
+        return False
+
     def __repr__(self):
         return f"<User {self.id}: {self.email} ({self.role})>"
 

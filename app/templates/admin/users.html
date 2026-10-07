@@ -55,7 +55,12 @@
                         {{ u.full_name[:1].upper() }}
                       {% endif %}
                     </div>
-                    <span style="font-weight: 600; color: var(--text-primary);">{{ u.full_name }}</span>
+                    <div>
+                      <span style="font-weight: 600; color: {% if u.is_anonymized %}var(--text-muted){% else %}var(--text-primary){% endif %};">{{ u.full_name }}</span>
+                      {% if u.is_anonymized %}
+                        <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">(Anonymized)</span>
+                      {% endif %}
+                    </div>
                   </div>
                 </td>
                 <td style="padding: 11px 16px; color: var(--text-secondary); font-size: 0.83rem;">{{ u.email }}</td>
@@ -69,7 +74,9 @@
                   {% endif %}
                 </td>
                 <td style="padding: 11px 16px;">
-                  {% if u.is_active %}
+                  {% if u.is_anonymized %}
+                    <span class="badge" style="background: rgba(100, 116, 139, 0.15); color: #475569; font-weight: 600; font-size: 0.76rem;">Anonymized</span>
+                  {% elif u.is_active %}
                     <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: var(--success); font-weight: 600; font-size: 0.76rem;">● Active</span>
                   {% else %}
                     <span class="badge ban-badge" style="background: rgba(239, 68, 68, 0.12); color: var(--danger); font-weight: 700; font-size: 0.76rem;">Banned</span>
@@ -89,22 +96,38 @@
                   {{ u.created_at|npt('%b %d, %Y') }}
                 </td>
                 <td style="padding: 11px 16px; text-align: right;">
-                  {% if u.role != 'admin' %}
-                    {% if u.is_active %}
-                      <form method="POST" action="{{ url_for('admin.ban_user', user_id=u.id) }}" style="display: inline;"
-                            onsubmit="return confirm('Suspend and ban {{ u.full_name }}? They will be immediately logged out and blocked from logging in.');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-size: 0.75rem; padding: 4px 10px;">
-                          Ban
-                        </button>
-                      </form>
+                  {% if u.role != 'admin' and u.id != current_user.id %}
+                    {% if u.is_anonymized %}
+                      <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Deleted</span>
                     {% else %}
-                      <form method="POST" action="{{ url_for('admin.unban_user', user_id=u.id) }}" style="display: inline;">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline btn-sm" style="color: var(--success); border-color: #86efac; font-size: 0.75rem; padding: 4px 10px;">
-                          Unban
-                        </button>
-                      </form>
+                      <div style="display: inline-flex; gap: 6px; align-items: center; justify-content: flex-end;">
+                        {% if u.is_active %}
+                          <form method="POST" action="{{ url_for('admin.ban_user', user_id=u.id) }}" style="display: inline;"
+                                onsubmit="return confirm('Suspend and ban {{ u.full_name }}? They will be immediately logged out and blocked from logging in.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5; font-size: 0.75rem; padding: 4px 10px;">
+                              Ban
+                            </button>
+                          </form>
+                        {% else %}
+                          <form method="POST" action="{{ url_for('admin.unban_user', user_id=u.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline btn-sm" style="color: var(--success); border-color: #86efac; font-size: 0.75rem; padding: 4px 10px;">
+                              Unban
+                            </button>
+                          </form>
+                        {% endif %}
+
+                        {% set has_act = (u.id in active_user_ids) if active_user_ids is defined else u.has_activity() %}
+                        <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}" style="display: inline;"
+                              data-confirm="{% if has_act %}Delete {{ u.full_name }}? This account has active booking, payment, course, or review records. Deleting will SAFELY ANONYMIZE their personal info and deactivate the account to preserve financial audit records. Proceed?{% else %}Permanently delete {{ u.full_name }}? This account has zero activity and will be PERMANENTLY REMOVED from the database. This cannot be undone. Proceed?{% endif %}"
+                              onsubmit="return confirm(this.dataset.confirm);">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="btn btn-outline btn-sm" style="color: #b91c1c; border-color: #fca5a5; font-size: 0.75rem; padding: 4px 10px;" title="{{ 'Safely anonymize user (preserves audit records)' if has_act else 'Permanently delete empty account' }}">
+                            Delete
+                          </button>
+                        </form>
+                      </div>
                     {% endif %}
                   {% else %}
                     <span style="font-size: 0.75rem; color: var(--text-muted);">—</span>

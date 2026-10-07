@@ -1,10 +1,12 @@
 {% from '_icons.html' import icon %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SkillBridge — Peer-to-Peer Learning and Skill Exchange Platform connecting learners with verified mentors and interactive courses.">
+  <meta name="description"
+    content="SkillBridge — Peer-to-Peer Learning and Skill Exchange Platform connecting learners with verified mentors and interactive courses.">
   <title>{% block title %}SkillBridge — Learn, Teach, Grow{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <!-- Favicons -->
@@ -13,14 +15,14 @@
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
   {% block extra_head %}{% endblock %}
 </head>
+
 <body>
 
   <!-- Sticky Navbar -->
   <header class="navbar">
     <div class="container navbar-inner">
       <a href="{{ url_for('index') }}" class="brand">
-        <img src="{{ url_for('static', filename='images/logo-navbar.png') }}"
-             alt="SkillBridge" class="brand-logo">
+        <img src="{{ url_for('static', filename='images/logo-navbar.png') }}" alt="SkillBridge" class="brand-logo">
         <span class="brand-name">SkillBridge</span>
       </a>
 
@@ -30,80 +32,82 @@
           <li><a href="{{ url_for('courses.catalog') }}" class="nav-link">Courses</a></li>
           <li><a href="{{ url_for('teacher.search') }}" class="nav-link">Find Mentors</a></li>
           {% if current_user.is_authenticated %}
-            <li>
-              <a href="{{ url_for('chat.inbox') }}" class="nav-link">
-                Messages
-                {% if unread_messages_count and unread_messages_count > 0 %}
-                  <span class="unread-badge">{{ unread_messages_count }}</span>
-                {% endif %}
-              </a>
-            </li>
-            <li>
-              <a href="{{ url_for('notifications.index') }}" class="nav-link" title="Notifications">
-                {{ icon('bell', 20) }}
-                {% if unread_notifications_count and unread_notifications_count > 0 %}
-                  <span class="unread-badge" style="background: var(--danger);">{{ unread_notifications_count }}</span>
-                {% endif %}
-              </a>
-            </li>
+          <li>
+            <a href="{{ url_for('chat.inbox') }}" class="nav-link">
+              Messages
+              {% if unread_messages_count and unread_messages_count > 0 %}
+              <span class="unread-badge">{{ unread_messages_count }}</span>
+              {% endif %}
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('notifications.index') }}" class="nav-link" title="Notifications">
+              {{ icon('bell', 20) }}
+              {% if unread_notifications_count and unread_notifications_count > 0 %}
+              <span class="unread-badge" style="background: var(--danger);">{{ unread_notifications_count }}</span>
+              {% endif %}
+            </a>
+          </li>
           {% endif %}
         </ul>
       </nav>
 
       <div class="nav-actions">
         {% if current_user.is_authenticated %}
-          <div class="user-menu" tabindex="0">
-            <button class="user-badge-btn" type="button" aria-haspopup="true" aria-expanded="false">
-              <div class="avatar">
-                {% if current_user.profile_photo %}
-                  <img src="{{ current_user.profile_photo }}" alt="{{ current_user.full_name }}">
-                {% else %}
-                  {{ current_user.full_name[:1].upper() }}
-                {% endif %}
-              </div>
-              <span>{{ current_user.full_name.split()[0] }}</span>
-              <span class="badge badge-{{ current_user.role }}">{{ current_user.role }}</span>
-            </button>
-
-            <div class="dropdown-panel">
-              <div class="dropdown-header">
-                <div class="dropdown-name">{{ current_user.full_name }}</div>
-                <div class="dropdown-email">{{ current_user.email }}</div>
-              </div>
-
-              {% if current_user.role == 'learner' %}
-                <a href="{{ url_for('learner.dashboard') }}" class="dropdown-item">My Dashboard</a>
-                <a href="{{ url_for('booking.history') }}" class="dropdown-item">Mentorship Sessions</a>
-              {% elif current_user.role == 'teacher' %}
-                <a href="{{ url_for('teacher.dashboard') }}" class="dropdown-item">Teacher Hub</a>
-                <a href="{{ url_for('booking.history') }}" class="dropdown-item">Session Bookings</a>
-              {% elif current_user.role == 'admin' %}
-                <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">Admin Console</a>
-                <a href="{{ url_for('admin.report_list') }}" class="dropdown-item">Report Admin</a>
-                <a href="{{ url_for('admin.refund_list') }}" class="dropdown-item">Refund Queue</a>
+        <div class="user-menu" tabindex="0">
+          <button class="user-badge-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            <div class="avatar">
+              {% if current_user.profile_photo %}
+              <img src="{{ current_user.profile_photo }}" alt="{{ current_user.full_name }}">
+              {% else %}
+              {{ current_user.full_name[:1].upper() }}
               {% endif %}
-              <a href="{{ url_for('chat.inbox') }}" class="dropdown-item" style="display: flex; align-items: center; justify-content: space-between;">
-                <span>Messages</span>
-                {% if unread_messages_count and unread_messages_count > 0 %}
-                  <span class="unread-badge">{{ unread_messages_count }}</span>
-                {% endif %}
-              </a>
-              <a href="{{ url_for('notifications.index') }}" class="dropdown-item" style="display: flex; align-items: center; justify-content: space-between;">
-                <span>Notifications</span>
-                {% if unread_notifications_count and unread_notifications_count > 0 %}
-                  <span class="unread-badge" style="background: var(--danger);">{{ unread_notifications_count }}</span>
-                {% endif %}
-              </a>
-
-              <div class="dropdown-divider"></div>
-              <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color: var(--danger);">
-                Sign Out
-              </a>
             </div>
+            <span>{{ current_user.full_name.split()[0] }}</span>
+            <span class="badge badge-{{ current_user.role }}">{{ current_user.role }}</span>
+          </button>
+
+          <div class="dropdown-panel">
+            <div class="dropdown-header">
+              <div class="dropdown-name">{{ current_user.full_name }}</div>
+              <div class="dropdown-email">{{ current_user.email }}</div>
+            </div>
+
+            {% if current_user.role == 'learner' %}
+            <a href="{{ url_for('learner.dashboard') }}" class="dropdown-item">My Dashboard</a>
+            <a href="{{ url_for('booking.history') }}" class="dropdown-item">Mentorship Sessions</a>
+            {% elif current_user.role == 'teacher' %}
+            <a href="{{ url_for('teacher.dashboard') }}" class="dropdown-item">Teacher Hub</a>
+            <a href="{{ url_for('booking.history') }}" class="dropdown-item">Session Bookings</a>
+            {% elif current_user.role == 'admin' %}
+            <a href="{{ url_for('admin.dashboard') }}" class="dropdown-item">Admin Console</a>
+            <a href="{{ url_for('admin.report_list') }}" class="dropdown-item">Report Admin</a>
+            <a href="{{ url_for('admin.refund_list') }}" class="dropdown-item">Refund Queue</a>
+            {% endif %}
+            <a href="{{ url_for('chat.inbox') }}" class="dropdown-item"
+              style="display: flex; align-items: center; justify-content: space-between;">
+              <span>Messages</span>
+              {% if unread_messages_count and unread_messages_count > 0 %}
+              <span class="unread-badge">{{ unread_messages_count }}</span>
+              {% endif %}
+            </a>
+            <a href="{{ url_for('notifications.index') }}" class="dropdown-item"
+              style="display: flex; align-items: center; justify-content: space-between;">
+              <span>Notifications</span>
+              {% if unread_notifications_count and unread_notifications_count > 0 %}
+              <span class="unread-badge" style="background: var(--danger);">{{ unread_notifications_count }}</span>
+              {% endif %}
+            </a>
+
+            <div class="dropdown-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color: var(--danger);">
+              Sign Out
+            </a>
           </div>
+        </div>
         {% else %}
-          <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Sign In</a>
-          <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Get Started</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Sign In</a>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Get Started</a>
         {% endif %}
       </div>
     </div>
@@ -111,16 +115,18 @@
 
   <!-- Flash Toast Notifications -->
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="flash-container" id="flash-container">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category if category in ['success', 'danger', 'warning', 'info'] else 'info' }}" role="alert">
-            <span>{{ message }}</span>
-            <button type="button" class="alert-close" onclick="this.parentElement.remove()" aria-label="Close">&times;</button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
+  {% if messages %}
+  <div class="flash-container" id="flash-container">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category if category in ['success', 'danger', 'warning', 'info'] else 'info' }}"
+      role="alert">
+      <span>{{ message }}</span>
+      <button type="button" class="alert-close" onclick="this.parentElement.remove()"
+        aria-label="Close">&times;</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
   {% endwith %}
 
   <!-- Main Content Body -->
@@ -135,13 +141,13 @@
         <!-- Brand Column -->
         <div class="footer-col footer-brand-col">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-            <img src="{{ url_for('static', filename='images/logo-navbar.png') }}"
-                 alt="SkillBridge" class="footer-logo">
+            <img src="{{ url_for('static', filename='images/logo-navbar.png') }}" alt="SkillBridge" class="footer-logo">
             <div>
               <strong style="font-family: var(--font-heading); font-size: 1.15rem;">SkillBridge</strong>
             </div>
           </div>
-          <p class="footer-tagline">Peer-to-Peer Learning &amp; Mentorship Platform. Learn from verified mentors, master new skills, and grow your career.</p>
+          <p class="footer-tagline">Peer-to-Peer Learning &amp; Mentorship Platform. Learn from verified mentors, master
+            new skills, and grow your career.</p>
         </div>
 
         <!-- Platform Column -->
@@ -162,13 +168,13 @@
             <li><a href="{{ url_for('index') }}#faq">FAQ</a></li>
             <li><a href="{{ url_for('auth.login') }}">Sign In</a></li>
             <li><a href="mailto:nkrishal21@gmail.com">nkrishal21@gmail.com</a></li>
-            <li><a href="tel:+9779866651358">+977 986-665-1358</a></li>
+            <li><a href="tel:+9779866651358">+977 9866651358</a></li>
           </ul>
         </div>
       </div>
 
       <div class="footer-bottom">
-        &copy; 2026 SkillBridge. All rights reserved.
+        &copy; 2026 SkillBridge. All rights reserved. &middot; Developed by Krishal Neupane
       </div>
     </div>
   </footer>
@@ -186,4 +192,5 @@
   </script>
   {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>
